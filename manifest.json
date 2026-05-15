@@ -2,25 +2,25 @@
   "name": "StudyBuddy",
   "short_name": "StudyBuddy",
   "description": "Your CA exam study companion — track progress, practice MCQs, and build Habit & Consistency.",
-  "start_url": "/index.html",
+  "start_url": "/studybuddy/index.html",
+  "scope": "/studybuddy/",
   "display": "fullscreen",
   "background_color": "#1a1a4e",
   "theme_color": "#2D5BE3",
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "logo.png",
+      "src": "/studybuddy/logo.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "logo.png",
+      "src": "/studybuddy/logo.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
     }
   ],
-  "categories": ["education", "productivity"],
-  "screenshots": []
+  "categories": ["education", "productivity"]
 }

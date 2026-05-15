@@ -1,26 +1,26 @@
 // StudyBuddy Service Worker
 const CACHE_NAME = 'studybuddy-v1';
 
-// Files to cache for offline shell
+// Files to cache for offline shell — relative paths work for any subdirectory
 const PRECACHE = [
-  '/',
-  '/index.html',
-  '/css/global.css',
-  '/css/auth.css',
-  '/css/student.css',
-  '/css/admin.css',
-  '/js/firebase-config.js',
-  '/js/utils/modal.js',
-  '/js/utils/email.js',
-  '/manifest.json',
-  '/logo.png',
-  '/assets/images/icons/home6.png',
-  '/assets/images/icons/home9.png',
-  '/assets/images/icons/home10.png',
-  '/assets/images/icons/quick.png',
-  '/assets/images/icons/revision.png',
-  '/assets/images/icons/answer.png',
-  '/assets/images/icons/cac.png'
+  './',
+  './index.html',
+  './css/global.css',
+  './css/auth.css',
+  './css/student.css',
+  './css/admin.css',
+  './js/firebase-config.js',
+  './js/utils/modal.js',
+  './js/utils/email.js',
+  './manifest.json',
+  './logo.png',
+  './assets/images/icons/home6.png',
+  './assets/images/icons/home9.png',
+  './assets/images/icons/home10.png',
+  './assets/images/icons/quick.png',
+  './assets/images/icons/revision.png',
+  './assets/images/icons/answer.png',
+  './assets/images/icons/cac.png'
 ];
 
 // ── Install: precache shell ──────────────────────────────────

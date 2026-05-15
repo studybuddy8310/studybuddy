@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>StudyBuddy — Students</title>
+  <link rel="stylesheet" href="../css/global.css"/>
+  <link rel="stylesheet" href="../css/admin.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => emailjs.init("Wvfl_ifH3R6tzLn26"));
+  </script>
+</head>
+<body>
+
+<div id="page-loader">
+  <div class="logo-text">📚 StudyBuddy</div>
+  <div class="spinner spinner-primary"></div>
+</div>
+<div id="toast-container"></div>
+
+<div class="admin-layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon">📚</div>
+      <div class="sidebar-logo-text">Study<span>Buddy</span></div>
+    </div>
+    <div class="sidebar-role" id="sidebar-role-label">Admin Panel</div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Main</div>
+      <a href="dashboard.html" class="nav-item">
+        <span class="nav-item-icon">🏠</span> Dashboard
+      </a>
+      <a href="users.html" class="nav-item active">
+        <span class="nav-item-icon">👥</span> Students
+        <span class="nav-badge hidden" id="pending-badge">0</span>
+      </a>
+      <div class="nav-section-label">Content</div>
+      <a href="structure.html" class="nav-item">
+        <span class="nav-item-icon">🗂️</span> Course Structure
+      </a>
+      <a href="materials.html" class="nav-item">
+        <span class="nav-item-icon">📄</span> Study Materials
+      </a>
+      <a href="tests.html" class="nav-item">
+        <span class="nav-item-icon">📝</span> Tests & MCQs
+      </a>
+      <a href="tips.html" class="nav-item">
+        <span class="nav-item-icon">💡</span> Tips & Ideas
+      </a>
+      <div class="nav-section-label">Communication</div>
+      <a href="communications.html" class="nav-item">
+        <span class="nav-item-icon">📧</span> Send Emails
+      </a>
+      <a href="schedule.html" class="nav-item">
+        <span class="nav-item-icon">📅</span> Exam Dates
+      </a>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="sidebar-user">
+        <div class="sidebar-avatar" id="sidebar-avatar">A</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name" id="sidebar-name">Admin</div>
+          <div class="sidebar-user-role" id="sidebar-role-tag">Admin</div>
+        </div>
+        <button class="btn-logout" id="btn-logout" title="Logout">🚪</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="admin-main">
+    <div class="topbar">
+      <div class="topbar-title">Student Management</div>
+      <div class="topbar-right">
+        <span class="topbar-date" id="topbar-date"></span>
+      </div>
+    </div>
+
+    <div class="page-content">
+
+      <!-- Page Tabs: Pending / All Students / Admins -->
+      <div class="page-tabs">
+        <button class="page-tab active" onclick="switchTab('pending')">
+          ⏳ Pending <span id="tab-pending-count"></span>
+        </button>
+        <button class="page-tab" onclick="switchTab('approved')">
+          ✅ Approved
+        </button>
+        <button class="page-tab" onclick="switchTab('all')">
+          👥 All Students
+        </button>
+        <button class="page-tab" onclick="switchTab('admins')">
+          🛡️ Admins
+        </button>
+        <button class="page-tab" onclick="switchTab('clearrequests')">
+          🗑️ Clear Requests <span id="tab-clear-count"></span>
+        </button>
+        <button class="page-tab" onclick="switchTab('courserequests')">
+          🎓 Course Change Requests <span id="tab-course-req-count"></span>
+        </button>
+      </div>
+
+      <!-- Filter Bar -->
+      <div class="filter-bar">
+        <div class="search-input-wrap">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="search-input" placeholder="Search by name, email or phone..."
+            oninput="filterTable()"/>
+        </div>
+        <select class="form-select" id="filter-course" onchange="filterTable()"
+          style="width:auto; min-width:160px;">
+          <option value="">All Courses</option>
+          <option value="CA">CA</option>
+          <option value="FRM">FRM</option>
+        </select>
+        <select class="form-select" id="filter-level" onchange="filterTable()"
+          style="width:auto; min-width:180px;">
+          <option value="">All Levels</option>
+          <option value="CA-Foundation">CA Foundation</option>
+          <option value="CA-Intermediate">CA Intermediate</option>
+          <option value="CA-Final">CA Final</option>
+          <option value="FRM-I">FRM Part I</option>
+          <option value="FRM-II">FRM Part II</option>
+        </select>
+      </div>
+
+      <!-- Table -->
+      <div class="table-wrap">
+        <div class="empty-state hidden" id="table-empty">
+          <div class="icon">📋</div>
+          <h3 id="empty-title">No students found</h3>
+          <p id="empty-sub">Try changing your filters.</p>
+        </div>
+        <table id="main-table">
+          <thead>
+            <tr>
+              <th>Student</th>
+              <th>Phone</th>
+              <th>Course & Level</th>
+              <th>Registered</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="main-tbody"></tbody>
+        </table>
+      </div>
+
+      <!-- Clear Requests Panel -->
+      <div id="clear-requests-panel" style="display:none;">
+        <div id="clear-requests-list">
+          <div class="empty-state" id="clear-empty" style="display:none;">
+            <div class="icon">🗑️</div>
+            <h3>No pending clear requests</h3>
+            <p>Students haven't requested any data clears yet.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Course Change Requests Panel -->
+      <div id="course-requests-panel" style="display:none;">
+        <div id="course-requests-list">
+          <div class="empty-state" id="course-req-empty">
+            <div class="icon">🎓</div>
+            <h3>No pending course change requests</h3>
+            <p>Students haven't requested any course changes yet.</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- Reject Modal -->
+<div class="modal-overlay hidden" id="reject-modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">Reject Student</div>
+      <button class="btn-modal-close" onclick="closeRejectModal()">✕</button>
+    </div>
+    <p class="text-secondary fs-14 mb-16">Optionally provide a reason. Student will be notified.</p>
+    <div class="form-group">
+      <label class="form-label">Reason (optional)</label>
+      <textarea id="reject-reason" class="form-input" rows="3"
+        placeholder="e.g. Not enrolled in our classes..."
+        style="resize:vertical;"></textarea>
+    </div>
+    <div class="flex flex-gap-12 mt-16">
+      <button class="btn btn-outline" onclick="closeRejectModal()">Cancel</button>
+      <button class="btn btn-danger"  onclick="confirmReject()">Confirm Reject</button>
+    </div>
+  </div>
+</div>
+
+<!-- View Student Modal -->
+<div class="modal-overlay hidden" id="view-modal">
+  <div class="modal-box" style="max-width:520px;">
+    <div class="modal-header">
+      <div class="modal-title">Student Details</div>
+      <button class="btn-modal-close" onclick="closeViewModal()">✕</button>
+    </div>
+    <div id="view-content"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script>document.addEventListener('DOMContentLoaded',()=>emailjs.init("Wvfl_ifH3R6tzLn26"));</script>
+<script type="module">
+  import { auth, db, EMAILJS_CONFIG } from '../js/firebase-config.js';
+  import { onAuthStateChanged, signOut }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import { Modal } from '../js/utils/modal.js';
+  import { collection, query, where, orderBy,
+    getDocs, doc, updateDoc, serverTimestamp, getDoc,
+    deleteDoc, writeBatch, setDoc }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  // ── State ──────────────────────────────────────────────────
+  let allUsers         = [];
+  let currentTab       = 'pending';
+  let currentRejectUid = null;
+
+  // ── Toast ──────────────────────────────────────────────────
+  function showToast(msg, type = 'info') {
+    const c = document.getElementById('toast-container');
+    const t = document.createElement('div');
+    t.className = `toast toast-${type}`;
+    t.innerHTML = `<span>${{success:'✅',error:'❌',info:'ℹ️'}[type]}</span> ${msg}`;
+    c.appendChild(t); setTimeout(() => t.remove(), 4000);
+  }
+
+  // ── Date ───────────────────────────────────────────────────
+  document.getElementById('topbar-date').textContent =
+    new Date().toLocaleDateString('en-IN',
+      { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+
+  // ── Auth Guard ─────────────────────────────────────────────
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) { window.location.href = '../index.html'; return; }
+    const snap = await getDoc(doc(db, 'users', user.uid));
+    if (!snap.exists()) { window.location.href = '../index.html'; return; }
+    const data = snap.data();
+    if (data.role !== 'admin' && data.role !== 'superadmin') {
+      window.location.href = '../index.html'; return;
+    }
+    document.getElementById('sidebar-avatar').textContent =
+      (data.firstName[0]+data.lastName[0]).toUpperCase();
+    document.getElementById('sidebar-name').textContent =
+      data.firstName+' '+data.lastName;
+    document.getElementById('sidebar-role-tag').textContent =
+      data.role === 'superadmin' ? '👑 Super Admin' : '🛡️ Admin';
+    document.getElementById('sidebar-role-label').textContent =
+      data.role === 'superadmin' ? '👑 Super Admin Panel' : '🛡️ Admin Panel';
+
+    document.getElementById('page-loader').classList.add('hidden');
+    await loadAllUsers();
+  });
+
+  // ── Logout ─────────────────────────────────────────────────
+  document.getElementById('btn-logout').addEventListener('click', async () => {
+    await signOut(auth); window.location.href = '../index.html';
+  });
+
+  // ── Load All Users from Firestore ──────────────────────────
+  async function loadAllUsers() {
+    const snap = await getDocs(
+      query(collection(db, 'users'), orderBy('createdAt', 'desc'))
+    );
+    allUsers = [];
+    snap.forEach(d => allUsers.push({ uid: d.id, ...d.data() }));
+
+    // Count pending for badge & tab
+    const pendingCount = allUsers.filter(
+      u => u.role === 'student' && u.status === 'pending'
+    ).length;
+    if (pendingCount > 0) {
+      const b = document.getElementById('pending-badge');
+      b.textContent = pendingCount;
+      b.classList.remove('hidden');
+      document.getElementById('tab-pending-count').textContent = `(${pendingCount})`;
+    }
+
+    // Count pending course change requests
+    try {
+      const crSnap = await getDocs(query(
+        collection(db, 'courseChangeRequests'), where('status','==','pending')
+      ));
+      if (crSnap.size > 0) {
+        document.getElementById('tab-course-req-count').textContent = `(${crSnap.size})`;
+      }
+    } catch(e) { /* collection may not exist yet */ }
+
+    renderTable();
+  }
+
+  // ── Switch Tab ─────────────────────────────────────────────
+  window.switchTab = function(tab) {
+    currentTab = tab;
+    document.querySelectorAll('.page-tab').forEach((t, i) => {
+      t.classList.toggle('active',
+        ['pending','approved','all','admins','clearrequests','courserequests'][i] === tab);
+    });
+    document.getElementById('search-input').value = '';
+    const isClear  = tab === 'clearrequests';
+    const isCourse = tab === 'courserequests';
+    const isSpecial = isClear || isCourse;
+    document.getElementById('clear-requests-panel').style.display  = isClear  ? 'block' : 'none';
+    document.getElementById('course-requests-panel').style.display = isCourse ? 'block' : 'none';
+    document.querySelector('.table-wrap').style.display = isSpecial ? 'none' : '';
+    const filterBar = document.querySelector('.filter-bar');
+    if(filterBar) filterBar.style.display = isSpecial ? 'none' : '';
+    if(isClear)  loadClearRequests();
+    else if(isCourse) loadCourseChangeRequests();
+    else renderTable();
+  };
+
+  // ── Filter ─────────────────────────────────────────────────
+  window.filterTable = renderTable;
+
+  // ── Render Table ───────────────────────────────────────────
+  function renderTable() {
+    const search  = document.getElementById('search-input').value.toLowerCase();
+    const course  = document.getElementById('filter-course').value;
+    const level   = document.getElementById('filter-level').value;
+    const tbody   = document.getElementById('main-tbody');
+    tbody.innerHTML = '';
+
+    // Filter by tab
+    let filtered = allUsers.filter(u => {
+      if (currentTab === 'pending')  return u.role === 'student' && u.status === 'pending';
+      if (currentTab === 'approved') return u.role === 'student' && u.status === 'approved';
+      if (currentTab === 'all')      return u.role === 'student';
+      if (currentTab === 'admins')   return u.role === 'admin' || u.role === 'superadmin';
+      return true;
+    });
+
+    // Filter by search
+    if (search) {
+      filtered = filtered.filter(u =>
+        (u.firstName+' '+u.lastName).toLowerCase().includes(search) ||
+        (u.email||'').toLowerCase().includes(search) ||
+        (u.phone||'').includes(search)
+      );
+    }
+
+    // Filter by course/level
+    if (course) filtered = filtered.filter(u => u.course === course);
+    if (level)  filtered = filtered.filter(u => u.level  === level);
+
+    // Empty state
+    if (!filtered.length) {
+      document.getElementById('main-table').style.display = 'none';
+      document.getElementById('table-empty').classList.remove('hidden');
+      const emptyTitles = {
+        pending:  'No pending approvals 🎉',
+        approved: 'No approved students yet',
+        all:      'No students found',
+        admins:   'No admins found'
+      };
+      document.getElementById('empty-title').textContent = emptyTitles[currentTab] || 'No results';
+      document.getElementById('empty-sub').textContent =
+        search ? 'Try a different search term.' : 'Nothing here yet.';
+      return;
+    }
+
+    document.getElementById('main-table').style.display = '';
+    document.getElementById('table-empty').classList.add('hidden');
+
+    filtered.forEach(u => {
+      const date = u.createdAt
+        ? u.createdAt.toDate().toLocaleDateString('en-IN') : '—';
+      const ini  = ((u.firstName||'?')[0]+(u.lastName||'?')[0]).toUpperCase();
+
+      // Status badge
+      const statusBadge =
+        u.status === 'approved' ? '<span class="badge badge-success">✅ Approved</span>' :
+        u.status === 'pending'  ? '<span class="badge badge-warning">⏳ Pending</span>'  :
+        u.status === 'rejected'  ? '<span class="badge badge-danger">❌ Rejected</span>'  :
+        u.status === 'disabled' ? '<span class="badge" style="background:#FFF3CD;color:#856404;">🚫 Disabled</span>' :
+        u.role   === 'superadmin' ? '<span class="badge badge-info">👑 Super Admin</span>' :
+        '<span class="badge badge-neutral">—</span>';
+
+      // Action buttons based on status
+      let actions = '';
+      if (u.status === 'pending') {
+        actions = `
+          <button class="btn-approve"
+            onclick="approveStudent('${u.uid}','${u.email}','${u.firstName}','${u.course}','${u.level}')">
+            ✅ Approve
+          </button>
+          <button class="btn-reject" onclick="openRejectModal('${u.uid}')">
+            ❌ Reject
+          </button>`;
+      } else if (u.status === 'approved') {
+        actions = `
+          <button class="btn-approve" style="background:var(--warning-light);color:#8A5F00;"
+            onclick="disableStudent('\${u.uid}','\${u.email}','\${u.firstName}')">
+            🚫 Disable
+          </button>
+          <button class="btn-reject" onclick="openRejectModal('\${u.uid}')">
+            ❌ Revoke
+          </button>`;
+      } else if (u.status === 'disabled') {
+        actions = `
+          <button class="btn-approve"
+            onclick="enableStudent('\${u.uid}','\${u.email}','\${u.firstName}')">
+            ✅ Enable
+          </button>`;
+      } else if (u.status === 'rejected') {
+        actions = `
+          <button class="btn-approve"
+            onclick="approveStudent('\${u.uid}','\${u.email}','\${u.firstName}','\${u.course||''}','\${u.level||''}')">
+            ✅ Re-approve
+          </button>`;
+      }
+
+      // Course/level column (hide for admins tab)
+      const courseCol = currentTab === 'admins'
+        ? `<td><span class="badge badge-info">${u.role}</span></td>`
+        : `<td>
+            <span class="badge badge-info">${u.course||'—'}</span>&nbsp;
+            <span class="badge badge-neutral">${u.level||'—'}</span>
+           </td>`;
+
+      tbody.innerHTML += `
+        <tr id="row-${u.uid}">
+          <td>
+            <div class="student-cell">
+              <div class="student-avatar">${ini}</div>
+              <div>
+                <div class="student-name">${u.firstName} ${u.lastName}</div>
+                <div class="student-email">${u.email}</div>
+              </div>
+            </div>
+          </td>
+          <td>${u.phone||'—'}</td>
+          ${courseCol}
+          <td class="text-secondary">${date}</td>
+          <td>${statusBadge}</td>
+          <td>
+            <div class="action-btns">
+              ${actions}
+              <button class="btn btn-outline btn-sm"
+                onclick="viewStudent('${u.uid}')">👁 View</button>
+            </div>
+          </td>
+        </tr>`;
+    });
+  }
+
+  // ── Approve ────────────────────────────────────────────────
+  window.approveStudent = async function(uid, email, firstName, course, level) {
+    try {
+      await updateDoc(doc(db, 'users', uid), {
+        status: 'approved', approvedAt: serverTimestamp()
+      });
+      await emailjs.send(EMAILJS_CONFIG.serviceId, EMAILJS_CONFIG.templateId, {
+        to_email: email, student_name: firstName,
+        subject:  'StudyBuddy — Your Account is Approved! 🎉',
+        message:  `Great news! Your StudyBuddy account has been approved.\n\nYou can now login and start your ${course} ${level} journey!\n\nLogin: https://studybuddy8310.github.io/studybuddy\n\nBest of luck!\n— Team StudyBuddy`
+      }, EMAILJS_CONFIG.publicKey);
+
+      // Update local state
+      const u = allUsers.find(x => x.uid === uid);
+      if (u) u.status = 'approved';
+
+      showToast(`${firstName} approved! Email sent. ✅`, 'success');
+      renderTable();
+    } catch(e) {
+      showToast('Failed to approve. Try again.', 'error');
+      console.error(e);
+    }
+  };
+
+  // ── Reject Modal ───────────────────────────────────────────
+  window.openRejectModal = function(uid) {
+    currentRejectUid = uid;
+    document.getElementById('reject-reason').value = '';
+    document.getElementById('reject-modal').classList.remove('hidden');
+  };
+  window.closeRejectModal = function() {
+    document.getElementById('reject-modal').classList.add('hidden');
+    currentRejectUid = null;
+  };
+  window.confirmReject = async function() {
+    // Uses modal from openRejectModal flow — no confirm needed
+    if (!currentRejectUid) return;
+    const reason = document.getElementById('reject-reason').value.trim();
+    const u = allUsers.find(x => x.uid === currentRejectUid);
+    if (!u) return;
+    try {
+      await updateDoc(doc(db, 'users', currentRejectUid), {
+        status: 'rejected', rejectedAt: serverTimestamp(), rejectReason: reason
+      });
+      await emailjs.send(EMAILJS_CONFIG.serviceId, EMAILJS_CONFIG.templateId, {
+        to_email: u.email, student_name: u.firstName,
+        subject:  'StudyBuddy — Account Registration Update',
+        message:  `We regret to inform you that your account was not approved.\n\n${reason ? 'Reason: '+reason+'\n\n':''}Contact your admin for more info.\n\n— Team StudyBuddy`
+      }, EMAILJS_CONFIG.publicKey);
+
+      u.status = 'rejected';
+      closeRejectModal();
+      showToast('Student rejected. Email sent.', 'info');
+      renderTable();
+    } catch(e) {
+      showToast('Failed. Try again.', 'error');
+      console.error(e);
+    }
+  };
+
+  // ── View Student Modal ─────────────────────────────────────
+  window.viewStudent = function(uid) {
+    const u = allUsers.find(x => x.uid === uid);
+    if (!u) return;
+    const date = u.createdAt ? u.createdAt.toDate().toLocaleDateString('en-IN') : '—';
+    const ini  = ((u.firstName||'?')[0]+(u.lastName||'?')[0]).toUpperCase();
+
+    document.getElementById('view-content').innerHTML = `
+      <div style="display:flex; align-items:center; gap:16px; margin-bottom:24px;">
+        <div class="sidebar-avatar" style="width:56px;height:56px;font-size:22px;border-radius:16px;">
+          ${ini}
+        </div>
+        <div>
+          <div style="font-size:18px;font-weight:700;">${u.firstName} ${u.lastName}</div>
+          <div class="text-secondary fs-13">${u.email}</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="card" style="padding:14px;">
+          <div class="fs-12 text-muted">Phone</div>
+          <div class="fw-600">${u.phone||'—'}</div>
+        </div>
+        <div class="card" style="padding:14px;">
+          <div class="fs-12 text-muted">Course</div>
+          <div class="fw-600">${u.course||'—'}</div>
+        </div>
+        <div class="card" style="padding:14px;">
+          <div class="fs-12 text-muted">Level</div>
+          <div class="fw-600">${u.level||'—'}</div>
+        </div>
+        <div class="card" style="padding:14px;">
+          <div class="fs-12 text-muted">Registered On</div>
+          <div class="fw-600">${date}</div>
+        </div>
+        <div class="card" style="padding:14px;">
+          <div class="fs-12 text-muted">Status</div>
+          <div class="fw-600">${u.status||'—'}</div>
+        </div>
+        <div class="card" style="padding:14px;">
+          <div class="fs-12 text-muted">Role</div>
+          <div class="fw-600">${u.role||'—'}</div>
+        </div>
+      </div>`;
+    document.getElementById('view-modal').classList.remove('hidden');
+  };
+  window.closeViewModal = function() {
+    document.getElementById('view-modal').classList.add('hidden');
+  };
+
+  // ── Disable Student ────────────────────────────────────────
+  window.disableStudent = async function(uid, email, firstName) {
+    const reason = await Modal.prompt(
+      'Disable Account',
+      `Temporarily disable ${firstName}'s access. They can be re-enabled anytime.`,
+      'Reason for disabling (optional)'
+    );
+    if (reason === null) return; // cancelled
+    try {
+      await updateDoc(doc(db, 'users', uid), {
+        status: 'disabled', disabledAt: serverTimestamp(), disableReason: reason
+      });
+      await emailjs.send(EMAILJS_CONFIG.serviceId, EMAILJS_CONFIG.templateId, {
+        to_email: email, student_name: firstName,
+        subject:  'StudyBuddy — Account Temporarily Disabled',
+        message:  `Your StudyBuddy account has been temporarily disabled.\n\n${reason ? 'Reason: '+reason+'\n\n' : ''}Please contact your admin for more information.\n\n— Team StudyBuddy`
+      }, EMAILJS_CONFIG.publicKey);
+      const u = allUsers.find(x => x.uid === uid);
+      if (u) u.status = 'disabled';
+      showToast(`${firstName}'s account disabled. Email sent.`, 'info');
+      renderTable();
+    } catch(e) { showToast('Failed. Try again.', 'error'); console.error(e); }
+  };
+
+  // ── Enable Student ─────────────────────────────────────────
+  window.enableStudent = async function(uid, email, firstName) {
+    const yes = await Modal.confirm(
+      'Enable Account',
+      `Re-enable ${firstName}'s access to StudyBuddy? They will be notified by email.`,
+      'Enable'
+    );
+    if (!yes) return;
+    try {
+      await updateDoc(doc(db, 'users', uid), {
+        status: 'approved', enabledAt: serverTimestamp()
+      });
+      await emailjs.send(EMAILJS_CONFIG.serviceId, EMAILJS_CONFIG.templateId, {
+        to_email: email, student_name: firstName,
+        subject:  'StudyBuddy — Account Re-enabled ✅',
+        message:  `Good news! Your StudyBuddy account has been re-enabled.\n\nYou can now login and continue your studies!\n\nLogin: https://studybuddy8310.github.io/studybuddy\n\n— Team StudyBuddy`
+      }, EMAILJS_CONFIG.publicKey);
+      const u = allUsers.find(x => x.uid === uid);
+      if (u) u.status = 'approved';
+      showToast(`${firstName}'s account enabled! Email sent.`, 'success');
+      renderTable();
+    } catch(e) { showToast('Failed. Try again.', 'error'); console.error(e); }
+  };
+
+
+  // ── Clear Requests ─────────────────────────────────────────
+  let allClearRequests = [];
+
+  async function loadClearRequests() {
+    const list = document.getElementById('clear-requests-list');
+    list.innerHTML = '<div style="padding:24px;color:var(--text-muted);text-align:center;">⏳ Loading...</div>';
+    try {
+      const snap = await getDocs(
+        query(collection(db,'clearRequests'), orderBy('requestedAt','desc'))
+      );
+      allClearRequests = [];
+      snap.forEach(d => allClearRequests.push({ id: d.id, ...d.data() }));
+
+      // Count pending
+      const pendingCount = allClearRequests.filter(r => r.status === 'pending').length;
+      document.getElementById('tab-clear-count').textContent =
+        pendingCount > 0 ? `(${pendingCount})` : '';
+
+      if (!allClearRequests.length) {
+        list.innerHTML = `<div class="empty-state"><div class="icon">🗑️</div><h3>No clear requests yet</h3><p>Students haven't requested any data clears.</p></div>`;
+        return;
+      }
+      renderClearRequests();
+    } catch(e) {
+      list.innerHTML = '<div style="padding:24px;color:var(--danger);text-align:center;">❌ Failed to load requests.</div>';
+      console.error(e);
+    }
+  }
+
+  function renderClearRequests() {
+    const list = document.getElementById('clear-requests-list');
+    if (!allClearRequests.length) {
+      list.innerHTML = `<div class="empty-state"><div class="icon">🗑️</div><h3>No clear requests yet</h3></div>`;
+      return;
+    }
+    list.innerHTML = allClearRequests.map(r => {
+      const date = r.requestedAt
+        ? r.requestedAt.toDate().toLocaleString('en-IN',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})
+        : '—';
+      const typeLabels = {
+        progress:    '📊 Progress Checklist',
+        mcqScores:   '✏️ MCQ Scores (Normal + Case Study)',
+        mockResults: '📝 Mock Test Results'
+      };
+      const types = (r.types || []).map(t => `<span style="display:inline-block;padding:2px 8px;border-radius:12px;background:var(--primary-light);color:var(--primary);font-size:11px;font-weight:600;margin:2px;">${typeLabels[t]||t}</span>`).join(' ');
+      const statusBadge = r.status === 'pending'
+        ? '<span class="badge badge-warning">⏳ Pending</span>'
+        : r.status === 'approved'
+          ? '<span class="badge badge-success">✅ Approved</span>'
+          : '<span class="badge badge-danger">❌ Rejected</span>';
+      const actions = r.status === 'pending' ? `
+        <button class="btn-approve" onclick="approveClearRequest('${r.id}','${r.uid}')">
+          ✅ Approve & Clear
+        </button>
+        <button class="btn-reject" onclick="rejectClearRequest('${r.id}')">
+          ❌ Reject
+        </button>` : '';
+      return `
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 20px;margin-bottom:12px;">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+            <div>
+              <div style="font-weight:700;font-size:14px;margin-bottom:2px;">${r.studentName||'Unknown'}</div>
+              <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">${r.studentEmail||''} &nbsp;·&nbsp; ${r.level||''} &nbsp;·&nbsp; ${date}</div>
+              <div style="margin-bottom:8px;">${types}</div>
+              ${r.note ? `<div style="font-size:12px;color:var(--text-secondary);font-style:italic;">📝 "${r.note}"</div>` : ''}
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
+              ${statusBadge}
+              <div class="action-btns">${actions}</div>
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  window.approveClearRequest = async function(requestId, studentUid) {
+    const req = allClearRequests.find(r => r.id === requestId);
+    if (!req) return;
+    const yes = await Modal.danger(
+      'Approve & Clear Data?',
+      `This will permanently delete the selected data for ${req.studentName}. This cannot be undone.`,
+      'Yes, Clear Data'
+    );
+    if (!yes) return;
+    try {
+      const batch = writeBatch(db);
+
+      // 1. Clear Progress checklist
+      if (req.types.includes('progress')) {
+        const papersSnap = await getDocs(
+          collection(db, 'courseStructure', req.level, 'papers')
+        );
+        for (const pd of papersSnap.docs) {
+          const chapSnap = await getDocs(
+            collection(db, 'progress', studentUid, 'papers', pd.id, 'chapters')
+          );
+          chapSnap.forEach(cd => batch.delete(cd.ref));
+        }
+      }
+
+      // 2. Clear MCQ Scores (normal chapters + case studies)
+      if (req.types.includes('mcqScores')) {
+        const papersSnap = await getDocs(
+          collection(db, 'mcqScores', studentUid, 'papers')
+        );
+        for (const pd of papersSnap.docs) {
+          // chapters
+          const chapSnap = await getDocs(
+            collection(db, 'mcqScores', studentUid, 'papers', pd.id, 'chapters')
+          );
+          chapSnap.forEach(cd => batch.delete(cd.ref));
+          // case studies
+          const caseSnap = await getDocs(
+            collection(db, 'mcqScores', studentUid, 'papers', pd.id, 'caseStudies')
+          );
+          caseSnap.forEach(cd => batch.delete(cd.ref));
+          batch.delete(pd.ref);
+        }
+      }
+
+      // 3. Clear Mock Test Results
+      if (req.types.includes('mockResults')) {
+        const resultsSnap = await getDocs(
+          collection(db, 'mockResults', studentUid, 'tests')
+        );
+        resultsSnap.forEach(d => batch.delete(d.ref));
+      }
+
+      await batch.commit();
+
+      // Update request status
+      await updateDoc(doc(db, 'clearRequests', requestId), {
+        status: 'approved',
+        approvedAt: serverTimestamp()
+      });
+
+      showToast(`Data cleared for ${req.studentName} ✅`, 'success');
+      loadClearRequests();
+    } catch(e) {
+      showToast('Failed to clear data. Try again.', 'error');
+      console.error(e);
+    }
+  };
+
+  window.rejectClearRequest = async function(requestId) {
+    const req = allClearRequests.find(r => r.id === requestId);
+    if (!req) return;
+    const yes = await Modal.confirm(
+      'Reject Request?',
+      `Reject ${req.studentName}'s data clear request? No data will be deleted.`,
+      'Reject'
+    );
+    if (!yes) return;
+    try {
+      await updateDoc(doc(db, 'clearRequests', requestId), {
+        status: 'rejected',
+        rejectedAt: serverTimestamp()
+      });
+      showToast('Request rejected.', 'info');
+      loadClearRequests();
+    } catch(e) {
+      showToast('Failed. Try again.', 'error');
+    }
+  };
+
+
+  // ── Course Change Requests ──────────────────────────────────
+  let allCourseRequests = [];
+
+  async function loadCourseChangeRequests() {
+    const list = document.getElementById('course-requests-list');
+    list.innerHTML = '<div style="padding:24px;color:var(--text-muted);text-align:center;">⏳ Loading...</div>';
+    try {
+      const snap = await getDocs(
+        query(collection(db,'courseChangeRequests'), orderBy('requestedAt','desc'))
+      );
+      allCourseRequests = [];
+      snap.forEach(d => allCourseRequests.push({ id: d.id, ...d.data() }));
+
+      const pendingCount = allCourseRequests.filter(r => r.status === 'pending').length;
+      document.getElementById('tab-course-req-count').textContent =
+        pendingCount > 0 ? `(${pendingCount})` : '';
+
+      if (!allCourseRequests.length) {
+        list.innerHTML = `<div class="empty-state"><div class="icon">🎓</div><h3>No course change requests yet</h3><p>Students haven't requested any course changes.</p></div>`;
+        return;
+      }
+      renderCourseRequests();
+    } catch(e) {
+      list.innerHTML = '<div style="padding:24px;color:var(--danger);text-align:center;">❌ Failed to load requests.</div>';
+      console.error(e);
+    }
+  }
+
+  function renderCourseRequests() {
+    const list = document.getElementById('course-requests-list');
+    list.innerHTML = allCourseRequests.map(r => {
+      const date = r.requestedAt
+        ? r.requestedAt.toDate().toLocaleString('en-IN',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})
+        : '—';
+      const statusBadge = r.status === 'pending'
+        ? '<span class="badge badge-warning">⏳ Pending</span>'
+        : r.status === 'approved'
+          ? '<span class="badge badge-success">✅ Approved</span>'
+          : '<span class="badge badge-danger">❌ Rejected</span>';
+      const actions = r.status === 'pending' ? `
+        <button class="btn-approve" onclick="approveCourseRequest('${r.id}')">
+          ✅ Approve
+        </button>
+        <button class="btn-reject" onclick="rejectCourseRequest('${r.id}')">
+          ❌ Reject
+        </button>` : '';
+      return `
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 20px;margin-bottom:12px;">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+            <div>
+              <div style="font-weight:700;font-size:14px;margin-bottom:2px;">${r.studentName||'Unknown'}</div>
+              <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">${r.studentEmail||''} &nbsp;·&nbsp; ${date}</div>
+              <div style="font-size:13px;margin-bottom:6px;">
+                <span style="color:var(--text-secondary);">Current:</span>
+                <strong>${r.currentCourse||''} — ${r.currentLevel||''}</strong>
+                &nbsp;→&nbsp;
+                <span style="color:var(--text-secondary);">Requested:</span>
+                <strong style="color:var(--primary);">${r.requestedLevel||''}</strong>
+              </div>
+              ${r.reason ? `<div style="font-size:12px;color:var(--text-secondary);font-style:italic;">📝 "${r.reason}"</div>` : ''}
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
+              ${statusBadge}
+              <div class="action-btns">${actions}</div>
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  window.approveCourseRequest = async function(requestId) {
+    const req = allCourseRequests.find(r => r.id === requestId);
+    if (!req) return;
+    const yes = await Modal.confirm(
+      'Approve Course Change?',
+      `Update ${req.studentName}'s course from "${req.currentCourse} — ${req.currentLevel}" to "${req.requestedLevel}"?`,
+      'Approve'
+    );
+    if (!yes) return;
+    try {
+      // Determine new course prefix from requestedLevel
+      let newCourse = req.currentCourse;
+      if (req.requestedLevel.startsWith('CA')) newCourse = 'CA';
+      else if (req.requestedLevel.startsWith('FRM')) newCourse = 'FRM';
+      else if (req.requestedLevel.startsWith('CFA')) newCourse = 'CFA';
+
+      await updateDoc(doc(db, 'users', req.uid), {
+        course: newCourse,
+        level:  req.requestedLevel,
+        updatedAt: serverTimestamp()
+      });
+      await updateDoc(doc(db, 'courseChangeRequests', requestId), {
+        status: 'approved',
+        approvedAt: serverTimestamp()
+      });
+
+      // Email student
+      await emailjs.send(EMAILJS_CONFIG.serviceId, EMAILJS_CONFIG.templateId, {
+        to_email:     req.studentEmail,
+        student_name: req.studentName.split(' ')[0],
+        subject:      'StudyBuddy — Course Change Approved! 🎓',
+        message:      `Great news! Your course change request has been approved.\n\nYour course has been updated to: ${newCourse} — ${req.requestedLevel}\n\nPlease login again to see your updated profile and dashboard.\n\nLogin: https://studybuddy8310.github.io/studybuddy\n\nBest of luck!\n— Team StudyBuddy`
+      }, EMAILJS_CONFIG.publicKey);
+
+      showToast(`${req.studentName}'s course updated! Email sent. ✅`, 'success');
+      loadCourseChangeRequests();
+    } catch(e) {
+      showToast('Failed. Try again.', 'error');
+      console.error(e);
+    }
+  };
+
+  window.rejectCourseRequest = async function(requestId) {
+    const req = allCourseRequests.find(r => r.id === requestId);
+    if (!req) return;
+    const yes = await Modal.confirm(
+      'Reject Course Change?',
+      `Reject ${req.studentName}'s request to change to "${req.requestedLevel}"?`,
+      'Reject'
+    );
+    if (!yes) return;
+    try {
+      await updateDoc(doc(db, 'courseChangeRequests', requestId), {
+        status: 'rejected',
+        rejectedAt: serverTimestamp()
+      });
+
+      // Email student
+      await emailjs.send(EMAILJS_CONFIG.serviceId, EMAILJS_CONFIG.templateId, {
+        to_email:     req.studentEmail,
+        student_name: req.studentName.split(' ')[0],
+        subject:      'StudyBuddy — Course Change Request Update',
+        message:      `We're sorry to inform you that your course change request has not been approved at this time.\n\nRequested change: ${req.currentCourse} — ${req.currentLevel} → ${req.requestedLevel}\n\nPlease contact your admin for more information.\n\n— Team StudyBuddy`
+      }, EMAILJS_CONFIG.publicKey);
+
+      showToast(`Request rejected. Email sent to ${req.studentName}.`, 'info');
+      loadCourseChangeRequests();
+    } catch(e) {
+      showToast('Failed. Try again.', 'error');
+      console.error(e);
+    }
+  };
+
+</script>
+</body>
+</html>

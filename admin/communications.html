@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>StudyBuddy — Send Emails</title>
+  <link rel="stylesheet" href="../css/global.css"/>
+  <link rel="stylesheet" href="../css/admin.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  <script>document.addEventListener('DOMContentLoaded',()=>emailjs.init("Wvfl_ifH3R6tzLn26"));</script>
+  <style>
+    .comm-layout { display:grid; grid-template-columns:1fr 380px; gap:24px; align-items:start; }
+    .compose-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:28px; }
+    .compose-card h3 { font-family:var(--font-heading); font-size:16px; font-weight:600; margin-bottom:20px; display:flex; align-items:center; gap:8px; }
+    .target-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:4px; }
+    .target-chip {
+      padding:10px; border-radius:var(--radius-md); border:2px solid var(--border);
+      background:var(--surface); text-align:center; cursor:pointer; transition:all 0.2s;
+      font-size:12px; font-weight:600; color:var(--text-secondary); font-family:var(--font-body);
+    }
+    .target-chip:hover  { border-color:var(--primary); color:var(--primary); background:var(--primary-light); }
+    .target-chip.active { border-color:var(--primary); background:var(--primary); color:#fff; }
+    .target-chip .icon  { font-size:20px; display:block; margin-bottom:4px; }
+    .recipient-count { font-size:12px; color:var(--text-muted); margin-bottom:16px; }
+    .email-preview {
+      background:var(--surface-2); border:1px solid var(--border); border-radius:var(--radius-md);
+      padding:16px; margin-top:16px; font-size:13px; line-height:1.7;
+    }
+    .email-preview-label { font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px; }
+    .email-preview-subject { font-weight:700; color:var(--text-primary); margin-bottom:6px; }
+    .email-preview-body { color:var(--text-secondary); white-space:pre-wrap; }
+
+    /* History panel */
+    .history-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:20px; }
+    .history-card h3 { font-family:var(--font-heading); font-size:15px; font-weight:600; margin-bottom:16px; }
+    .history-item { padding:12px 0; border-bottom:1px solid var(--border); }
+    .history-item:last-child { border-bottom:none; }
+    .history-item-subject { font-size:13px; font-weight:600; color:var(--text-primary); margin-bottom:3px; }
+    .history-item-meta { font-size:11px; color:var(--text-muted); }
+
+    /* Progress overlay */
+    .send-progress {
+      background:var(--primary-light); border:1px solid rgba(45,91,227,0.2);
+      border-radius:var(--radius-md); padding:14px 16px; margin-top:12px; display:none;
+    }
+    .send-progress.visible { display:block; }
+    .send-progress-bar-track { height:8px; background:rgba(45,91,227,0.15); border-radius:4px; overflow:hidden; margin:8px 0; }
+    .send-progress-bar-fill  { height:100%; background:var(--primary); border-radius:4px; transition:width 0.4s; }
+    .send-progress-text { font-size:12px; color:var(--primary); font-weight:600; }
+
+    @media(max-width:900px){ .comm-layout{grid-template-columns:1fr;} .target-grid{grid-template-columns:repeat(2,1fr);} }
+  </style>
+</head>
+<body>
+<div id="page-loader"><div class="logo-text">📚 StudyBuddy</div><div class="spinner spinner-primary"></div></div>
+<div id="toast-container"></div>
+
+<div class="admin-layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><div class="sidebar-logo-icon">📚</div><div class="sidebar-logo-text">Study<span>Buddy</span></div></div>
+    <div class="sidebar-role" id="sidebar-role-label">Admin Panel</div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Main</div>
+      <a href="dashboard.html" class="nav-item"><span class="nav-item-icon">🏠</span> Dashboard</a>
+      <a href="users.html" class="nav-item"><span class="nav-item-icon">👥</span> Students</a>
+      <div class="nav-section-label">Content</div>
+      <a href="structure.html" class="nav-item"><span class="nav-item-icon">🗂️</span> Course Structure</a>
+      <a href="materials.html" class="nav-item"><span class="nav-item-icon">📄</span> Study Materials</a>
+      <a href="tests.html" class="nav-item"><span class="nav-item-icon">📝</span> Tests & MCQs</a>
+      <a href="tips.html" class="nav-item"><span class="nav-item-icon">💡</span> Tips & Ideas</a>
+      <div class="nav-section-label">Communication</div>
+      <a href="communications.html" class="nav-item active"><span class="nav-item-icon">📧</span> Send Emails</a>
+      <a href="schedule.html" class="nav-item"><span class="nav-item-icon">📅</span> Exam Dates</a>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="sidebar-user">
+        <div class="sidebar-avatar" id="sidebar-avatar">A</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name" id="sidebar-name">Admin</div>
+          <div class="sidebar-user-role" id="sidebar-role-tag">Admin</div>
+        </div>
+        <button class="btn-logout" id="btn-logout">🚪</button>
+      </div>
+    </div>
+  </aside>
+
+  <main class="admin-main">
+    <div class="topbar">
+      <div class="topbar-title">Send Emails</div>
+      <div class="topbar-right"><span class="topbar-date" id="topbar-date"></span></div>
+    </div>
+
+    <div class="page-content">
+      <div class="comm-layout">
+
+        <!-- Compose -->
+        <div class="compose-card">
+          <h3>📧 Compose Email</h3>
+
+          <div class="form-group">
+            <label class="form-label">Send To</label>
+            <div class="target-grid" id="target-grid">
+              <button class="target-chip active" data-target="all" onclick="selectTarget(this)">
+                <span class="icon">👥</span>All Students
+              </button>
+              <button class="target-chip" data-target="CA-Foundation" onclick="selectTarget(this)">
+                <span class="icon">📘</span>CA Foundation
+              </button>
+              <button class="target-chip" data-target="CA-Intermediate" onclick="selectTarget(this)">
+                <span class="icon">📗</span>CA Intermediate
+              </button>
+              <button class="target-chip" data-target="CA-Final" onclick="selectTarget(this)">
+                <span class="icon">📕</span>CA Final
+              </button>
+              <button class="target-chip" data-target="FRM-I" onclick="selectTarget(this)">
+                <span class="icon">📙</span>FRM Part I
+              </button>
+              <button class="target-chip" data-target="FRM-II" onclick="selectTarget(this)">
+                <span class="icon">📓</span>FRM Part II
+              </button>
+              <button class="target-chip" data-target="CFA-I" onclick="selectTarget(this)">
+                <span class="icon">📒</span>CFA Level I
+              </button>
+              <button class="target-chip" data-target="CFA-II" onclick="selectTarget(this)">
+                <span class="icon">📒</span>CFA Level II
+              </button>
+              <button class="target-chip" data-target="CFA-III" onclick="selectTarget(this)">
+                <span class="icon">📒</span>CFA Level III
+              </button>
+            </div>
+            <div class="recipient-count" id="recipient-count">Loading recipient count...</div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Subject</label>
+            <input type="text" id="email-subject" class="form-input"
+              placeholder="e.g. Important: Exam Schedule Update"
+              oninput="updatePreview()"/>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Message</label>
+            <textarea id="email-message" class="form-input" rows="8"
+              placeholder="Type your message here...&#10;&#10;Tip: Keep it clear and concise. The student's first name will be automatically personalised."
+              oninput="updatePreview()" style="resize:vertical;"></textarea>
+          </div>
+
+          <!-- Preview -->
+          <div class="email-preview">
+            <div class="email-preview-label">📧 Email Preview</div>
+            <div class="email-preview-subject" id="preview-subject">Subject will appear here</div>
+            <div class="email-preview-body" id="preview-body">Hello [Student Name],
+
+[Your message will appear here]
+
+— Team StudyBuddy</div>
+          </div>
+
+          <!-- Send progress -->
+          <div class="send-progress" id="send-progress">
+            <div class="send-progress-text" id="send-progress-text">Sending...</div>
+            <div class="send-progress-bar-track">
+              <div class="send-progress-bar-fill" id="send-progress-fill" style="width:0%"></div>
+            </div>
+          </div>
+
+          <button class="btn btn-primary btn-lg mt-16" id="btn-send" onclick="sendEmails()" style="width:100%;">
+            📧 Send Email Now
+          </button>
+        </div>
+
+        <!-- History + Info -->
+        <div style="display:flex; flex-direction:column; gap:16px;">
+
+          <!-- EmailJS limit info -->
+          <div class="card" style="background:var(--warning-light); border-color:rgba(255,184,48,0.3);">
+            <div style="font-size:13px; color:#7A4F00; line-height:1.6;">
+              <strong>⚠️ EmailJS Free Plan Limit:</strong><br/>
+              200 emails/month. If your recipient count exceeds this,
+              emails will be sent in batches with a small delay between each.
+              Upgrade EmailJS for more volume.
+            </div>
+          </div>
+
+          <!-- Quick templates -->
+          <div class="card">
+            <h4 style="font-family:var(--font-heading); margin-bottom:14px;">⚡ Quick Templates</h4>
+            <div style="display:flex; flex-direction:column; gap:8px;">
+              <button class="btn btn-outline btn-sm" onclick="useTemplate('exam-reminder')">📅 Exam Reminder</button>
+              <button class="btn btn-outline btn-sm" onclick="useTemplate('new-material')">📄 New Material Available</button>
+              <button class="btn btn-outline btn-sm" onclick="useTemplate('new-test')">📝 New Test Published</button>
+              <button class="btn btn-outline btn-sm" onclick="useTemplate('motivation')">🔥 Motivational Message</button>
+              <button class="btn btn-outline btn-sm" onclick="useTemplate('holiday')">🎉 Holiday Notice</button>
+            </div>
+          </div>
+
+          <!-- Recent history -->
+          <div class="history-card">
+            <h3>📋 Recent Emails</h3>
+            <div id="email-history">
+              <div style="text-align:center; padding:20px; color:var(--text-muted); font-size:13px;">
+                No emails sent yet.
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script type="module">
+  import { auth, db, EMAILJS_CONFIG } from '../js/firebase-config.js';
+  import { Modal } from '../js/utils/modal.js';
+  import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import { collection, doc, getDoc, getDocs, addDoc,
+    query, where, orderBy, limit, serverTimestamp }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  let currentTarget='all';
+  let allStudents=[];
+
+  function toast(msg,type='info'){
+    const c=document.getElementById('toast-container');
+    const t=document.createElement('div');
+    t.className=`toast toast-${type}`;
+    t.innerHTML=`<span>${{success:'✅',error:'❌',info:'ℹ️'}[type]}</span> ${msg}`;
+    c.appendChild(t);setTimeout(()=>t.remove(),4000);
+  }
+
+  document.getElementById('topbar-date').textContent=
+    new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+
+  onAuthStateChanged(auth,async(user)=>{
+    if(!user){window.location.href='../index.html';return;}
+    const snap=await getDoc(doc(db,'users',user.uid));
+    if(!snap.exists()){window.location.href='../index.html';return;}
+    const data=snap.data();
+    if(data.role!=='admin'&&data.role!=='superadmin'){window.location.href='../index.html';return;}
+    document.getElementById('sidebar-avatar').textContent=(data.firstName[0]+data.lastName[0]).toUpperCase();
+    document.getElementById('sidebar-name').textContent=data.firstName+' '+data.lastName;
+    document.getElementById('sidebar-role-tag').textContent=data.role==='superadmin'?'👑 Super Admin':'🛡️ Admin';
+    document.getElementById('page-loader').classList.add('hidden');
+    loadStudents();
+    loadEmailHistory();
+  });
+  document.getElementById('btn-logout').addEventListener('click',async()=>{await signOut(auth);window.location.href='../index.html';});
+
+  async function loadStudents(){
+    const snap=await getDocs(
+      query(collection(db,'users'),where('role','==','student'),where('status','==','approved'))
+    );
+    allStudents=[];snap.forEach(d=>allStudents.push({uid:d.id,...d.data()}));
+    updateRecipientCount();
+  }
+
+  window.selectTarget=function(btn){
+    document.querySelectorAll('.target-chip').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    currentTarget=btn.dataset.target;
+    updateRecipientCount();
+  };
+
+  function getRecipients(){
+    if(currentTarget==='all')return allStudents;
+    return allStudents.filter(s=>s.level===currentTarget);
+  }
+
+  function updateRecipientCount(){
+    const r=getRecipients();
+    document.getElementById('recipient-count').textContent=
+      `📬 ${r.length} approved student${r.length!==1?'s':''} will receive this email`;
+  }
+
+  window.updatePreview=function(){
+    const subj=document.getElementById('email-subject').value||'Subject will appear here';
+    const msg =document.getElementById('email-message').value||'[Your message will appear here]';
+    document.getElementById('preview-subject').textContent=subj;
+    document.getElementById('preview-body').textContent=`Hello [Student Name],\n\n${msg}\n\n— Team StudyBuddy`;
+  };
+
+  // Quick Templates
+  const TEMPLATES={
+    'exam-reminder':{
+      subject:'📅 Important: Upcoming Exam Reminder',
+      message:'Your exam is approaching! Please make sure you have covered all chapters and revised thoroughly.\n\nMake sure to:\n• Complete all pending chapters\n• Attempt practice MCQs\n• Review your weak areas\n• Get adequate rest before the exam\n\nBest of luck! You\'ve got this. 💪'
+    },
+    'new-material':{
+      subject:'📄 New Study Material Available on StudyBuddy',
+      message:'New study material has been uploaded on StudyBuddy for your course.\n\nPlease login and check the Study Material section to access the latest notes and resources.\n\nLogin here: https://studybuddy8310.github.io/studybuddy'
+    },
+    'new-test':{
+      subject:'📝 New Mock Test Published — Attempt Now!',
+      message:'A new Mock Test has been published on StudyBuddy!\n\nLogin and navigate to Mock Tests to attempt it. The test has a limited time window, so don\'t miss it.\n\nLogin here: https://studybuddy8310.github.io/studybuddy'
+    },
+    'motivation':{
+      subject:'🔥 Keep Going — You\'re Almost There!',
+      message:'Just a quick message to remind you that every chapter you complete brings you one step closer to success.\n\nStay consistent, track your progress on StudyBuddy, and keep that study streak alive! 🔥\n\nWe believe in you. Keep pushing forward!'
+    },
+    'holiday':{
+      subject:'🎉 Holiday Notice',
+      message:'Please note that classes/sessions will be on holiday. Regular schedule will resume as notified.\n\nUse this time wisely for self-study and revision. StudyBuddy is always available for your practice!'
+    },
+  };
+
+  window.useTemplate=function(key){
+    const tmpl=TEMPLATES[key];
+    if(!tmpl)return;
+    document.getElementById('email-subject').value=tmpl.subject;
+    document.getElementById('email-message').value=tmpl.message;
+    updatePreview();
+    toast('Template loaded! Review and send.','info');
+  };
+
+  // Send emails with delay to avoid rate limiting
+  window.sendEmails=async function(){
+    const subject=document.getElementById('email-subject').value.trim();
+    const message=document.getElementById('email-message').value.trim();
+    const recipients=getRecipients();
+
+    if(!subject){toast('Enter a subject.','error');return;}
+    if(!message){toast('Enter a message.','error');return;}
+    if(!recipients.length){toast('No recipients found for this target.','error');return;}
+
+    const yes=await Modal.confirm(
+      'Send Email?',
+      `This will send an email to <strong>${recipients.length} student${recipients.length!==1?'s':''}</strong>.<br/>
+       <strong>Subject:</strong> ${subject}<br/><br/>
+       This cannot be undone.`,
+      `Send to ${recipients.length} Students`
+    );
+    if(!yes)return;
+
+    const btn=document.getElementById('btn-send');
+    btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Sending...';
+    const progress=document.getElementById('send-progress');
+    progress.classList.add('visible');
+
+    let sent=0, failed=0;
+    for(const student of recipients){
+      try{
+        await emailjs.send(
+          EMAILJS_CONFIG.serviceId,
+          EMAILJS_CONFIG.templateId,
+          {
+            to_email:student.email,
+            student_name:student.firstName||'Student',
+            subject,
+            message:message+'\n\n— Team StudyBuddy'
+          },
+          EMAILJS_CONFIG.publicKey
+        );
+        sent++;
+      }catch(e){failed++;console.error('Email fail:',student.email,e);}
+
+      // Update progress
+      const pct=Math.round(((sent+failed)/recipients.length)*100);
+      document.getElementById('send-progress-fill').style.width=pct+'%';
+      document.getElementById('send-progress-text').textContent=
+        `Sending ${sent+failed} of ${recipients.length}...`;
+
+      // Small delay to avoid rate limiting (150ms between emails)
+      if(sent+failed<recipients.length){
+        await new Promise(r=>setTimeout(r,150));
+      }
+    }
+
+    // Save to email log
+    try{
+      await addDoc(collection(db,'emailLogs'),{
+        subject, message, target:currentTarget,
+        recipientCount:recipients.length, sentCount:sent,
+        failedCount:failed, sentAt:serverTimestamp()
+      });
+    }catch(e){console.error('Log error:',e);}
+
+    progress.classList.remove('visible');
+    btn.disabled=false; btn.innerHTML='📧 Send Email Now';
+
+    if(failed===0){
+      await Modal.success('Emails Sent!',`Successfully sent to all ${sent} student${sent!==1?'s':''}.`);
+    }else{
+      toast(`Sent: ${sent}, Failed: ${failed}. Check console for details.`,'info');
+    }
+    loadEmailHistory();
+  };
+
+  async function loadEmailHistory(){
+    try{
+      const snap=await getDocs(
+        query(collection(db,'emailLogs'),orderBy('sentAt','desc'),limit(10))
+      );
+      const list=document.getElementById('email-history');
+      if(snap.empty){
+        list.innerHTML='<div style="text-align:center;padding:20px;color:var(--text-muted);font-size:13px;">No emails sent yet.</div>';
+        return;
+      }
+      list.innerHTML='';
+      snap.forEach(d=>{
+        const e=d.data();
+        const date=e.sentAt?e.sentAt.toDate().toLocaleString('en-IN',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
+        const div=document.createElement('div');
+        div.className='history-item';
+        div.innerHTML=`
+          <div class="history-item-subject">${e.subject||'—'}</div>
+          <div class="history-item-meta">
+            📬 ${e.sentCount||0} sent &nbsp;•&nbsp; 🎯 ${e.target==='all'?'All Students':e.target} &nbsp;•&nbsp; 📅 ${date}
+          </div>`;
+        list.appendChild(div);
+      });
+    }catch(e){console.error(e);}
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>StudyBuddy — Course Structure</title>
+  <link rel="stylesheet" href="../css/global.css"/>
+  <link rel="stylesheet" href="../css/admin.css"/>
+  <style>
+    /* ── Extra styles for structure page ── */
+    .course-selector {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 28px;
+    }
+    .course-chip {
+      padding: 10px 24px;
+      border-radius: 50px;
+      border: 2px solid var(--border);
+      background: var(--surface);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      color: var(--text-secondary);
+    }
+    .course-chip.active {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(45,91,227,0.3);
+    }
+
+    .paper-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+    .paper-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      background: var(--surface-2);
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+    }
+    .paper-header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .paper-number {
+      width: 32px;
+      height: 32px;
+      background: var(--primary);
+      color: #fff;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+    .paper-name-input {
+      font-size: 15px;
+      font-weight: 600;
+      border: none;
+      background: transparent;
+      color: var(--text-primary);
+      font-family: var(--font-body);
+      outline: none;
+      flex: 1;
+      min-width: 200px;
+    }
+    .paper-name-input:focus {
+      border-bottom: 2px solid var(--primary);
+    }
+    .paper-toggle { font-size: 18px; color: var(--text-muted); }
+
+    .paper-body { padding: 16px 20px; }
+
+    .chapter-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .chapter-row:last-child { border-bottom: none; }
+    .chapter-num {
+      font-size: 12px;
+      color: var(--text-muted);
+      width: 24px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+    .chapter-input {
+      flex: 1;
+      border: none;
+      font-size: 14px;
+      font-family: var(--font-body);
+      color: var(--text-primary);
+      outline: none;
+      background: transparent;
+      padding: 4px 0;
+    }
+    .chapter-input:focus { border-bottom: 1px solid var(--primary); }
+    .btn-del-chapter {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 16px;
+      padding: 4px;
+      line-height: 1;
+      transition: color 0.2s;
+    }
+    .btn-del-chapter:hover { color: var(--danger); }
+
+    .btn-add-chapter {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--primary);
+      font-size: 13px;
+      font-weight: 600;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 8px 0;
+      font-family: var(--font-body);
+      transition: opacity 0.2s;
+    }
+    .btn-add-chapter:hover { opacity: 0.7; }
+
+    .btn-del-paper {
+      background: var(--danger-light);
+      color: var(--danger);
+      border: none;
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: var(--font-body);
+    }
+
+    .save-bar {
+      position: sticky;
+      bottom: 0;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 -4px 16px rgba(45,91,227,0.08);
+      z-index: 10;
+      margin: 0 -32px;
+    }
+    .save-bar-note {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+
+<div id="page-loader">
+  <div class="logo-text">📚 StudyBuddy</div>
+  <div class="spinner spinner-primary"></div>
+</div>
+<div id="toast-container"></div>
+
+<div class="admin-layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon">📚</div>
+      <div class="sidebar-logo-text">Study<span>Buddy</span></div>
+    </div>
+    <div class="sidebar-role" id="sidebar-role-label">Admin Panel</div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Main</div>
+      <a href="dashboard.html" class="nav-item"><span class="nav-item-icon">🏠</span> Dashboard</a>
+      <a href="users.html" class="nav-item"><span class="nav-item-icon">👥</span> Students</a>
+      <div class="nav-section-label">Content</div>
+      <a href="structure.html" class="nav-item active"><span class="nav-item-icon">🗂️</span> Course Structure</a>
+      <a href="materials.html" class="nav-item"><span class="nav-item-icon">📄</span> Study Materials</a>
+      <a href="tests.html" class="nav-item"><span class="nav-item-icon">📝</span> Tests & MCQs</a>
+      <a href="tips.html" class="nav-item"><span class="nav-item-icon">💡</span> Tips & Ideas</a>
+      <div class="nav-section-label">Communication</div>
+      <a href="communications.html" class="nav-item"><span class="nav-item-icon">📧</span> Send Emails</a>
+      <a href="schedule.html" class="nav-item"><span class="nav-item-icon">📅</span> Exam Dates</a>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="sidebar-user">
+        <div class="sidebar-avatar" id="sidebar-avatar">A</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name" id="sidebar-name">Admin</div>
+          <div class="sidebar-user-role" id="sidebar-role-tag">Admin</div>
+        </div>
+        <button class="btn-logout" id="btn-logout" title="Logout">🚪</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="admin-main">
+    <div class="topbar">
+      <div class="topbar-title">Course Structure</div>
+      <div class="topbar-right">
+        <span class="topbar-date" id="topbar-date"></span>
+      </div>
+    </div>
+
+    <div class="page-content">
+
+      <p class="text-secondary fs-14 mb-24">
+        Set up papers and chapters for each course level. Students will see
+        these in their syllabus tracker and checklist.
+      </p>
+
+      <!-- Course Level Selector -->
+      <div class="course-selector" id="course-selector">
+        <div class="course-chip active" onclick="selectLevel('CA-Foundation')">CA Foundation</div>
+        <div class="course-chip" onclick="selectLevel('CA-Intermediate')">CA Intermediate</div>
+        <div class="course-chip" onclick="selectLevel('CA-Final')">CA Final</div>
+        <div class="course-chip" onclick="selectLevel('FRM-I')">FRM Part I</div>
+        <div class="course-chip" onclick="selectLevel('FRM-II')">FRM Part II</div>
+        <div class="course-chip" onclick="selectLevel('CFA-I')">CFA Level I</div>
+        <div class="course-chip" onclick="selectLevel('CFA-II')">CFA Level II</div>
+        <div class="course-chip" onclick="selectLevel('CFA-III')">CFA Level III</div>
+      </div>
+
+      <!-- Papers Container -->
+      <div id="papers-container">
+        <!-- Papers injected by JS -->
+      </div>
+
+      <!-- Add Paper Button -->
+      <button class="btn btn-outline mt-8" onclick="addPaper()">
+        + Add Paper
+      </button>
+
+      <!-- Save Bar -->
+      <div class="save-bar">
+        <div class="save-bar-note">
+          💡 Changes are saved to Firebase when you click Save Structure
+        </div>
+        <button class="btn btn-primary btn-lg" id="btn-save" onclick="saveStructure()">
+          💾 Save Structure
+        </button>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script type="module">
+  import { auth, db } from '../js/firebase-config.js';
+  import { onAuthStateChanged, signOut }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import { doc, getDoc, setDoc, collection,
+    getDocs, writeBatch }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  // ── State ──────────────────────────────────────────────────
+  let currentLevel = 'CA-Foundation';
+
+  // ── Toast ──────────────────────────────────────────────────
+  function showToast(msg, type = 'info') {
+    const c = document.getElementById('toast-container');
+    const t = document.createElement('div');
+    t.className = `toast toast-${type}`;
+    t.innerHTML = `<span>${{success:'✅',error:'❌',info:'ℹ️'}[type]}</span> ${msg}`;
+    c.appendChild(t); setTimeout(() => t.remove(), 4000);
+  }
+
+  // ── Date ───────────────────────────────────────────────────
+  document.getElementById('topbar-date').textContent =
+    new Date().toLocaleDateString('en-IN',
+      {weekday:'long',day:'numeric',month:'long',year:'numeric'});
+
+  // ── Auth Guard ─────────────────────────────────────────────
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) { window.location.href = '../index.html'; return; }
+    const snap = await getDoc(doc(db, 'users', user.uid));
+    if (!snap.exists()) { window.location.href = '../index.html'; return; }
+    const data = snap.data();
+    if (data.role !== 'admin' && data.role !== 'superadmin') {
+      window.location.href = '../index.html'; return;
+    }
+    document.getElementById('sidebar-avatar').textContent =
+      (data.firstName[0]+data.lastName[0]).toUpperCase();
+    document.getElementById('sidebar-name').textContent =
+      data.firstName+' '+data.lastName;
+    document.getElementById('sidebar-role-tag').textContent =
+      data.role === 'superadmin' ? '👑 Super Admin' : '🛡️ Admin';
+    document.getElementById('page-loader').classList.add('hidden');
+    loadLevel('CA-Foundation');
+  });
+
+  document.getElementById('btn-logout').addEventListener('click', async () => {
+    await signOut(auth); window.location.href = '../index.html';
+  });
+
+  // ── Select Level ───────────────────────────────────────────
+  window.selectLevel = function(level) {
+    currentLevel = level;
+    document.querySelectorAll('.course-chip').forEach(c => {
+      c.classList.toggle('active', c.textContent.trim() ===
+        ({
+          'CA-Foundation':'CA Foundation',
+          'CA-Intermediate':'CA Intermediate',
+          'CA-Final':'CA Final',
+          'FRM-I':'FRM Part I',
+          'FRM-II':'FRM Part II'
+        }[level]));
+    });
+    loadLevel(level);
+  };
+
+  // ── Load Level Structure from Firestore ────────────────────
+  async function loadLevel(level) {
+    const container = document.getElementById('papers-container');
+    container.innerHTML = '<div class="text-muted fs-14" style="padding:20px 0;">Loading...</div>';
+
+    try {
+      // Firestore path: courseStructure/{level}/papers/{paperId}
+      const papersSnap = await getDocs(
+        collection(db, 'courseStructure', level, 'papers')
+      );
+
+      container.innerHTML = '';
+
+      if (papersSnap.empty) {
+        // No structure yet — show default empty papers
+        const defaults = getDefaultPapers(level);
+        defaults.forEach((p, i) => renderPaper(p.name, p.chapters, i));
+        return;
+      }
+
+      // Sort by order field
+      const papers = [];
+      papersSnap.forEach(d => papers.push({ id: d.id, ...d.data() }));
+      papers.sort((a, b) => (a.order||0) - (b.order||0));
+
+      for (const paper of papers) {
+        // Load chapters subcollection
+        const chapSnap = await getDocs(
+          collection(db, 'courseStructure', level, 'papers', paper.id, 'chapters')
+        );
+        const chapters = [];
+        chapSnap.forEach(d => chapters.push({ id: d.id, ...d.data() }));
+        chapters.sort((a, b) => (a.order||0) - (b.order||0));
+        renderPaper(paper.name, chapters.map(c => c.name), papers.indexOf(paper), paper.group||'both');
+      }
+    } catch(e) {
+      console.error(e);
+      container.innerHTML = '<div class="text-muted fs-14" style="padding:20px 0;">Failed to load. Check Firestore rules.</div>';
+    }
+  }
+
+  // ── Default Papers per Level ───────────────────────────────
+  function getDefaultPapers(level) {
+    const defaults = {
+      'CA-Foundation': [
+        { name: 'Paper 1: Principles and Practice of Accounting',
+          chapters: ['Introduction to Accounting','Accounting Process','Bank Reconciliation Statement','Inventories','Depreciation'] },
+        { name: 'Paper 2: Business Laws & Business Correspondence',
+          chapters: ['The Indian Contract Act','Sale of Goods Act','Negotiable Instruments Act'] },
+        { name: 'Paper 3: Business Mathematics & Statistics',
+          chapters: ['Ratio and Proportion','Equations','Linear Inequalities','Statistics'] },
+        { name: 'Paper 4: Business Economics',
+          chapters: ['Introduction to Business Economics','Theory of Demand','Theory of Supply','Market Structures'] },
+      ],
+      'CA-Intermediate': [
+        { name: 'Paper 1: Accounting', chapters: ['Chapter 1','Chapter 2','Chapter 3'] },
+        { name: 'Paper 2: Corporate Laws', chapters: ['Chapter 1','Chapter 2','Chapter 3'] },
+        { name: 'Paper 3: Cost Accounting', chapters: ['Chapter 1','Chapter 2','Chapter 3'] },
+        { name: 'Paper 4: Taxation', chapters: ['Chapter 1','Chapter 2','Chapter 3'] },
+        { name: 'Paper 5: Advanced Accounting', chapters: ['Chapter 1','Chapter 2'] },
+        { name: 'Paper 6: Auditing', chapters: ['Chapter 1','Chapter 2'] },
+        { name: 'Paper 7: Enterprise IT & SM', chapters: ['Chapter 1','Chapter 2'] },
+      ],
+      'CA-Final': [
+        { name: 'Paper 1: Financial Reporting',
+          chapters: ['Ind AS Framework','Ind AS 1','Ind AS 2','Ind AS 7','Ind AS 8','Ind AS 10','Ind AS 12','Ind AS 16','Ind AS 19','Ind AS 20'] },
+        { name: 'Paper 2: Advanced Financial Management',
+          chapters: ['Financial Policy','Capital Budgeting','Risk Management','Derivatives','Foreign Exchange'] },
+        { name: 'Paper 3: Audit',
+          chapters: ['Standards on Auditing','Audit of Companies','Bank Audit','CARO'] },
+        { name: 'Paper 4: Direct Tax',
+          chapters: ['Basic Concepts','Residential Status','Income from Salary','Income from HP','PGBP','Capital Gains','Other Sources'] },
+        { name: 'Paper 5: Indirect Tax',
+          chapters: ['GST Framework','Supply','Time of Supply','Place of Supply','ITC','Registration','Returns'] },
+        { name: 'Paper 6: Integrated Business Solutions',
+          chapters: ['Strategic Management','Risk Management','Business Valuation'] },
+      ],
+      'FRM-I': [
+        { name: 'Paper 1: Foundations of Risk Management',
+          chapters: ['Risk Management Intro','CAPM','Risk Governance','Corporate Governance'] },
+        { name: 'Paper 2: Quantitative Analysis',
+          chapters: ['Probability','Statistics','Regression','Time Series','Simulation'] },
+        { name: 'Paper 3: Financial Markets & Products',
+          chapters: ['Futures','Options','Swaps','Interest Rates','Bonds'] },
+        { name: 'Paper 4: Valuation & Risk Models',
+          chapters: ['VaR','Backtesting','Stress Testing','Option Valuation','Fixed Income'] },
+      ],
+      'FRM-II': [
+        { name: 'Paper 1: Market Risk Measurement',
+          chapters: ['VaR Methods','Backtesting','Stress Testing','Liquidity Risk'] },
+        { name: 'Paper 2: Credit Risk Measurement',
+          chapters: ['Credit Analysis','Credit Scoring','Default Risk','Securitisation'] },
+        { name: 'Paper 3: Operational Risk & Resiliency',
+          chapters: ['Op Risk Framework','Basel','Cyber Risk','Model Risk'] },
+        { name: 'Paper 4: Liquidity & Treasury Risk',
+          chapters: ['Liquidity Risk','Asset Liability Management','Intraday Liquidity'] },
+      ],
+    };
+
+    // CFA Levels
+    const cfaTopics = [
+      'Ethical and Professional Standards','Quantitative Methods','Economics',
+      'Financial Statement Analysis','Corporate Issuers','Equity Investments',
+      'Fixed Income','Derivatives','Alternative Investments','Portfolio Management'
+    ];
+    defaults['CFA-I']  = cfaTopics.map((n,i) => ({ name:'Topic '+(i+1)+': '+n, chapters:['Reading 1','Reading 2','Reading 3'] }));
+    defaults['CFA-II'] = cfaTopics.map((n,i) => ({ name:'Topic '+(i+1)+': '+n+' (Advanced)', chapters:['Reading 1','Reading 2'] }));
+    defaults['CFA-III'] = [
+      {name:'Topic 1: Portfolio Management & Wealth Planning', chapters:['Reading 1','Reading 2','Reading 3']},
+      {name:'Topic 2: Asset Allocation',                       chapters:['Reading 1','Reading 2']},
+      {name:'Topic 3: Fixed Income',                           chapters:['Reading 1','Reading 2']},
+      {name:'Topic 4: Equity',                                 chapters:['Reading 1','Reading 2']},
+      {name:'Topic 5: Alternative Investments',                chapters:['Reading 1']},
+      {name:'Topic 6: Risk Management',                        chapters:['Reading 1','Reading 2']},
+      {name:'Topic 7: Derivatives',                            chapters:['Reading 1']},
+      {name:'Topic 8: Trading & Rebalancing',                  chapters:['Reading 1']},
+      {name:'Topic 9: Performance Evaluation',                 chapters:['Reading 1']},
+      {name:'Topic 10: Ethics',                                chapters:['Reading 1','Reading 2']},
+    ];
+    return defaults[level] || [{ name: 'Paper 1', chapters: ['Chapter 1'] }];
+  }
+
+  // ── Render a Paper Card ────────────────────────────────────
+  function renderPaper(paperName, chapters, index, paperGroup) {
+    const container = document.getElementById('papers-container');
+    const paperId   = 'paper-' + Date.now() + '-' + index;
+    const div       = document.createElement('div');
+    div.className   = 'paper-card';
+    div.id          = paperId;
+
+    const chapHtml  = chapters.map((ch, ci) => makeChapterRow(ch, ci+1)).join('');
+
+    const hasGroups = ['CA-Intermediate','CA-Final'].includes(currentLevel);
+    const groupVal  = paperGroup || 'both';
+    div.innerHTML = `
+      <div class="paper-header" onclick="togglePaper('${paperId}')">
+        <div class="paper-header-left">
+          <div class="paper-number">${index+1}</div>
+          <input class="paper-name-input" value="${paperName}"
+            placeholder="Paper name..." onclick="event.stopPropagation()"/>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          ${hasGroups ? `
+          <select class="paper-group-sel" onclick="event.stopPropagation()"
+            style="padding:4px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:12px;font-weight:600;background:var(--surface);color:var(--text-primary);cursor:pointer;">
+            <option value="both"    ${groupVal==='both'   ?'selected':''}>📋 Both Groups</option>
+            <option value="group1"  ${groupVal==='group1' ?'selected':''}>🔵 Group I Only</option>
+            <option value="group2"  ${groupVal==='group2' ?'selected':''}>🟢 Group II Only</option>
+          </select>` : ''}
+          <button class="btn-del-paper" onclick="event.stopPropagation(); deletePaper('${paperId}')">
+            🗑 Remove Paper
+          </button>
+          <span class="paper-toggle">▾</span>
+        </div>
+      </div>
+      <div class="paper-body" id="body-${paperId}">
+        <div class="chapter-list" id="chapters-${paperId}">
+          ${chapHtml}
+        </div>
+        <button class="btn-add-chapter" onclick="addChapter('${paperId}')">
+          + Add Chapter
+        </button>
+      </div>`;
+
+    container.appendChild(div);
+  }
+
+  function makeChapterRow(name, num) {
+    return `
+      <div class="chapter-row">
+        <span class="chapter-num">${num}</span>
+        <input class="chapter-input" value="${name}" placeholder="Chapter name..."/>
+        <button class="btn-del-chapter" onclick="deleteChapter(this)">✕</button>
+      </div>`;
+  }
+
+  // ── Toggle Paper Open/Close ────────────────────────────────
+  window.togglePaper = function(paperId) {
+    const body   = document.getElementById('body-'+paperId);
+    const toggle = document.querySelector('#'+paperId+' .paper-toggle');
+    const isOpen = body.style.display !== 'none';
+    body.style.display   = isOpen ? 'none' : 'block';
+    toggle.textContent   = isOpen ? '▸' : '▾';
+  };
+
+  // ── Add Paper ──────────────────────────────────────────────
+  window.addPaper = function() {
+    const existing = document.querySelectorAll('.paper-card').length;
+    renderPaper('New Paper', ['Chapter 1'], existing);
+  };
+
+  // ── Delete Paper ───────────────────────────────────────────
+  window.deletePaper = function(paperId) {
+    if (confirm('Remove this paper and all its chapters?')) {
+      document.getElementById(paperId)?.remove();
+      renumberPapers();
+    }
+  };
+
+  // ── Add Chapter ────────────────────────────────────────────
+  window.addChapter = function(paperId) {
+    const list   = document.getElementById('chapters-'+paperId);
+    const num    = list.children.length + 1;
+    list.insertAdjacentHTML('beforeend', makeChapterRow('', num));
+  };
+
+  // ── Delete Chapter ─────────────────────────────────────────
+  window.deleteChapter = function(btn) {
+    btn.closest('.chapter-row').remove();
+  };
+
+  // ── Renumber Papers ────────────────────────────────────────
+  function renumberPapers() {
+    document.querySelectorAll('.paper-card').forEach((card, i) => {
+      card.querySelector('.paper-number').textContent = i+1;
+    });
+  }
+
+  // ── Save Structure to Firestore ────────────────────────────
+  window.saveStructure = async function() {
+    const btn = document.getElementById('btn-save');
+    btn.disabled  = true;
+    btn.innerHTML = '<span class="spinner"></span> Saving...';
+
+    try {
+      const batch  = writeBatch(db);
+      const papers = document.querySelectorAll('.paper-card');
+
+      // Delete old structure first by reading existing papers
+      const oldPapers = await getDocs(
+        collection(db, 'courseStructure', currentLevel, 'papers')
+      );
+      // Mark old papers for deletion in batch
+      oldPapers.forEach(d => batch.delete(d.ref));
+
+      // Save new structure
+      papers.forEach((card, pi) => {
+        const paperName = card.querySelector('.paper-name-input').value.trim();
+        if (!paperName) return;
+
+        const paperId  = 'paper-' + (pi+1);
+        const paperRef = doc(db, 'courseStructure', currentLevel, 'papers', paperId);
+
+        const groupSel = card.querySelector('.paper-group-sel');
+        const paperGroup = groupSel ? groupSel.value : 'both';
+
+        batch.set(paperRef, {
+          name:  paperName,
+          order: pi+1,
+          group: paperGroup,
+          // Columns every chapter will have in checklist:
+          columns: ['Lectures','QuestionBank','Revision1','Revision2','Test']
+        });
+
+        // Chapters
+        const chapterInputs = card.querySelectorAll('.chapter-input');
+        chapterInputs.forEach((inp, ci) => {
+          const chapName = inp.value.trim();
+          if (!chapName) return;
+          const chapRef = doc(db, 'courseStructure', currentLevel,
+            'papers', paperId, 'chapters', 'chapter-'+(ci+1));
+          batch.set(chapRef, {
+            name:  chapName,
+            order: ci+1
+          });
+        });
+      });
+
+      await batch.commit();
+      showToast('Structure saved successfully! ✅', 'success');
+    } catch(e) {
+      console.error(e);
+      showToast('Save failed. Check your connection.', 'error');
+    } finally {
+      btn.disabled  = false;
+      btn.innerHTML = '💾 Save Structure';
+    }
+  };
+
+</script>
+</body>
+</html>

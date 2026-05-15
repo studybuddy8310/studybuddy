@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>StudyBuddy — Super Admin</title>
+  <link rel="stylesheet" href="../css/global.css"/>
+  <style>
+    /* ── SuperAdmin page has its own dark, minimal style ── */
+    body {
+      background: #0D0D1A;
+      min-height: 100vh;
+      display:    flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .sa-card {
+      background:    #1A1A2E;
+      border:        1px solid rgba(255,255,255,0.08);
+      border-radius: 20px;
+      padding:       48px 40px;
+      width:         100%;
+      max-width:     400px;
+      box-shadow:    0 24px 64px rgba(0,0,0,0.5);
+    }
+
+    .sa-header {
+      text-align:    center;
+      margin-bottom: 36px;
+    }
+    .sa-icon {
+      width:         60px;
+      height:        60px;
+      background:    rgba(45,91,227,0.2);
+      border:        1px solid rgba(45,91,227,0.4);
+      border-radius: 16px;
+      display:       flex;
+      align-items:   center;
+      justify-content: center;
+      font-size:     28px;
+      margin:        0 auto 16px;
+    }
+    .sa-header h2 {
+      font-family: var(--font-heading);
+      color:       #fff;
+      font-size:   1.4rem;
+      margin-bottom: 6px;
+    }
+    .sa-header p {
+      color:     rgba(255,255,255,0.4);
+      font-size: 13px;
+    }
+
+    /* Override form styles for dark theme */
+    .sa-card .form-label {
+      color: rgba(255,255,255,0.5);
+    }
+    .sa-card .form-input {
+      background:   rgba(255,255,255,0.05);
+      border-color: rgba(255,255,255,0.1);
+      color:        #fff;
+    }
+    .sa-card .form-input:focus {
+      border-color: var(--primary);
+      background:   rgba(45,91,227,0.1);
+      box-shadow:   0 0 0 3px rgba(45,91,227,0.2);
+    }
+    .sa-card .form-input::placeholder {
+      color: rgba(255,255,255,0.2);
+    }
+    .sa-card .btn-eye {
+      color: rgba(255,255,255,0.3);
+    }
+
+    .sa-warning {
+      background:    rgba(255,71,87,0.1);
+      border:        1px solid rgba(255,71,87,0.2);
+      border-radius: 10px;
+      padding:       10px 14px;
+      font-size:     12px;
+      color:         rgba(255,71,87,0.9);
+      margin-bottom: 20px;
+      text-align:    center;
+    }
+
+    .sa-back {
+      text-align:  center;
+      margin-top:  24px;
+      font-size:   13px;
+      color:       rgba(255,255,255,0.3);
+    }
+    .sa-back a {
+      color: rgba(45,91,227,0.8);
+    }
+    .sa-back a:hover {
+      color: var(--primary);
+    }
+
+    #sa-error {
+      background:    rgba(255,71,87,0.1);
+      border:        1px solid rgba(255,71,87,0.3);
+      border-radius: 10px;
+      padding:       12px 16px;
+      font-size:     13px;
+      color:         #FF6B78;
+      margin-bottom: 16px;
+      display:       none;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="sa-card">
+
+    <div class="sa-header">
+      <div class="sa-icon">🛡️</div>
+      <h2>Super Admin Access</h2>
+      <p>Restricted — Authorised personnel only</p>
+    </div>
+
+    <div class="sa-warning">
+      ⚠️ This page is not linked publicly. Do not share this URL.
+    </div>
+
+    <!-- Error Message Box -->
+    <div id="sa-error"></div>
+
+    <!-- Login Form -->
+    <form id="sa-form" autocomplete="off">
+
+      <div class="form-group">
+        <label class="form-label">Email Address</label>
+        <input
+          type="email"
+          id="sa-email"
+          class="form-input"
+          placeholder="superadmin@studybuddy.app"
+          required
+          autocomplete="off"
+        />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <div class="input-password-wrap">
+          <input
+            type="password"
+            id="sa-password"
+            class="form-input"
+            placeholder="Enter your password"
+            required
+          />
+          <button type="button" class="btn-eye" id="sa-eye" title="Show/hide password">👁</button>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-full btn-lg" id="sa-btn">
+        Access Super Admin Panel
+      </button>
+
+    </form>
+
+    <div class="sa-back">
+      <a href="../index.html">← Back to main login</a>
+    </div>
+
+  </div>
+
+  <!-- ── Scripts ─────────────────────────────────────────── -->
+  <script type="module">
+    // ── Imports ────────────────────────────────────────────
+    import { auth, db } from '../js/firebase-config.js';
+    import {
+      signInWithEmailAndPassword
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import {
+      doc, getDoc
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    // ── Elements ───────────────────────────────────────────
+    const form     = document.getElementById('sa-form');
+    const emailEl  = document.getElementById('sa-email');
+    const passEl   = document.getElementById('sa-password');
+    const eyeBtn   = document.getElementById('sa-eye');
+    const submitBtn= document.getElementById('sa-btn');
+    const errorBox = document.getElementById('sa-error');
+
+    // ── Toggle password visibility ─────────────────────────
+    eyeBtn.addEventListener('click', () => {
+      const isPass = passEl.type === 'password';
+      passEl.type  = isPass ? 'text' : 'password';
+      eyeBtn.textContent = isPass ? '🙈' : '👁';
+    });
+
+    // ── Show error helper ──────────────────────────────────
+    function showError(msg) {
+      errorBox.textContent = '❌ ' + msg;
+      errorBox.style.display = 'block';
+    }
+    function hideError() {
+      errorBox.style.display = 'none';
+    }
+
+    // ── Form Submit ────────────────────────────────────────
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      hideError();
+
+      const email    = emailEl.value.trim();
+      const password = passEl.value;
+
+      // Basic validation
+      if (!email || !password) {
+        showError('Please enter both email and password.');
+        return;
+      }
+
+      // Show loading state
+      submitBtn.disabled     = true;
+      submitBtn.innerHTML    = '<span class="spinner"></span> Verifying...';
+
+      try {
+        // Step 1: Sign in with Firebase Auth
+        const userCred = await signInWithEmailAndPassword(auth, email, password);
+        const uid      = userCred.user.uid;
+
+        // Step 2: Check Firestore to confirm role is 'superadmin'
+        const userDoc  = await getDoc(doc(db, 'users', uid));
+
+        if (!userDoc.exists()) {
+          await auth.signOut();
+          showError('Account not found in the system.');
+          return;
+        }
+
+        const userData = userDoc.data();
+
+        // IMPORTANT: Only superadmin role can access this page
+        if (userData.role !== 'superadmin') {
+          await auth.signOut();
+          showError('Access denied. This page is for Super Admin only.');
+          return;
+        }
+
+        // Step 3: All good — redirect to super admin dashboard
+        // (We will build this page later)
+        window.location.href = '../admin/dashboard.html';
+
+      } catch (err) {
+        // Firebase error codes → friendly messages
+        const code = err.code;
+        if (code === 'auth/user-not-found' || code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
+          showError('Incorrect email or password.');
+        } else if (code === 'auth/too-many-requests') {
+          showError('Too many failed attempts. Please wait a few minutes.');
+        } else if (code === 'auth/network-request-failed') {
+          showError('Network error. Check your internet connection.');
+        } else {
+          showError('Login failed. Please try again.');
+          console.error(err);
+        }
+      } finally {
+        submitBtn.disabled  = false;
+        submitBtn.innerHTML = 'Access Super Admin Panel';
+      }
+    });
+
+    // ── Auto-redirect if already logged in ─────────────────
+    // (prevents hitting this page if already logged in as superadmin)
+    auth.onAuthStateChanged(async (user) => {
+      if (user) {
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        if (userDoc.exists() && userDoc.data().role === 'superadmin') {
+          window.location.href = '../admin/dashboard.html';
+        }
+      }
+    });
+
+  </script>
+
+</body>
+</html>

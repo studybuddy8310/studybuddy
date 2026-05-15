@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8"/>
+  <title>StudyBuddy</title>
+  <script>
+    // GitHub Pages SPA redirect: preserve path in sessionStorage
+    var path = window.location.pathname;
+    sessionStorage.setItem('ghpages-redirect', path);
+    window.location.replace('/');
+  </script>
+</head>
+<body></body>
+</html>

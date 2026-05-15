@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>StudyBuddy — Tips & Ideas</title>
+  <link rel="stylesheet" href="../css/global.css"/>
+  <link rel="stylesheet" href="../css/student.css"/>
+  <style>
+    .page-hero {
+      background:linear-gradient(135deg,#1A1A2E 0%,#2D5BE3 100%);
+      padding:28px 40px; color:#fff; margin:-28px -28px 28px;
+    }
+    .page-hero h1 { font-family:var(--font-heading); font-size:1.6rem; font-weight:700; }
+    .page-hero p  { font-size:13px; opacity:0.7; margin-top:4px; }
+
+    /* Filter bar */
+    .filter-chips { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:24px; }
+    .filter-chip {
+      padding:7px 18px; border-radius:20px;
+      border:1.5px solid var(--border); background:var(--surface);
+      font-size:13px; font-weight:600; color:var(--text-secondary);
+      cursor:pointer; font-family:var(--font-body); transition:all 0.2s;
+    }
+    .filter-chip:hover  { border-color:var(--primary); color:var(--primary); }
+    .filter-chip.active { background:var(--primary); border-color:var(--primary); color:#fff; }
+
+    /* Tips grid */
+    .tips-grid {
+      display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr));
+      gap:20px;
+    }
+
+    /* Tip card */
+    .tip-card {
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:var(--radius-lg); overflow:hidden; transition:all 0.2s;
+      display:flex; flex-direction:column;
+    }
+    .tip-card:hover { transform:translateY(-3px); box-shadow:var(--shadow-md); }
+    .tip-card-img { width:100%; height:180px; object-fit:cover; display:block; }
+    .tip-card-body { padding:18px 20px; flex:1; display:flex; flex-direction:column; }
+    .tip-cat-badge {
+      display:inline-block; padding:3px 10px; border-radius:20px;
+      font-size:11px; font-weight:700; margin-bottom:8px;
+    }
+    .tip-title { font-family:var(--font-heading); font-size:15px; font-weight:700; color:var(--text-primary); margin-bottom:8px; line-height:1.3; }
+    .tip-preview { font-size:13px; color:var(--text-secondary); line-height:1.6; flex:1; }
+    .tip-meta { display:flex; align-items:center; justify-content:space-between; margin-top:12px; padding-top:12px; border-top:1px solid var(--border); }
+    .tip-meta-left  { font-size:11px; color:var(--text-muted); }
+    .btn-read-more {
+      font-size:12px; font-weight:700; color:var(--primary);
+      background:none; border:none; cursor:pointer; font-family:var(--font-body);
+      padding:0; transition:color 0.2s;
+    }
+    .btn-read-more:hover { color:var(--primary-dark); }
+
+    /* Tip detail modal */
+    .tip-modal-overlay {
+      position:fixed; inset:0; background:rgba(26,26,46,0.6);
+      backdrop-filter:blur(6px); z-index:9999;
+      display:none; align-items:center; justify-content:center; padding:20px;
+    }
+    .tip-modal-overlay.open { display:flex; }
+    .tip-modal-box {
+      background:var(--surface); border-radius:var(--radius-xl);
+      max-width:640px; width:100%; max-height:85vh; overflow-y:auto;
+      box-shadow:0 24px 64px rgba(26,26,46,0.25);
+      animation:fadeIn 0.2s ease;
+    }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);} }
+    .tip-modal-img { width:100%; max-height:280px; object-fit:cover; border-radius:var(--radius-xl) var(--radius-xl) 0 0; }
+    .tip-modal-body { padding:28px; }
+    .tip-modal-header { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:16px; }
+    .tip-modal-title { font-family:var(--font-heading); font-size:1.2rem; font-weight:700; color:var(--text-primary); flex:1; }
+    .btn-modal-close {
+      background:var(--surface-2); border:none; width:32px; height:32px;
+      border-radius:50%; cursor:pointer; font-size:16px; flex-shrink:0;
+      display:flex; align-items:center; justify-content:center; transition:all 0.2s;
+    }
+    .btn-modal-close:hover { background:var(--danger-light); color:var(--danger); }
+    .tip-modal-content { font-size:14px; line-height:1.8; color:var(--text-primary); white-space:pre-wrap; }
+    .tip-modal-meta { font-size:12px; color:var(--text-muted); margin-top:16px; padding-top:16px; border-top:1px solid var(--border); display:flex; gap:12px; flex-wrap:wrap; }
+
+    /* Category colours */
+    .cat-study    { background:#EEF2FF; color:#2D5BE3; }
+    .cat-exam     { background:#FFF6E0; color:#8A5F00; }
+    .cat-motivation { background:#FFF0F0; color:#A0001A; }
+    .cat-preparation { background:#E0FAF5; color:#006B55; }
+
+    .empty-tips { text-align:center; padding:80px 20px; color:var(--text-muted); }
+    .empty-tips .icon { font-size:64px; margin-bottom:16px; }
+
+    @media(max-width:600px){ .tips-grid{grid-template-columns:1fr;} }
+  </style>
+</head>
+<body>
+<div id="page-loader"><div class="logo-text">📚 StudyBuddy</div><div class="spinner spinner-primary"></div></div>
+<div id="toast-container"></div>
+
+<!-- Tip Detail Modal -->
+<div class="tip-modal-overlay" id="tip-modal" onclick="closeModal(event)">
+  <div class="tip-modal-box" id="tip-modal-box">
+    <img id="tip-modal-img" style="display:none;" class="tip-modal-img"/>
+    <div class="tip-modal-body">
+      <div class="tip-modal-header">
+        <div class="tip-modal-title" id="tip-modal-title"></div>
+        <button class="btn-modal-close" onclick="closeTipModal()">✕</button>
+      </div>
+      <div id="tip-modal-cat"></div>
+      <div class="tip-modal-content" id="tip-modal-content"></div>
+      <div class="tip-modal-meta" id="tip-modal-meta"></div>
+    </div>
+  </div>
+</div>
+
+<div class="student-layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo"><div class="sidebar-logo-icon">📚</div><div class="sidebar-logo-text">Study<span>Buddy</span></div></div>
+    <div class="sidebar-level-badge"><div class="course" id="sb-course">CA</div><div class="level" id="sb-level">CA Final</div></div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Overview</div>
+      <a href="dashboard.html" class="nav-item"><span class="nav-item-icon">🏠</span> Home</a>
+      <a href="progress.html"  class="nav-item"><span class="nav-item-icon">📊</span> Progress Dashboard</a>
+      <div class="nav-section-label">Study</div>
+      <a href="material.html" class="nav-item"><span class="nav-item-icon">📚</span> Study Material</a>
+      <a href="mcq.html"      class="nav-item"><span class="nav-item-icon">✏️</span> Practice MCQ</a>
+      <a href="tests.html"    class="nav-item"><span class="nav-item-icon">📝</span> Mock Tests</a>
+      <div class="nav-section-label">Tools</div>
+      <a href="timer.html"    class="nav-item"><span class="nav-item-icon">⏱️</span> Study Timer</a>
+      <a href="tips.html"     class="nav-item active"><span class="nav-item-icon">💡</span> Tips & Ideas</a>
+      <div class="nav-section-label">Account</div>
+      <a href="profile.html"  class="nav-item"><span class="nav-item-icon">👤</span> My Profile</a>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="sidebar-user">
+        <div class="sidebar-avatar" id="sidebar-avatar">S</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name" id="sidebar-name">Student</div>
+          <div class="sidebar-user-role">Student</div>
+        </div>
+        <button class="btn-logout" id="btn-logout">🚪</button>
+      </div>
+    </div>
+  </aside>
+
+  <main class="student-main">
+    <div class="page-content">
+      <div class="page-hero">
+        <button class="btn-hamburger hero-hamburger" id="btn-hamburger" onclick="toggleSidebar()" aria-label="Menu">
+          <span></span><span></span><span></span>
+        </button>
+        <div class="hero-title-wrap">
+          <h1>💡 Tips & Ideas</h1>
+          <p>Study tips, exam strategies and motivation from your faculty</p>
+        </div>
+        <a href="dashboard.html" class="hero-home-btn" title="Home">🏠</a>
+      </div>
+
+      <!-- Filter Chips -->
+      <div class="filter-chips">
+        <button class="filter-chip active" onclick="filterTips('all',this)">🌟 All</button>
+        <button class="filter-chip" onclick="filterTips('Study Tips',this)">📖 Study Tips</button>
+        <button class="filter-chip" onclick="filterTips('Exam Tips',this)">📝 Exam Tips</button>
+        <button class="filter-chip" onclick="filterTips('Motivation',this)">🔥 Motivation</button>
+        <button class="filter-chip" onclick="filterTips('Preparation',this)">🎯 Preparation</button>
+      </div>
+
+      <!-- Tips count -->
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" id="tips-count"></div>
+
+      <!-- Tips Grid -->
+      <div class="tips-grid" id="tips-grid">
+        <div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted);">
+          ⏳ Loading tips...
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script type="module">
+  import { auth, db } from '../js/firebase-config.js';
+  import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import { collection, doc, getDoc, getDocs,
+    query, where, orderBy }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  let allTips=[], userLevel=null, filterMode='all';
+
+  const CAT_CLASSES = {
+    'Study Tips':'cat-study', 'Exam Tips':'cat-exam',
+    'Motivation':'cat-motivation', 'Preparation':'cat-preparation'
+  };
+
+  onAuthStateChanged(auth,async(user)=>{
+    if(!user){window.location.href='../index.html';return;}
+    const snap=await getDoc(doc(db,'users',user.uid));
+    if(!snap.exists()){window.location.href='../index.html';return;}
+    const data=snap.data();
+    if(data.role!=='student'||data.status!=='approved'){window.location.href='../index.html';return;}
+    userLevel=data.level;
+    document.getElementById('sidebar-avatar').textContent=(data.firstName[0]+data.lastName[0]).toUpperCase();
+    document.getElementById('sidebar-name').textContent=data.firstName+' '+data.lastName;
+    document.getElementById('sb-course').textContent=data.course;
+    document.getElementById('sb-level').textContent=data.level;
+    document.getElementById('page-loader').classList.add('hidden');
+    loadTips();
+  });
+  document.getElementById('btn-logout').addEventListener('click',async()=>{
+    const {auth:a}=await import('../js/firebase-config.js');
+    const {signOut:so}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js");
+    await so(a); window.location.href='../index.html';
+  });
+
+  async function loadTips(){
+    try{
+      const snap=await getDocs(
+        query(collection(db,'tips'),
+          where('isPublished','==',true),
+          orderBy('createdAt','desc'))
+      );
+      allTips=[];
+      snap.forEach(d=>{
+        const t=d.data();
+        // Show if target is All or matches user level
+        if(t.targetLevel==='All'||t.targetLevel===userLevel){
+          allTips.push({id:d.id,...t});
+        }
+      });
+      renderTips();
+    }catch(e){
+      document.getElementById('tips-grid').innerHTML=
+        '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--danger);">Failed to load tips.</div>';
+      console.error(e);
+    }
+  }
+
+  window.filterTips=function(mode,btn){
+    filterMode=mode;
+    document.querySelectorAll('.filter-chip').forEach(b=>b.classList.remove('active'));
+    if(btn)btn.classList.add('active');
+    renderTips();
+  };
+
+  function renderTips(){
+    const filtered=filterMode==='all'
+      ?allTips
+      :allTips.filter(t=>t.category===filterMode);
+
+    document.getElementById('tips-count').textContent=
+      `${filtered.length} tip${filtered.length!==1?'s':''} found`;
+
+    const grid=document.getElementById('tips-grid');
+    if(!filtered.length){
+      grid.innerHTML=`
+        <div style="grid-column:1/-1;" class="empty-tips">
+          <div class="icon">💡</div>
+          <h3 style="color:var(--text-secondary);">No tips yet</h3>
+          <p>${filterMode==='all'?'Your faculty hasn\'t posted any tips yet.':'No '+filterMode+' posted yet.'}</p>
+        </div>`;
+      return;
+    }
+
+    grid.innerHTML=filtered.map(tip=>{
+      const catClass=CAT_CLASSES[tip.category]||'cat-study';
+      const date=tip.createdAt?tip.createdAt.toDate().toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}):'';
+      const preview=(tip.content||'').substring(0,120)+(tip.content?.length>120?'...':'');
+      return`
+        <div class="tip-card">
+          ${tip.imageUrl?`<img src="${tip.imageUrl}" class="tip-card-img" onerror="this.style.display='none'" loading="lazy"/>`:''}
+          <div class="tip-card-body">
+            <span class="tip-cat-badge ${catClass}">${tip.category||'General'}</span>
+            <div class="tip-title">${tip.title}</div>
+            <div class="tip-preview">${preview}</div>
+            <div class="tip-meta">
+              <div class="tip-meta-left">
+                👤 ${tip.createdBy||'Admin'} &nbsp;•&nbsp; 📅 ${date}
+              </div>
+              <button class="btn-read-more" onclick="openTip('${tip.id}')">Read More →</button>
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  // Build a lookup for fast access
+  window.openTip=function(tipId){
+    const tip=allTips.find(t=>t.id===tipId);
+    if(!tip)return;
+    const catClass=CAT_CLASSES[tip.category]||'cat-study';
+    const date=tip.createdAt?tip.createdAt.toDate().toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'}):'';
+    const imgEl=document.getElementById('tip-modal-img');
+    if(tip.imageUrl){imgEl.src=tip.imageUrl;imgEl.style.display='block';}
+    else imgEl.style.display='none';
+    document.getElementById('tip-modal-title').textContent=tip.title;
+    document.getElementById('tip-modal-cat').innerHTML=
+      `<span class="tip-cat-badge ${catClass}" style="margin-bottom:12px;display:inline-block;">${tip.category||'General'}</span>`;
+    document.getElementById('tip-modal-content').textContent=tip.content||'';
+    document.getElementById('tip-modal-meta').innerHTML=
+      `<span>👤 ${tip.createdBy||'Admin'}</span>
+       <span>📅 ${date}</span>
+       <span>🎯 ${tip.targetLevel||'All Students'}</span>`;
+    document.getElementById('tip-modal').classList.add('open');
+    document.body.style.overflow='hidden';
+  };
+
+  window.closeTipModal=function(){
+    document.getElementById('tip-modal').classList.remove('open');
+    document.body.style.overflow='';
+  };
+
+  window.closeModal=function(e){
+    if(e.target===document.getElementById('tip-modal'))closeTipModal();
+  };
+
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')closeTipModal();});
+</script>
+
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+<script>
+  // ── Sidebar Toggle ────────────────────────────────────────
+  window.toggleSidebar = function(){
+    const sb  = document.getElementById('sidebar');
+    const btn = document.getElementById('btn-hamburger');
+    const ov  = document.getElementById('sidebar-overlay');
+    const open = sb.classList.toggle('open');
+    btn.classList.toggle('open', open);
+    ov.classList.toggle('show', open);
+  };
+  window.closeSidebar = function(){
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('btn-hamburger').classList.remove('open');
+    document.getElementById('sidebar-overlay').classList.remove('show');
+  };
+  document.addEventListener('DOMContentLoaded', function(){
+    document.querySelectorAll('.nav-item').forEach(function(a){
+      a.addEventListener('click', window.closeSidebar);
+    });
+  });
+</script>
+</body>
+</html>

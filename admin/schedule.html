@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>StudyBuddy — Exam Dates</title>
+  <link rel="stylesheet" href="../css/global.css"/>
+  <link rel="stylesheet" href="../css/admin.css"/>
+  <style>
+    .exam-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:20px; }
+    .exam-card {
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:var(--radius-lg); padding:24px; position:relative; overflow:hidden;
+    }
+    .exam-card::before {
+      content:''; position:absolute; top:0; left:0; right:0;
+      height:4px; background:linear-gradient(90deg,var(--primary),var(--accent));
+    }
+    .exam-card-header { display:flex; align-items:center; gap:12px; margin-bottom:18px; }
+    .exam-card-icon {
+      width:44px; height:44px; border-radius:var(--radius-md);
+      background:var(--primary-light); display:flex; align-items:center;
+      justify-content:center; font-size:22px; flex-shrink:0;
+    }
+    .exam-card-title { font-family:var(--font-heading); font-size:15px; font-weight:700; }
+    .exam-card-sub   { font-size:12px; color:var(--text-muted); margin-top:2px; }
+
+    .exam-date-display {
+      background:var(--surface-2); border-radius:var(--radius-md);
+      padding:14px; margin-bottom:16px; text-align:center;
+    }
+    .exam-date-val   { font-family:var(--font-heading); font-size:1.3rem; font-weight:700; color:var(--text-primary); }
+    .exam-date-sub   { font-size:12px; color:var(--text-muted); margin-top:4px; }
+    .days-remaining  { font-size:13px; font-weight:700; margin-top:8px; }
+    .days-remaining.soon    { color:var(--danger); }
+    .days-remaining.near    { color:var(--warning); }
+    .days-remaining.ontrack { color:var(--success); }
+    .days-remaining.notset  { color:var(--text-muted); }
+
+    .exam-notes-input {
+      width:100%; border:1.5px solid var(--border); border-radius:var(--radius-md);
+      padding:8px 12px; font-size:13px; font-family:var(--font-body);
+      color:var(--text-primary); outline:none; resize:none; background:var(--surface);
+      transition:border-color 0.2s;
+    }
+    .exam-notes-input:focus { border-color:var(--primary); }
+
+    .btn-save-date {
+      background:var(--primary); color:#fff; border:none;
+      padding:9px 20px; border-radius:var(--radius-md); font-size:13px;
+      font-weight:600; cursor:pointer; font-family:var(--font-body);
+      transition:all 0.2s; width:100%; margin-top:12px;
+    }
+    .btn-save-date:hover { background:var(--primary-dark); }
+
+    .section-divider { margin:32px 0 20px; }
+    .section-divider h3 { font-family:var(--font-heading); font-size:16px; font-weight:600; margin-bottom:4px; }
+    .section-divider p  { font-size:13px; color:var(--text-muted); }
+  </style>
+</head>
+<body>
+<div id="page-loader"><div class="logo-text">📚 StudyBuddy</div><div class="spinner spinner-primary"></div></div>
+<div id="toast-container"></div>
+
+<div class="admin-layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><div class="sidebar-logo-icon">📚</div><div class="sidebar-logo-text">Study<span>Buddy</span></div></div>
+    <div class="sidebar-role" id="sidebar-role-label">Admin Panel</div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Main</div>
+      <a href="dashboard.html" class="nav-item"><span class="nav-item-icon">🏠</span> Dashboard</a>
+      <a href="users.html" class="nav-item"><span class="nav-item-icon">👥</span> Students</a>
+      <div class="nav-section-label">Content</div>
+      <a href="structure.html" class="nav-item"><span class="nav-item-icon">🗂️</span> Course Structure</a>
+      <a href="materials.html" class="nav-item"><span class="nav-item-icon">📄</span> Study Materials</a>
+      <a href="tests.html" class="nav-item"><span class="nav-item-icon">📝</span> Tests & MCQs</a>
+      <a href="tips.html" class="nav-item"><span class="nav-item-icon">💡</span> Tips & Ideas</a>
+      <div class="nav-section-label">Communication</div>
+      <a href="communications.html" class="nav-item"><span class="nav-item-icon">📧</span> Send Emails</a>
+      <a href="schedule.html" class="nav-item active"><span class="nav-item-icon">📅</span> Exam Dates</a>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="sidebar-user">
+        <div class="sidebar-avatar" id="sidebar-avatar">A</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name" id="sidebar-name">Admin</div>
+          <div class="sidebar-user-role" id="sidebar-role-tag">Admin</div>
+        </div>
+        <button class="btn-logout" id="btn-logout">🚪</button>
+      </div>
+    </div>
+  </aside>
+
+  <main class="admin-main">
+    <div class="topbar">
+      <div class="topbar-title">Exam Dates</div>
+      <div class="topbar-right"><span class="topbar-date" id="topbar-date"></span></div>
+    </div>
+
+    <div class="page-content">
+
+      <div class="section-header mb-24">
+        <div>
+          <div class="section-title">📅 Set Exam Dates Per Level</div>
+          <div class="section-sub">Students will see days remaining on their dashboard. Used for pace tracking.</div>
+        </div>
+      </div>
+
+      <!-- Exam date cards grid -->
+      <div class="exam-grid" id="exam-grid">
+        <!-- Injected by JS -->
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script type="module">
+  import { auth, db } from '../js/firebase-config.js';
+  import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import { doc, getDoc, setDoc, serverTimestamp }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const LEVELS = [
+    { id:'CA-Foundation',   label:'CA Foundation',   icon:'📘', course:'CA'  },
+    { id:'CA-Intermediate', label:'CA Intermediate', icon:'📗', course:'CA'  },
+    { id:'CA-Final',        label:'CA Final',        icon:'📕', course:'CA'  },
+    { id:'FRM-I',           label:'FRM Part I',      icon:'📙', course:'FRM' },
+    { id:'FRM-II',          label:'FRM Part II',     icon:'📓', course:'FRM' },
+    { id:'CFA-I',           label:'CFA Level I',     icon:'📒', course:'CFA' },
+    { id:'CFA-II',          label:'CFA Level II',    icon:'📒', course:'CFA' },
+    { id:'CFA-III',         label:'CFA Level III',   icon:'📒', course:'CFA' },
+  ];
+
+  function toast(msg,type='info'){
+    const c=document.getElementById('toast-container');
+    const t=document.createElement('div');
+    t.className=`toast toast-${type}`;
+    t.innerHTML=`<span>${{success:'✅',error:'❌',info:'ℹ️'}[type]}</span> ${msg}`;
+    c.appendChild(t);setTimeout(()=>t.remove(),4000);
+  }
+
+  document.getElementById('topbar-date').textContent=
+    new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+
+  onAuthStateChanged(auth,async(user)=>{
+    if(!user){window.location.href='../index.html';return;}
+    const snap=await getDoc(doc(db,'users',user.uid));
+    if(!snap.exists()){window.location.href='../index.html';return;}
+    const data=snap.data();
+    if(data.role!=='admin'&&data.role!=='superadmin'){window.location.href='../index.html';return;}
+    document.getElementById('sidebar-avatar').textContent=(data.firstName[0]+data.lastName[0]).toUpperCase();
+    document.getElementById('sidebar-name').textContent=data.firstName+' '+data.lastName;
+    document.getElementById('sidebar-role-tag').textContent=data.role==='superadmin'?'👑 Super Admin':'🛡️ Admin';
+    document.getElementById('page-loader').classList.add('hidden');
+    buildCards();
+    loadAllDates();
+  });
+  document.getElementById('btn-logout').addEventListener('click',async()=>{await signOut(auth);window.location.href='../index.html';});
+
+  function buildCards(){
+    const grid=document.getElementById('exam-grid');
+    grid.innerHTML=LEVELS.map(l=>`
+      <div class="exam-card">
+        <div class="exam-card-header">
+          <div class="exam-card-icon">${l.icon}</div>
+          <div>
+            <div class="exam-card-title">${l.label}</div>
+            <div class="exam-card-sub">${l.course}</div>
+          </div>
+        </div>
+        <div class="exam-date-display">
+          <div class="exam-date-val" id="display-${l.id}">Not Set</div>
+          <div class="exam-date-sub" id="display-label-${l.id}">Set an exam date below</div>
+          <div class="days-remaining notset" id="days-${l.id}">—</div>
+        </div>
+        <div class="form-group" style="margin-bottom:10px;">
+          <label class="form-label">Exam Date</label>
+          <input type="date" id="date-${l.id}" class="form-input"
+            onchange="updateDaysDisplay('${l.id}')"/>
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">Label (optional)</label>
+          <input type="text" id="label-${l.id}" class="form-input"
+            placeholder="e.g. CA Final Nov 2026 Attempt"/>
+        </div>
+        <button class="btn-save-date" onclick="saveDate('${l.id}','${l.label}')">
+          💾 Save Exam Date
+        </button>
+      </div>`).join('');
+  }
+
+  async function loadAllDates(){
+    for(const l of LEVELS){
+      try{
+        const snap=await getDoc(doc(db,'exams',l.id));
+        if(snap.exists()){
+          const data=snap.data();
+          if(data.examDate){
+            const d=new Date(data.examDate.seconds*1000);
+            document.getElementById('date-'+l.id).value=d.toISOString().split('T')[0];
+            document.getElementById('label-'+l.id).value=data.label||'';
+            updateDaysDisplay(l.id);
+          }
+        }
+      }catch(e){console.error(l.id,e);}
+    }
+  }
+
+  window.updateDaysDisplay=function(levelId){
+    const dateVal=document.getElementById('date-'+levelId).value;
+    const displayEl=document.getElementById('display-'+levelId);
+    const daysEl=document.getElementById('days-'+levelId);
+    const lblEl=document.getElementById('display-label-'+levelId);
+    if(!dateVal){
+      displayEl.textContent='Not Set';
+      daysEl.textContent='—';
+      daysEl.className='days-remaining notset';
+      lblEl.textContent='Set an exam date below';
+      return;
+    }
+    const examDate=new Date(dateVal);
+    const today=new Date(); today.setHours(0,0,0,0);
+    const diff=Math.ceil((examDate-today)/(1000*60*60*24));
+    displayEl.textContent=examDate.toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'});
+    const labelInput=document.getElementById('label-'+levelId).value;
+    lblEl.textContent=labelInput||'Exam Date';
+    if(diff<0){
+      daysEl.textContent='Exam passed '+Math.abs(diff)+' days ago';
+      daysEl.className='days-remaining notset';
+    }else if(diff===0){
+      daysEl.textContent='🔴 Exam is TODAY!';
+      daysEl.className='days-remaining soon';
+    }else if(diff<=30){
+      daysEl.textContent=`🔴 ${diff} days remaining — Very Soon!`;
+      daysEl.className='days-remaining soon';
+    }else if(diff<=60){
+      daysEl.textContent=`🟡 ${diff} days remaining`;
+      daysEl.className='days-remaining near';
+    }else{
+      daysEl.textContent=`🟢 ${diff} days remaining`;
+      daysEl.className='days-remaining ontrack';
+    }
+  };
+
+  window.saveDate=async function(levelId, levelLabel){
+    const dateVal=document.getElementById('date-'+levelId).value;
+    const label  =document.getElementById('label-'+levelId).value.trim();
+    if(!dateVal){toast('Select a date first.','error');return;}
+    try{
+      const examDate=new Date(dateVal);
+      await setDoc(doc(db,'exams',levelId),{
+        examDate:{seconds:examDate.getTime()/1000,nanoseconds:0},
+        label:label||levelLabel,
+        level:levelId,
+        updatedAt:serverTimestamp()
+      });
+      toast(`${levelLabel} exam date saved! ✅`,'success');
+      updateDaysDisplay(levelId);
+    }catch(e){toast('Save failed.','error');console.error(e);}
+  };
+</script>
+</body>
+</html>

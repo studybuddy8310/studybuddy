@@ -1,0 +1,1128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>StudyBuddy — Practice MCQ</title>
+  <link rel="stylesheet" href="../css/global.css"/>
+  <link rel="stylesheet" href="../css/student.css"/>
+  <style>
+    /* ══ SHARED PAGE HEADER ══════════════════════════════ */
+    .page-hero {
+      background: linear-gradient(135deg, #1A1A2E 0%, #2D5BE3 100%);
+      padding: 28px 40px; color: #fff; margin: -28px -28px 28px;
+    }
+    .page-hero h1 { font-family:var(--font-heading); font-size:1.6rem; font-weight:700; }
+    .page-hero p  { font-size:13px; opacity:0.7; margin-top:4px; }
+
+    /* ══ SELECTION SCREENS ══════════════════════════════ */
+    .sel-wrap { max-width:860px; margin:0 auto; }
+
+    /* Type selection cards (Image 4 style) */
+    .type-cards { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:0; }
+    .type-card {
+      background:var(--surface); border:2px solid var(--border);
+      border-radius:var(--radius-lg); padding:28px 24px;
+      display:flex; align-items:center; gap:16px;
+      cursor:pointer; transition:all 0.2s; text-decoration:none;
+    }
+    .type-card:hover  { border-color:var(--primary); box-shadow:var(--shadow-md); transform:translateY(-2px); }
+    .type-card.active { border-color:var(--primary); background:var(--primary-light); }
+    .type-card-icon {
+      width:56px; height:56px; background:var(--primary-light);
+      border-radius:var(--radius-md); display:flex; align-items:center;
+      justify-content:center; font-size:28px; flex-shrink:0;
+    }
+    .type-card-title { font-family:var(--font-heading); font-size:15px; font-weight:700; color:var(--text-primary); }
+    .type-card-sub   { font-size:12px; color:var(--text-muted); margin-top:3px; }
+
+    /* Paper list table (Image 5 style) */
+    .paper-table { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; }
+    .paper-row {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:16px 20px; border-bottom:1px solid var(--border);
+      transition:background 0.15s;
+    }
+    .paper-row:last-child { border-bottom:none; }
+    .paper-row:hover { background:var(--surface-2); }
+    .paper-row-name { font-size:14px; color:var(--text-primary); font-weight:500; }
+    .btn-select-chapter {
+      background:var(--primary); color:#fff; border:none;
+      padding:8px 20px; border-radius:30px; font-size:13px;
+      font-weight:600; cursor:pointer; font-family:var(--font-body);
+      transition:all 0.2s; white-space:nowrap;
+    }
+    .btn-select-chapter:hover { background:var(--primary-dark); }
+
+    /* Chapter list table (Image 2/6 style) */
+    .chapter-table { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; }
+    .chapter-table-header {
+      display:grid; grid-template-columns:48px 1fr;
+      background:var(--surface-2); padding:12px 20px;
+      border-bottom:2px solid var(--border);
+      font-size:13px; font-weight:700; color:var(--text-secondary);
+    }
+    .chapter-row {
+      display:grid; grid-template-columns:48px 1fr;
+      align-items:center; padding:0; border-bottom:1px solid var(--border);
+      cursor:pointer; transition:all 0.2s;
+    }
+    .chapter-row:last-child { border-bottom:none; }
+    .chapter-row:hover { background:rgba(45,91,227,0.04); }
+    .chapter-row.selected {
+      background:linear-gradient(135deg, #1A3FA8, #2D5BE3);
+    }
+    .chapter-row.selected .chapter-row-name { color:#fff; font-weight:600; }
+    .chapter-row.selected .chapter-row-num  { color:rgba(255,255,255,0.7); }
+    .chapter-row-num  { padding:14px 0 14px 20px; font-size:13px; color:var(--text-muted); font-weight:600; }
+    .chapter-row-name-wrap { display:flex; align-items:center; gap:12px; padding:14px 20px 14px 0; }
+    .chapter-radio {
+      width:22px; height:22px; border-radius:50%; border:2px solid #ccc;
+      flex-shrink:0; display:flex; align-items:center; justify-content:center;
+      transition:all 0.2s; background:#fff;
+    }
+    .chapter-row.selected .chapter-radio {
+      background:var(--accent); border-color:var(--accent);
+    }
+    .chapter-radio-dot {
+      width:10px; height:10px; border-radius:50%; background:#fff;
+      display:none;
+    }
+    .chapter-row.selected .chapter-radio-dot { display:block; }
+    .chapter-row-name { font-size:14px; color:var(--text-primary); }
+    .chapter-row-count { margin-left:auto; font-size:12px; color:var(--text-muted); background:var(--surface-2); padding:2px 10px; border-radius:10px; white-space:nowrap; }
+    .chapter-row.selected .chapter-row-count { background:rgba(255,255,255,0.2); color:rgba(255,255,255,0.8); }
+
+    /* Case scenario list (Image 8 style) */
+    .case-row {
+      display:grid; grid-template-columns:48px 1fr;
+      align-items:center; border-bottom:1px solid var(--border);
+      cursor:pointer; transition:all 0.2s;
+    }
+    .case-row:last-child { border-bottom:none; }
+    .case-row:hover { background:rgba(45,91,227,0.04); }
+    .case-row.selected { background:linear-gradient(135deg, #1A3FA8, #2D5BE3); }
+    .case-row.selected .case-row-name { color:#fff; font-weight:600; }
+    .case-row.selected .case-row-num  { color:rgba(255,255,255,0.7); }
+    .case-row-num  { padding:14px 0 14px 20px; font-size:13px; color:var(--text-muted); font-weight:600; }
+    .case-row-wrap { display:flex; align-items:center; gap:12px; padding:14px 20px 14px 0; }
+    .case-row-name { font-size:14px; color:var(--text-primary); }
+
+    /* Note bar */
+    .sel-note {
+      text-align:center; font-size:13px; color:var(--text-secondary);
+      margin-bottom:16px; padding:10px;
+    }
+    .sel-note strong { color:var(--text-primary); }
+
+    /* Start button bar */
+    .start-bar {
+      display:flex; align-items:center; justify-content:space-between;
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:var(--radius-lg); padding:16px 20px; margin-top:16px;
+      flex-wrap:wrap; gap:12px;
+    }
+    .start-info { font-size:14px; font-weight:600; color:var(--primary); }
+    .start-info span { color:var(--text-muted); font-weight:400; margin-left:8px; }
+    .btn-start-practice {
+      background:linear-gradient(135deg, #1A3FA8, #2D5BE3);
+      color:#fff; border:none; padding:12px 32px; border-radius:30px;
+      font-size:14px; font-weight:700; cursor:pointer; font-family:var(--font-body);
+      transition:all 0.2s; display:flex; align-items:center; gap:8px;
+    }
+    .btn-start-practice:hover { transform:translateY(-1px); box-shadow:0 4px 16px rgba(45,91,227,0.4); }
+    .btn-start-practice:disabled { opacity:0.5; cursor:not-allowed; transform:none; }
+
+    /* Back button */
+    .back-btn {
+      display:inline-flex; align-items:center; gap:6px;
+      color:var(--text-secondary); font-size:13px; font-weight:600;
+      cursor:pointer; margin-bottom:16px; background:none; border:none;
+      font-family:var(--font-body); padding:0; transition:color 0.2s;
+    }
+    .back-btn:hover { color:var(--primary); }
+
+    /* ══ EXAM SCREEN ════════════════════════════════════ */
+    .exam-wrap { display:none; position:fixed; inset:0; z-index:100; flex-direction:column; background:var(--bg); }
+
+    /* Normal MCQ layout (Image 3 style) */
+    .exam-normal {
+      display:flex; flex:1; overflow:hidden;
+    }
+    .exam-main {
+      flex:1; overflow-y:auto; padding:32px 40px;
+    }
+    .exam-sidebar {
+      width:240px; flex-shrink:0; border-left:1px solid var(--border);
+      background:var(--surface); overflow-y:auto; padding:0;
+    }
+    .exam-sidebar-section { padding:16px; border-bottom:1px solid var(--border); }
+    .exam-sidebar-label { font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px; }
+
+    /* Timer box */
+    .timer-box {
+      background:var(--success); color:#fff; border-radius:var(--radius-md);
+      padding:8px 14px; font-family:var(--font-heading); font-size:1.1rem;
+      font-weight:700; text-align:center; letter-spacing:1px; margin-bottom:10px;
+    }
+    .timer-box.warning { background:var(--warning); color:#7A4F00; }
+    .timer-box.danger  { background:var(--danger); animation:pulse 1s infinite; }
+
+    /* Legend */
+    .legend-list { display:flex; flex-direction:column; gap:6px; }
+    .legend-item { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-secondary); }
+    .legend-sq { width:18px; height:18px; border-radius:4px; flex-shrink:0; }
+
+    /* Nav grid */
+    .nav-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
+    .nav-btn {
+      width:100%; aspect-ratio:1; border-radius:6px; border:none;
+      font-size:12px; font-weight:700; cursor:pointer; transition:all 0.2s;
+      background:#E8EFF8; color:var(--text-secondary);
+    }
+    .nav-btn.current   { box-shadow:0 0 0 2px var(--primary); background:var(--primary); color:#fff; }
+    .nav-btn.answered  { background:#2D5BE3; color:#fff; }
+    .nav-btn.marked    { background:#FFB830; color:#fff; }
+    .nav-btn.skipped   { background:#87CEEB; color:#1A5276; }
+    .nav-btn.not-visited { background:#1A1A2E; color:#fff; }
+
+    /* Exam header bar (marks + negative info like Image 1) */
+    .exam-q-meta {
+      display:flex; align-items:center; justify-content:space-between;
+      font-size:13px; margin-bottom:12px; color:var(--text-muted);
+      padding-bottom:10px; border-bottom:1px solid var(--border);
+    }
+    .exam-q-meta .marks-info span { color:var(--success); font-weight:700; }
+    .exam-q-meta .neg-info   span { color:var(--danger);  font-weight:700; }
+
+    .exam-q-num   { font-weight:700; font-size:15px; color:var(--text-primary); margin-bottom:14px; }
+    .exam-q-text  { font-size:15px; color:var(--text-primary); line-height:1.7; margin-bottom:24px; }
+    .exam-q-img   { max-width:100%; max-height:280px; border-radius:var(--radius-md); margin-bottom:20px; display:none; }
+
+    /* Options (Image 1 style — radio with line) */
+    .option-list  { display:flex; flex-direction:column; }
+    .option-item  {
+      display:flex; align-items:flex-start; gap:14px;
+      padding:14px 0; border-bottom:1px solid var(--border);
+      cursor:pointer; transition:background 0.15s; border-radius:4px;
+      padding-left:4px;
+    }
+    .option-item:last-child { border-bottom:none; }
+    .option-item:hover { background:rgba(45,91,227,0.04); padding-left:8px; }
+    .option-item.selected { background:rgba(45,91,227,0.06); padding-left:8px; }
+    .option-radio {
+      width:22px; height:22px; border-radius:50%; border:2px solid #ccc;
+      flex-shrink:0; display:flex; align-items:center; justify-content:center;
+      margin-top:1px; transition:all 0.2s; background:#fff;
+    }
+    .option-item.selected .option-radio { border-color:var(--primary); }
+    .option-radio-dot { width:10px; height:10px; border-radius:50%; background:var(--primary); display:none; }
+    .option-item.selected .option-radio-dot { display:block; }
+    .option-text  { font-size:14px; color:var(--text-primary); line-height:1.6; }
+
+    /* Case based layout (Image 9 style — passage LEFT, question RIGHT) */
+    .exam-case {
+      display:flex; flex:1; overflow:hidden;
+    }
+    .case-passage-panel {
+      width:44%; flex-shrink:0; border-right:1px solid var(--border);
+      padding:28px 24px; overflow-y:auto; background:var(--surface-2);
+    }
+    .case-passage-label { font-size:11px; font-weight:700; color:#92400E; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px; }
+    .case-passage-text  { font-size:13px; line-height:1.8; color:var(--text-primary); }
+    .case-question-panel {
+      flex:1; overflow-y:auto; padding:28px 24px;
+    }
+    .case-nav-panel {
+      width:120px; flex-shrink:0; border-left:1px solid var(--border);
+      padding:16px; background:var(--surface);
+    }
+    .case-nav-grid { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+
+    /* Bottom action bar (Image 1 style) */
+    .exam-bottom {
+      border-top:1px solid var(--border); background:var(--surface);
+      padding:12px 20px; display:flex; align-items:center;
+      justify-content:space-between; flex-shrink:0; flex-wrap:wrap; gap:8px;
+    }
+    .btn-mark-review {
+      background:#fff; border:1px solid var(--border); padding:9px 18px;
+      border-radius:6px; font-size:13px; font-weight:600; cursor:pointer;
+      font-family:var(--font-body); color:var(--text-secondary); transition:all 0.2s;
+    }
+    .btn-mark-review:hover { border-color:var(--warning); color:#8A5F00; }
+    .btn-mark-review.marked { background:var(--warning-light); border-color:var(--warning); color:#8A5F00; }
+    .btn-clear-resp {
+      background:#fff; border:1px solid var(--border); padding:9px 18px;
+      border-radius:6px; font-size:13px; font-weight:600; cursor:pointer;
+      font-family:var(--font-body); color:var(--text-secondary); transition:all 0.2s;
+    }
+    .btn-clear-resp:hover { border-color:var(--danger); color:var(--danger); }
+    .btn-save-next {
+      background:var(--primary); color:#fff; border:none; padding:10px 22px;
+      border-radius:6px; font-size:13px; font-weight:700; cursor:pointer;
+      font-family:var(--font-body); transition:all 0.2s;
+    }
+    .btn-save-next:hover { background:var(--primary-dark); }
+    .btn-submit-test {
+      background:#1A1A2E; color:#fff; border:none; padding:10px 22px;
+      border-radius:6px; font-size:13px; font-weight:700; cursor:pointer;
+      font-family:var(--font-body); transition:all 0.2s;
+    }
+    .btn-submit-test:hover { background:#000; }
+
+    /* ══ RESULT SCREEN ══════════════════════════════════ */
+    .result-wrap { display:none; max-width:700px; margin:0 auto; }
+    .result-hero { background:linear-gradient(135deg,#1A1A2E,#2D5BE3); border-radius:var(--radius-xl); padding:40px; text-align:center; color:#fff; margin-bottom:20px; }
+    .result-icon { font-size:64px; margin-bottom:12px; }
+    .result-score-big { font-family:var(--font-heading); font-size:4rem; font-weight:700; line-height:1; }
+    .result-score-out { font-size:16px; opacity:0.7; margin-top:4px; }
+    .result-pct-big   { font-family:var(--font-heading); font-size:1.5rem; font-weight:600; margin-top:10px; }
+    .result-bar-track { height:10px; background:rgba(255,255,255,0.2); border-radius:5px; margin:16px 0; overflow:hidden; }
+    .result-bar-fill  { height:100%; background:#fff; border-radius:5px; transition:width 1.2s ease; }
+    .result-stats-row { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:20px; }
+    .result-stat { background:rgba(255,255,255,0.1); border-radius:var(--radius-md); padding:14px; }
+    .result-stat-val { font-family:var(--font-heading); font-size:1.8rem; font-weight:700; }
+    .result-stat-lbl { font-size:11px; opacity:0.7; margin-top:3px; text-transform:uppercase; letter-spacing:0.5px; }
+    .motivational-box { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:20px 24px; margin-bottom:16px; border-left:4px solid var(--primary); }
+    .motivational-text { font-size:15px; color:var(--text-primary); font-style:italic; line-height:1.6; }
+    .result-actions { display:flex; gap:12px; flex-wrap:wrap; }
+
+    /* ══ REVIEW SCREEN ══════════════════════════════════ */
+    .review-wrap { display:none; }
+    .review-q-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:20px; margin-bottom:14px; }
+    .review-q-header { display:flex; align-items:center; gap:10px; margin-bottom:12px; flex-wrap:wrap; }
+    .review-q-text { font-size:14px; line-height:1.6; color:var(--text-primary); margin-bottom:12px; }
+    .review-opt-row { display:flex; align-items:flex-start; gap:10px; padding:6px 0; font-size:13px; }
+    .review-opt-circle { width:24px; height:24px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; }
+    .review-explanation { font-size:13px; color:var(--text-secondary); background:var(--primary-light); border-radius:var(--radius-sm); padding:10px 14px; margin-top:10px; line-height:1.6; }
+    .review-passage { background:#FFFBEB; border:1px solid #FDE68A; border-radius:var(--radius-md); padding:14px 16px; margin-bottom:14px; font-size:12px; line-height:1.7; }
+
+    @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.6;} }
+
+    @media print {
+      .sidebar,.student-main>.topbar,.exam-bottom,
+      .exam-sidebar,.case-nav-panel,.result-actions { display:none!important; }
+      .student-main { margin-left:0!important; }
+      .result-wrap,.review-wrap { display:block!important; }
+      .exam-wrap { display:none!important; }
+    }
+    @media(max-width:900px){
+      .exam-normal { flex-direction:column; }
+      .exam-sidebar { width:100%; border-left:none; border-top:1px solid var(--border); }
+      .exam-case { flex-direction:column; }
+      .case-passage-panel { width:100%; border-right:none; border-bottom:1px solid var(--border); }
+      .case-nav-panel { width:100%; border-left:none; border-top:1px solid var(--border); }
+      .type-cards { grid-template-columns:1fr; }
+    }
+  </style>
+</head>
+<body>
+<div id="page-loader"><div class="logo-text">📚 StudyBuddy</div><div class="spinner spinner-primary"></div></div>
+<div id="toast-container"></div>
+
+<div class="student-layout">
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo"><div class="sidebar-logo-icon">📚</div><div class="sidebar-logo-text">Study<span>Buddy</span></div></div>
+    <div class="sidebar-level-badge"><div class="course" id="sb-course">CA</div><div class="level" id="sb-level">CA Final</div></div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Overview</div>
+      <a href="dashboard.html" class="nav-item"><span class="nav-item-icon">🏠</span> Home</a>
+      <a href="progress.html"  class="nav-item"><span class="nav-item-icon">📊</span> Progress Dashboard</a>
+      <div class="nav-section-label">Study</div>
+      <a href="material.html" class="nav-item"><span class="nav-item-icon">📚</span> Study Material</a>
+      <a href="mcq.html"      class="nav-item active"><span class="nav-item-icon">✏️</span> Practice MCQ</a>
+      <a href="tests.html"    class="nav-item"><span class="nav-item-icon">📝</span> Mock Tests</a>
+      <div class="nav-section-label">Tools</div>
+      <a href="timer.html"    class="nav-item"><span class="nav-item-icon">⏱️</span> Study Timer</a>
+      <a href="tips.html"     class="nav-item"><span class="nav-item-icon">💡</span> Tips & Ideas</a>
+      <div class="nav-section-label">Account</div>
+      <a href="profile.html"  class="nav-item"><span class="nav-item-icon">👤</span> My Profile</a>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="sidebar-user">
+        <div class="sidebar-avatar" id="sidebar-avatar">S</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name" id="sidebar-name">Student</div>
+          <div class="sidebar-user-role">Student</div>
+        </div>
+        <button class="btn-logout" id="btn-logout">🚪</button>
+      </div>
+    </div>
+  </aside>
+
+  <main class="student-main">
+
+    <!-- ══ SELECTION SCREENS (inside page-content) ══ -->
+    <div class="page-content" id="content-sel">
+
+      <!-- Step 1: Select Type -->
+      <div id="step-type">
+        <div class="page-hero">
+          <button class="btn-hamburger hero-hamburger" id="btn-hamburger" onclick="toggleSidebar()" aria-label="Menu">
+            <span></span><span></span><span></span>
+          </button>
+          <div class="hero-title-wrap">
+            <h1 id="topbar-title">✏️ Practice MCQ</h1>
+            <p>Select the type of assessment you want to practice</p>
+          </div>
+          <a href="dashboard.html" class="hero-home-btn" title="Home">🏠</a>
+        </div>
+        <div class="sel-wrap">
+          <div class="type-cards">
+            <div class="type-card" onclick="selectType('normal')">
+              <div class="type-card-icon">📝</div>
+              <div>
+                <div class="type-card-title">MCQ Assessment</div>
+                <div class="type-card-sub">Chapter-wise multiple choice questions</div>
+              </div>
+            </div>
+            <div class="type-card" onclick="selectType('casebased')">
+              <div class="type-card-icon">📊</div>
+              <div>
+                <div class="type-card-title">Case Scenario Assessment</div>
+                <div class="type-card-sub">Passage-based case study questions</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 2a: Paper List (Normal) -->
+      <div id="step-papers-normal" style="display:none;">
+        <div class="page-hero">
+          <button class="btn-hamburger hero-hamburger" onclick="toggleSidebar()" aria-label="Menu"><span></span><span></span><span></span></button>
+          <div class="hero-title-wrap">
+            <h1>📋 List of Papers</h1>
+            <p>Select a paper to choose chapters</p>
+          </div>
+          <a href="dashboard.html" class="hero-home-btn" title="Home">🏠</a>
+        </div>
+        <div class="sel-wrap">
+          <button class="back-btn" onclick="goBack('papers-normal')">← Back</button>
+          <div class="paper-table" id="normal-paper-table">
+            <div style="text-align:center;padding:40px;color:var(--text-muted);">Loading papers...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 2b: Paper List (Case Based) -->
+      <div id="step-papers-case" style="display:none;">
+        <div class="page-hero">
+          <button class="btn-hamburger hero-hamburger" onclick="toggleSidebar()" aria-label="Menu"><span></span><span></span><span></span></button>
+          <div class="hero-title-wrap">
+            <h1>📊 MCQ Case Scenario Paper List</h1>
+            <p>Select a paper to view case studies</p>
+          </div>
+          <a href="dashboard.html" class="hero-home-btn" title="Home">🏠</a>
+        </div>
+        <div class="sel-wrap">
+          <button class="back-btn" onclick="goBack('papers-case')">← Back</button>
+          <div class="paper-table" id="case-paper-table">
+            <div style="text-align:center;padding:40px;color:var(--text-muted);">Loading papers...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3a: Chapter Selection (Normal) -->
+      <div id="step-chapters" style="display:none;">
+        <div class="page-hero">
+          <button class="btn-hamburger hero-hamburger" onclick="toggleSidebar()" aria-label="Menu"><span></span><span></span><span></span></button>
+          <div class="hero-title-wrap">
+            <h1>📚 MCQ Chapter List</h1>
+            <p id="chapter-paper-sub">Select chapters for your practice session</p>
+          </div>
+          <a href="dashboard.html" class="hero-home-btn" title="Home">🏠</a>
+        </div>
+        <div class="sel-wrap">
+          <button class="back-btn" onclick="goBack('chapters')">← Back to Papers</button>
+          <div class="sel-note"><strong>Note:</strong> You can select more than one chapter for MCQ Assessment</div>
+          <div class="chapter-table">
+            <div class="chapter-table-header">
+              <div>#</div>
+              <div>List of the Chapters</div>
+            </div>
+            <div id="chapter-list-rows"></div>
+          </div>
+          <div class="start-bar" id="chapters-start-bar" style="display:none;">
+            <div class="start-info" id="chapters-count-info">0 chapters selected</div>
+            <button class="btn-start-practice" id="btn-start-normal" onclick="startNormal()">
+              Start Practice →
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3b: Case Study Selection -->
+      <div id="step-cases" style="display:none;">
+        <div class="page-hero">
+          <button class="btn-hamburger hero-hamburger" onclick="toggleSidebar()" aria-label="Menu"><span></span><span></span><span></span></button>
+          <div class="hero-title-wrap">
+            <h1>📊 Case Scenario Assessment List</h1>
+            <p id="case-paper-sub">Select one case study to attempt</p>
+          </div>
+          <a href="dashboard.html" class="hero-home-btn" title="Home">🏠</a>
+        </div>
+        <div class="sel-wrap">
+          <button class="back-btn" onclick="goBack('cases')">← Back to Papers</button>
+          <div class="sel-note"><strong>Note:</strong> Only one case scenario can be selected at a time</div>
+          <div class="chapter-table">
+            <div class="chapter-table-header">
+              <div>#</div>
+              <div>Title</div>
+            </div>
+            <div id="case-list-rows"></div>
+          </div>
+          <div class="start-bar" id="case-start-bar" style="display:none;">
+            <div class="start-info" id="case-count-info">No case selected</div>
+            <button class="btn-start-practice" id="btn-start-case" onclick="startCase()" disabled>
+              Start Practice →
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /#content-sel -->
+
+    <!-- ══ EXAM SCREEN ══ -->
+    <div class="exam-wrap" id="exam-wrap">
+
+      <!-- Normal MCQ Layout -->
+      <div class="exam-normal" id="exam-normal-layout" style="display:none;">
+        <div class="exam-main">
+          <div class="exam-q-meta">
+            <div><strong id="exam-paper-name"></strong> — <span id="exam-chapter-info"></span></div>
+            <div style="display:flex;gap:16px;">
+              <span class="marks-info">Marks for correct response: <span id="exam-marks-info">1.00</span></span>
+              <span>|</span>
+              <span class="neg-info">Negative marking: <span id="exam-neg-info">0.00</span></span>
+            </div>
+          </div>
+          <div class="exam-q-num" id="nm-q-num">Question 1</div>
+          <img id="nm-q-img" class="exam-q-img"/>
+          <div class="exam-q-text" id="nm-q-text"></div>
+          <div class="option-list" id="nm-options"></div>
+        </div>
+        <div class="exam-sidebar">
+          <div class="exam-sidebar-section">
+            <div class="exam-sidebar-label">Time Elapsed</div>
+            <div class="timer-box" id="nm-timer">00:00:00</div>
+          </div>
+          <div class="exam-sidebar-section">
+            <div class="legend-list">
+              <div class="legend-item"><div class="legend-sq" style="background:#2D5BE3;"></div> Answered</div>
+              <div class="legend-item"><div class="legend-sq" style="background:#87CEEB;"></div> Not Attempted</div>
+              <div class="legend-item"><div class="legend-sq" style="background:#1A1A2E;"></div> Not Visited</div>
+              <div class="legend-item"><div class="legend-sq" style="background:#FFB830;"></div> Marked for Review</div>
+            </div>
+          </div>
+          <div class="exam-sidebar-section">
+            <div class="exam-sidebar-label">Choose a Question</div>
+            <div class="nav-grid" id="nm-nav-grid"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Case Based Layout -->
+      <div class="exam-case" id="exam-case-layout" style="display:none;">
+        <div class="case-passage-panel">
+          <div class="case-passage-label">📄 Case Study Passage</div>
+          <div class="case-passage-text" id="cb-passage-text"></div>
+        </div>
+        <div class="case-question-panel">
+          <div class="exam-q-meta">
+            <div><strong id="cb-case-name"></strong></div>
+            <div style="display:flex;gap:16px;">
+              <span class="marks-info">Marks: <span id="cb-marks-info">1.00</span></span>
+            </div>
+          </div>
+          <div class="exam-q-num" id="cb-q-num">Question: 1</div>
+          <img id="cb-q-img" class="exam-q-img"/>
+          <div class="exam-q-text" id="cb-q-text"></div>
+          <div class="option-list" id="cb-options"></div>
+          <div style="margin-top:20px;">
+            <button class="btn-start-practice" onclick="saveAndNext()" style="font-size:13px;padding:10px 24px;">Next →</button>
+          </div>
+        </div>
+        <div class="case-nav-panel">
+          <div class="exam-sidebar-label" style="font-size:10px;margin-bottom:10px;">Questions</div>
+          <div class="case-nav-grid" id="cb-nav-grid"></div>
+          <div style="margin-top:16px;">
+            <div class="legend-list">
+              <div class="legend-item"><div class="legend-sq" style="background:#2D5BE3;border-radius:2px;"></div><span style="font-size:10px;">Answered</span></div>
+              <div class="legend-item"><div class="legend-sq" style="background:#87CEEB;border-radius:2px;"></div><span style="font-size:10px;">Not attempted</span></div>
+              <div class="legend-item"><div class="legend-sq" style="background:#1A1A2E;border-radius:2px;"></div><span style="font-size:10px;">Remaining</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Bar -->
+      <div class="exam-bottom" id="exam-bottom">
+        <div class="flex flex-gap-8">
+          <button class="btn-mark-review" id="btn-mark" onclick="toggleMark()">🔖 Mark for Review & Next</button>
+          <button class="btn-clear-resp" onclick="clearResponse()">Clear Response</button>
+        </div>
+        <div class="flex flex-gap-8">
+          <button class="btn-save-next" onclick="saveAndNext()">Save & Next →</button>
+          <button class="btn-submit-test" onclick="confirmSubmit()">Submit</button>
+        </div>
+      </div>
+
+    </div><!-- /#exam-wrap -->
+
+    <!-- ══ RESULT SCREEN ══ -->
+    <div class="page-content" id="content-result" style="display:none;">
+      <div class="result-wrap" id="result-wrap" style="display:block;">
+        <div class="result-hero">
+          <div class="result-icon" id="result-icon">🎯</div>
+          <div class="result-score-big" id="result-score">0</div>
+          <div class="result-score-out" id="result-out">out of 0</div>
+          <div class="result-pct-big" id="result-pct">0%</div>
+          <div class="result-bar-track"><div class="result-bar-fill" id="result-bar" style="width:0%"></div></div>
+          <div class="result-stats-row">
+            <div class="result-stat"><div class="result-stat-val" id="res-correct">0</div><div class="result-stat-lbl">✅ Correct</div></div>
+            <div class="result-stat"><div class="result-stat-val" id="res-wrong">0</div><div class="result-stat-lbl">❌ Wrong</div></div>
+            <div class="result-stat"><div class="result-stat-val" id="res-skip">0</div><div class="result-stat-lbl">⬜ Skipped</div></div>
+          </div>
+        </div>
+        <div class="motivational-box">
+          <div class="result-stat-lbl" style="margin-bottom:6px;">⏱ Time Taken: <strong id="res-time">—</strong></div>
+          <div class="motivational-text" id="motivational"></div>
+        </div>
+        <div class="result-actions">
+          <button class="btn btn-outline" onclick="showReview()">📋 Review All Questions</button>
+          <button class="btn btn-outline" onclick="window.print()">🖨 Print</button>
+          <button class="btn btn-primary" onclick="resetAll()">🏠 Back to Selection</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ REVIEW SCREEN ══ -->
+    <div class="page-content" id="content-review" style="display:none;">
+      <div class="review-wrap" id="review-wrap" style="display:block;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+          <h2 style="font-family:var(--font-heading);">📋 Question Review</h2>
+          <div class="flex flex-gap-12">
+            <button class="btn btn-outline" onclick="window.print()">🖨 Print</button>
+            <button class="btn btn-primary" onclick="showContent('result')">← Back to Result</button>
+          </div>
+        </div>
+        <div id="review-list"></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script type="module">
+  import { auth, db } from '../js/firebase-config.js';
+  import { Modal } from '../js/utils/modal.js';
+  import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import { collection, doc, getDoc, getDocs, setDoc,
+    query, orderBy, serverTimestamp }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  // ── State ─────────────────────────────────────────────────
+  let uid=null, userLevel=null;
+  let mcqType='normal';
+  let allPapers=[];
+  let selectedPaperId='', selectedPaperName='';
+  let chaptersData={};    // chName → [questions]
+  let casesData={};       // caseName → {passage, questions:[]}
+  let selectedChapters=new Set();
+  let selectedCase=null;
+  let questions=[];
+  let answers={};         // idx → 'A'|'B'|'C'|'D'
+  let marked=new Set();
+  let visited=new Set();
+  let currentQ=0;
+  let timerInterval=null, elapsedSecs=0;
+  let examStartTime=null;
+
+  function toast(msg,type='info'){
+    const c=document.getElementById('toast-container');
+    const t=document.createElement('div');
+    t.className=`toast toast-${type}`;
+    t.innerHTML=`<span>${{success:'✅',error:'❌',info:'ℹ️'}[type]}</span> ${msg}`;
+    c.appendChild(t);setTimeout(()=>t.remove(),4000);
+  }
+  function fmtSecs(s){return[Math.floor(s/3600),Math.floor((s%3600)/60),s%60].map(x=>x.toString().padStart(2,'0')).join(':');}
+  function fmtTime(s){const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;return h>0?`${h}h ${m}m ${sec}s`:`${m}m ${sec}s`;}
+
+  // ── Auth ──────────────────────────────────────────────────
+  onAuthStateChanged(auth,async(user)=>{
+    if(!user){window.location.href='../index.html';return;}
+    const snap=await getDoc(doc(db,'users',user.uid));
+    if(!snap.exists()){window.location.href='../index.html';return;}
+    const data=snap.data();
+    if(data.role!=='student'||data.status!=='approved'){window.location.href='../index.html';return;}
+    uid=user.uid; userLevel=data.level;
+    document.getElementById('sidebar-avatar').textContent=(data.firstName[0]+data.lastName[0]).toUpperCase();
+    document.getElementById('sidebar-name').textContent=data.firstName+' '+data.lastName;
+    document.getElementById('sb-course').textContent=data.course;
+    document.getElementById('sb-level').textContent=data.level;
+    document.getElementById('page-loader').classList.add('hidden');
+    loadPapers();
+  });
+  document.getElementById('btn-logout').addEventListener('click',async()=>{await signOut(auth);window.location.href='../index.html';});
+
+  async function loadPapers(){
+    const snap=await getDocs(collection(db,'courseStructure',userLevel,'papers'));
+    allPapers=[];snap.forEach(d=>allPapers.push({id:d.id,...d.data()}));
+    allPapers.sort((a,b)=>(a.order||0)-(b.order||0));
+  }
+
+  // ── Step 1: Select Type ───────────────────────────────────
+  window.selectType=function(type){
+    mcqType=type;
+    showStep(type==='normal'?'papers-normal':'papers-case');
+    if(type==='normal') renderNormalPapers();
+    else renderCasePapers();
+  };
+
+  function renderNormalPapers(){
+    const tbl=document.getElementById('normal-paper-table');
+    if(!allPapers.length){tbl.innerHTML='<div style="padding:20px;text-align:center;color:var(--text-muted);">No papers found. Ask admin to set up course structure.</div>';return;}
+    tbl.innerHTML=allPapers.map(p=>`
+      <div class="paper-row">
+        <div class="paper-row-name">${p.name}</div>
+        <button class="btn-select-chapter" onclick="selectPaper('${p.id}','${p.name.replace(/'/g,"\\'")}','normal')">Select Chapter</button>
+      </div>`).join('');
+  }
+
+  function renderCasePapers(){
+    const tbl=document.getElementById('case-paper-table');
+    if(!allPapers.length){tbl.innerHTML='<div style="padding:20px;text-align:center;color:var(--text-muted);">No papers found.</div>';return;}
+    tbl.innerHTML=allPapers.map(p=>`
+      <div class="paper-row">
+        <div class="paper-row-name">${p.name}</div>
+        <button class="btn-select-chapter" onclick="selectPaper('${p.id}','${p.name.replace(/'/g,"\\'")}','casebased')">Next</button>
+      </div>`).join('');
+  }
+
+  // ── Step 2: Select Paper ──────────────────────────────────
+  window.selectPaper=async function(paperId, paperName, type){
+    selectedPaperId=paperId; selectedPaperName=paperName;
+    chaptersData={}; casesData={};
+    if(type==='normal'){
+      document.getElementById('chapter-paper-sub').textContent=paperName;
+      showStep('chapters');
+      await loadChapters();
+    } else {
+      document.getElementById('case-paper-sub').textContent=paperName;
+      showStep('cases');
+      await loadCases();
+    }
+  };
+
+  async function loadChapters(){
+    const rows=document.getElementById('chapter-list-rows');
+    rows.innerHTML='<div style="padding:20px;color:var(--text-muted);">Loading...</div>';
+    try{
+      const snap=await getDocs(collection(db,'mcqs',userLevel,'papers',selectedPaperId,'questions'));
+      snap.forEach(d=>{
+        const q=d.data();
+        const ch=q.chapterName||'General';
+        if(!chaptersData[ch])chaptersData[ch]=[];
+        chaptersData[ch].push({id:d.id,...q});
+      });
+      if(!Object.keys(chaptersData).length){
+        rows.innerHTML='<div style="padding:20px;color:var(--text-muted);text-align:center;">No MCQs available for this paper yet.</div>';
+        return;
+      }
+      const entries=Object.entries(chaptersData);
+      rows.innerHTML=entries.map(([ch,qs],i)=>`
+        <div class="chapter-row" id="chrow-${i}" onclick="toggleChapter('${ch}',${i})">
+          <div class="chapter-row-num">${i+1}</div>
+          <div class="chapter-row-name-wrap">
+            <div class="chapter-radio"><div class="chapter-radio-dot"></div></div>
+            <div class="chapter-row-name">${ch}</div>
+            <div class="chapter-row-count">${qs.length} MCQ${qs.length!==1?'s':''}</div>
+          </div>
+        </div>`).join('');
+      document.getElementById('chapters-start-bar').style.display='flex';
+      updateChapterCount();
+    }catch(e){rows.innerHTML='<div style="padding:20px;color:var(--danger);">Failed to load. Try again.</div>';}
+  }
+
+  async function loadCases(){
+    const rows=document.getElementById('case-list-rows');
+    rows.innerHTML='<div style="padding:20px;color:var(--text-muted);">Loading...</div>';
+    try{
+      const snap=await getDocs(collection(db,'casebasedMCQs',userLevel,'papers',selectedPaperId,'questions'));
+      snap.forEach(d=>{
+        const q=d.data();
+        const cs=q.caseName||'Case Study 1';
+        if(!casesData[cs]){casesData[cs]={passage:q.passage||'',questions:[]};}
+        casesData[cs].questions.push({id:d.id,...q});
+      });
+      if(!Object.keys(casesData).length){
+        rows.innerHTML='<div style="padding:20px;color:var(--text-muted);text-align:center;">No case based MCQs for this paper yet.</div>';
+        return;
+      }
+      const entries=Object.entries(casesData);
+      rows.innerHTML=entries.map(([cs,data],i)=>`
+        <div class="case-row" id="csrow-${i}" onclick="selectCase('${cs}',${i})">
+          <div class="case-row-num">${i+1}</div>
+          <div class="case-row-wrap">
+            <div class="chapter-radio"><div class="chapter-radio-dot"></div></div>
+            <div class="case-row-name">${cs}</div>
+          </div>
+        </div>`).join('');
+      document.getElementById('case-start-bar').style.display='flex';
+    }catch(e){rows.innerHTML='<div style="padding:20px;color:var(--danger);">Failed to load.</div>';}
+  }
+
+  window.toggleChapter=function(ch,rowIdx){
+    if(selectedChapters.has(ch))selectedChapters.delete(ch);
+    else selectedChapters.add(ch);
+    const row=document.getElementById('chrow-'+rowIdx);
+    row.classList.toggle('selected',selectedChapters.has(ch));
+    updateChapterCount();
+  };
+
+  function updateChapterCount(){
+    let total=0;
+    selectedChapters.forEach(ch=>total+=(chaptersData[ch]?.length||0));
+    const info=document.getElementById('chapters-count-info');
+    const btn=document.getElementById('btn-start-normal');
+    info.textContent=total>0?`${selectedChapters.size} chapter${selectedChapters.size!==1?'s':''} selected — ${total} MCQ${total!==1?'s':''}`:
+      'Select at least one chapter';
+    btn.disabled=total===0;
+    btn.style.opacity=total===0?'0.5':'1';
+  }
+
+  window.selectCase=function(cs,rowIdx){
+    selectedCase=cs;
+    document.querySelectorAll('.case-row').forEach(r=>r.classList.remove('selected'));
+    document.getElementById('csrow-'+rowIdx).classList.add('selected');
+    const count=casesData[cs]?.questions?.length||0;
+    document.getElementById('case-count-info').textContent=`${cs} — ${count} question${count!==1?'s':''}`;
+    const btn=document.getElementById('btn-start-case');
+    btn.disabled=false; btn.style.opacity='1';
+  };
+
+  window.goBack=function(from){
+    if(from==='chapters'||from==='cases')showStep(mcqType==='normal'?'papers-normal':'papers-case');
+    else if(from==='papers-normal'||from==='papers-case')showStep('type');
+  };
+
+  // ── Start Practice ────────────────────────────────────────
+  window.startNormal=function(){
+    questions=[];
+    selectedChapters.forEach(ch=>questions.push(...(chaptersData[ch]||[])));
+    questions.sort(()=>Math.random()-0.5);
+    if(!questions.length){toast('No questions available.','error');return;}
+    initExam('normal');
+  };
+
+  window.startCase=function(){
+    if(!selectedCase){toast('Select a case study.','error');return;}
+    questions=[...(casesData[selectedCase]?.questions||[])];
+    if(!questions.length){toast('No questions available.','error');return;}
+    initExam('casebased');
+  };
+
+  function initExam(type){
+    answers={};marked.clear();visited.clear();currentQ=0;elapsedSecs=0;
+    examStartTime=new Date();
+    showContent('exam');
+    if(type==='normal'){
+      document.getElementById('exam-normal-layout').style.display='flex';
+      document.getElementById('exam-case-layout').style.display='none';
+      document.getElementById('exam-paper-name').textContent=selectedPaperName;
+      buildNavGrid('nm');
+      renderNmQuestion(0);
+      startNmTimer();
+    } else {
+      document.getElementById('exam-normal-layout').style.display='none';
+      document.getElementById('exam-case-layout').style.display='flex';
+      document.getElementById('cb-case-name').textContent=selectedCase||'Case Study';
+      document.getElementById('cb-passage-text').innerHTML=(casesData[selectedCase]?.passage||'');
+      buildNavGrid('cb');
+      renderCbQuestion(0);
+    }
+    document.getElementById('topbar-title').textContent='✏️ Practice in Progress';
+  }
+
+  // ── Timer ─────────────────────────────────────────────────
+  function startNmTimer(){
+    clearInterval(timerInterval);
+    timerInterval=setInterval(()=>{
+      elapsedSecs++;
+      document.getElementById('nm-timer').textContent=fmtSecs(elapsedSecs);
+    },1000);
+  }
+
+  // ── Nav Grid ──────────────────────────────────────────────
+  function buildNavGrid(prefix){
+    const grid=document.getElementById(prefix+'-nav-grid');
+    grid.innerHTML=questions.map((_,i)=>`
+      <button class="nav-btn not-visited" id="${prefix}-nav-${i}" onclick="jumpTo(${i})">${i+1}</button>`).join('');
+  }
+
+  function updateNav(prefix,idx){
+    questions.forEach((_,i)=>{
+      const btn=document.getElementById(prefix+'-nav-'+i);if(!btn)return;
+      if(i===idx){btn.className='nav-btn current';return;}
+      if(marked.has(i)){btn.className='nav-btn marked';return;}
+      if(answers[i]){btn.className='nav-btn answered';return;}
+      if(visited.has(i)){btn.className='nav-btn skipped';return;}
+      btn.className='nav-btn not-visited';
+    });
+  }
+
+  // ── Render Normal Question ────────────────────────────────
+  function renderNmQuestion(idx){
+    currentQ=idx; visited.add(idx);
+    const q=questions[idx];
+    const prefix='nm';
+    document.getElementById('nm-q-num').textContent=`Question ${idx+1}`;
+    document.getElementById('exam-chapter-info').textContent=`${q.chapterName||''}  —  Q ${idx+1} of ${questions.length}`;
+    document.getElementById('exam-marks-info').textContent=(q.marks||1)+'.00';
+    document.getElementById('exam-neg-info').textContent='0.00';
+    const imgEl=document.getElementById('nm-q-img');
+    if(q.imageUrl){imgEl.src=q.imageUrl;imgEl.style.display='block';}else imgEl.style.display='none';
+    document.getElementById('nm-q-text').innerHTML=q.question||'';
+    renderOptions('nm-options',q,idx);
+    const mb=document.getElementById('btn-mark');
+    mb.classList.toggle('marked',marked.has(idx));
+    mb.textContent=marked.has(idx)?'🔖 Marked for Review':'🔖 Mark for Review & Next';
+    updateNav(prefix,idx);
+  }
+
+  // ── Render Case Question ──────────────────────────────────
+  function renderCbQuestion(idx){
+    currentQ=idx; visited.add(idx);
+    const q=questions[idx];
+    document.getElementById('cb-q-num').textContent=`Question: ${idx+1}`;
+    document.getElementById('cb-marks-info').textContent=(q.marks||1)+'.00';
+    const imgEl=document.getElementById('cb-q-img');
+    if(q.imageUrl){imgEl.src=q.imageUrl;imgEl.style.display='block';}else imgEl.style.display='none';
+    document.getElementById('cb-q-text').innerHTML=q.question||'';
+    renderOptions('cb-options',q,idx);
+    updateNav('cb',idx);
+  }
+
+  function renderOptions(containerId,q,idx){
+    const opts=['A','B','C','D'],vals=[q.optionA,q.optionB,q.optionC,q.optionD];
+    document.getElementById(containerId).innerHTML=opts.map((o,i)=>`
+      <div class="option-item ${answers[idx]===o?'selected':''}" onclick="selectAnswer(${idx},'${o}')" id="opt-${o}">
+        <div class="option-radio"><div class="option-radio-dot"></div></div>
+        <div class="option-text">${o}. &nbsp; ${vals[i]||''}</div>
+      </div>`).join('');
+  }
+
+  window.selectAnswer=function(idx,opt){
+    answers[idx]=opt;
+    document.querySelectorAll('.option-item').forEach(e=>{
+      e.classList.remove('selected');
+      e.querySelector('.option-radio-dot').style.display='none';
+    });
+    const el=document.getElementById('opt-'+opt);
+    if(el){
+      el.classList.add('selected');
+      el.querySelector('.option-radio-dot').style.display='block';
+    }
+    updateNav(mcqType==='normal'?'nm':'cb',idx);
+  };
+
+  window.toggleMark=function(){
+    if(marked.has(currentQ))marked.delete(currentQ);else marked.add(currentQ);
+    const mb=document.getElementById('btn-mark');
+    mb.classList.toggle('marked',marked.has(currentQ));
+    mb.textContent=marked.has(currentQ)?'🔖 Marked for Review':'🔖 Mark for Review & Next';
+    updateNav(mcqType==='normal'?'nm':'cb',currentQ);
+    if(currentQ<questions.length-1)jumpTo(currentQ+1);
+  };
+
+  window.clearResponse=function(){
+    delete answers[currentQ];
+    document.querySelectorAll('.option-item').forEach(e=>{
+      e.classList.remove('selected');
+      const dot=e.querySelector('.option-radio-dot');if(dot)dot.style.display='none';
+    });
+    updateNav(mcqType==='normal'?'nm':'cb',currentQ);
+  };
+
+  window.saveAndNext=function(){
+    if(currentQ<questions.length-1)jumpTo(currentQ+1);
+    else confirmSubmit();
+  };
+
+  window.jumpTo=function(idx){
+    currentQ=idx;
+    if(mcqType==='normal')renderNmQuestion(idx);
+    else renderCbQuestion(idx);
+  };
+
+  // ── Submit ────────────────────────────────────────────────
+  window.confirmSubmit=async function(){
+    const unanswered=questions.length-Object.keys(answers).length;
+    const msg=unanswered>0
+      ?`You have <strong>${unanswered} unanswered question${unanswered!==1?'s':''}</strong>. Are you sure you want to submit?`
+      :'All questions answered. Ready to submit?';
+    const yes=await Modal.confirm('Submit Practice?',msg,'Submit');
+    if(!yes)return;
+    clearInterval(timerInterval);
+    submitPractice();
+  };
+
+  function submitPractice(){
+    let correct=0,wrong=0,skip=0;
+    const marks=questions[0]?.marks||1;
+    questions.forEach((q,i)=>{
+      if(!answers[i])skip++;
+      else if(answers[i]===q.correct)correct++;
+      else wrong++;
+    });
+    const total=questions.length;
+    const score=correct*marks;
+    const totalMarks=total*marks;
+    const pct=Math.round((score/totalMarks)*100);
+    saveScore(correct,wrong,total,pct);
+    showResultScreen(score,totalMarks,correct,wrong,skip,pct);
+  }
+
+  async function saveScore(correct,wrong,total,pct){
+    if(!uid||!selectedPaperId)return;
+    try{
+      if(mcqType==='normal'){
+        for(const ch of selectedChapters){
+          const chQs=questions.filter(q=>(q.chapterName||'General')===ch);
+          const chCorrect=chQs.filter((q,i)=>{
+            const globalIdx=questions.indexOf(q);
+            return answers[globalIdx]===q.correct;
+          }).length;
+          const chPct=chQs.length?Math.round((chCorrect/chQs.length)*100):0;
+          await setDoc(
+            doc(db,'mcqScores',uid,'papers',selectedPaperId,'chapters',ch.replace(/[^a-zA-Z0-9]/g,'-').substring(0,80)),
+            {score:chCorrect,total:chQs.length,percentage:chPct,
+             paperName:selectedPaperName,chapterName:ch,attemptedAt:serverTimestamp()},{merge:false});
+        }
+      } else if(selectedCase){
+        await setDoc(
+          doc(db,'mcqScores',uid,'papers',selectedPaperId,'caseStudies',selectedCase.replace(/[^a-zA-Z0-9]/g,'-').substring(0,80)),
+          {score:correct,total,percentage:pct,paperName:selectedPaperName,caseName:selectedCase,attemptedAt:serverTimestamp()},{merge:false});
+      }
+    }catch(e){console.error('Score save:',e);}
+  }
+
+  function showResultScreen(score,totalMarks,correct,wrong,skip,pct){
+    showContent('result');
+    document.getElementById('result-score').textContent=score;
+    document.getElementById('result-out').textContent='out of '+totalMarks;
+    document.getElementById('result-pct').textContent=pct+'%';
+    setTimeout(()=>document.getElementById('result-bar').style.width=pct+'%',100);
+    document.getElementById('res-correct').textContent=correct;
+    document.getElementById('res-wrong').textContent=wrong;
+    document.getElementById('res-skip').textContent=skip;
+    document.getElementById('res-time').textContent=fmtTime(elapsedSecs);
+    const msgs=[
+      {min:100,icon:'🏆',msg:"You Did It! Perfect Score! Absolutely incredible — keep this momentum going!"},
+      {min:90, icon:'🌟',msg:"Outstanding! Almost perfect. You're clearly on top of your preparation!"},
+      {min:75, icon:'💪',msg:"Great Work! Strong performance. A little more revision and you'll ace it!"},
+      {min:60, icon:'👍',msg:"Good Effort! You're on the right track. Review the wrong ones and try again!"},
+      {min:40, icon:'📖',msg:"Keep Practicing! You're getting there. Focus on weak areas and push harder!"},
+      {min:0,  icon:'💡',msg:"Needs More Work. Don't give up — review your notes carefully and try again!"},
+    ];
+    const m=msgs.find(x=>pct>=x.min)||msgs[msgs.length-1];
+    document.getElementById('result-icon').textContent=m.icon;
+    document.getElementById('motivational').textContent=`"${m.msg}"`;
+    document.getElementById('topbar-title').textContent='📊 Your Result';
+  }
+
+  window.showReview=function(){
+    showContent('review');
+    document.getElementById('topbar-title').textContent='📋 Question Review';
+    const list=document.getElementById('review-list');
+    const opts=['A','B','C','D'];
+    list.innerHTML=questions.map((q,i)=>{
+      const ans=answers[i],isCorrect=ans===q.correct,isSkip=!ans;
+      const vals=[q.optionA,q.optionB,q.optionC,q.optionD];
+      const statusHtml=isSkip?'<span class="badge badge-neutral">⬜ Skipped</span>':
+        isCorrect?'<span class="badge badge-success">✅ Correct</span>':
+        '<span class="badge badge-danger">❌ Wrong</span>';
+      const passHtml=mcqType==='casebased'&&q.passage?
+        `<div class="review-passage"><strong>📄 Passage:</strong> ${q.passage}</div>`:'';
+      return`
+        <div class="review-q-card">
+          <div class="review-q-header">
+            <span style="font-weight:700;color:var(--text-muted);">Q${i+1}</span>
+            ${statusHtml}
+            <span style="font-size:12px;color:var(--text-muted);">${q.chapterName||q.caseName||''}</span>
+          </div>
+          ${passHtml}
+          <div class="review-q-text">${q.question||''}</div>
+          ${opts.map((o,oi)=>`
+            <div class="review-opt-row">
+              <div class="review-opt-circle" style="
+                background:${o===q.correct?'var(--success-light)':ans===o&&!isCorrect?'var(--danger-light)':'var(--surface-2)'};
+                color:${o===q.correct?'#006B55':ans===o&&!isCorrect?'var(--danger)':'var(--text-muted)'};
+                border:1px solid ${o===q.correct?'rgba(0,201,167,0.3)':ans===o&&!isCorrect?'rgba(255,71,87,0.3)':'var(--border)'};
+              ">${o}</div>
+              <span style="font-size:13px;${o===q.correct?'font-weight:700;color:#006B55;':ans===o&&!isCorrect?'text-decoration:line-through;color:var(--danger);':''}">${vals[oi]||''}</span>
+              ${o===q.correct?'<span style="font-size:11px;color:var(--success);font-weight:700;margin-left:6px;">← Correct Answer</span>':''}
+              ${ans===o&&!isCorrect?'<span style="font-size:11px;color:var(--danger);margin-left:6px;">← Your Answer</span>':''}
+            </div>`).join('')}
+          ${q.explanation?`<div class="review-explanation">💡 <strong>Explanation:</strong> ${q.explanation}</div>`:''}
+        </div>`;
+    }).join('');
+  };
+
+  window.resetAll=function(){
+    clearInterval(timerInterval);
+    questions=[];answers={};marked.clear();visited.clear();
+    selectedChapters.clear();selectedCase=null;
+    showContent('sel');
+    showStep('type');
+    document.getElementById('topbar-title').textContent='✏️ Practice MCQ';
+  };
+
+  // ── Screen helpers ────────────────────────────────────────
+  function showStep(step){
+    ['type','papers-normal','papers-case','chapters','cases'].forEach(s=>{
+      const el=document.getElementById('step-'+s);if(el)el.style.display='none';
+    });
+    const t=document.getElementById('step-'+step);if(t)t.style.display='block';
+  }
+
+  function showContent(name){
+    document.getElementById('content-sel').style.display=name==='sel'?'block':'none';
+    document.getElementById('exam-wrap').style.display=name==='exam'?'flex':'none';
+    document.getElementById('content-result').style.display=name==='result'?'block':'none';
+    document.getElementById('content-review').style.display=name==='review'?'block':'none';
+    // Hide all page-hero panels during exam to prevent layout shift
+    document.querySelectorAll('.page-hero').forEach(h => {
+      h.style.display = name==='exam' ? 'none' : '';
+    });
+  }
+  window.showContent=showContent;
+</script>
+
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+<script>
+  // ── Sidebar Toggle ────────────────────────────────────────
+  window.toggleSidebar = function(){
+    const sb  = document.getElementById('sidebar');
+    const btn = document.getElementById('btn-hamburger');
+    const ov  = document.getElementById('sidebar-overlay');
+    const open = sb.classList.toggle('open');
+    btn.classList.toggle('open', open);
+    ov.classList.toggle('show', open);
+  };
+  window.closeSidebar = function(){
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('btn-hamburger').classList.remove('open');
+    document.getElementById('sidebar-overlay').classList.remove('show');
+  };
+  document.addEventListener('DOMContentLoaded', function(){
+    document.querySelectorAll('.nav-item').forEach(function(a){
+      a.addEventListener('click', window.closeSidebar);
+    });
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>StudyBuddy — Admin Dashboard</title>
+  <link rel="stylesheet" href="../css/global.css"/>
+  <link rel="stylesheet" href="../css/admin.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      emailjs.init("Wvfl_ifH3R6tzLn26");
+    });
+  </script>
+</head>
+<body>
+
+<div id="page-loader">
+  <div class="logo-text">📚 StudyBuddy</div>
+  <div class="spinner spinner-primary"></div>
+</div>
+
+<div id="toast-container"></div>
+
+<div class="admin-layout">
+
+  <!-- ── Sidebar ─────────────────────────────────────────── -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon">📚</div>
+      <div class="sidebar-logo-text">Study<span>Buddy</span></div>
+    </div>
+    <div class="sidebar-role" id="sidebar-role-label">Admin Panel</div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Main</div>
+      <a href="dashboard.html" class="nav-item active">
+        <span class="nav-item-icon">🏠</span> Dashboard
+      </a>
+      <a href="users.html" class="nav-item">
+        <span class="nav-item-icon">👥</span> Students
+        <span class="nav-badge hidden" id="pending-badge">0</span>
+      </a>
+      <div class="nav-section-label">Content</div>
+      <a href="structure.html" class="nav-item">
+        <span class="nav-item-icon">🗂️</span> Course Structure
+      </a>
+      <a href="materials.html" class="nav-item">
+        <span class="nav-item-icon">📄</span> Study Materials
+      </a>
+      <a href="tests.html" class="nav-item">
+        <span class="nav-item-icon">📝</span> Tests & MCQs
+      </a>
+      <a href="tips.html" class="nav-item">
+        <span class="nav-item-icon">💡</span> Tips & Ideas
+      </a>
+      <div class="nav-section-label">Communication</div>
+      <a href="communications.html" class="nav-item">
+        <span class="nav-item-icon">📧</span> Send Emails
+      </a>
+      <a href="schedule.html" class="nav-item">
+        <span class="nav-item-icon">📅</span> Exam Dates
+      </a>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="sidebar-user">
+        <div class="sidebar-avatar" id="sidebar-avatar">A</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name" id="sidebar-name">Admin</div>
+          <div class="sidebar-user-role" id="sidebar-role-tag">Admin</div>
+        </div>
+        <button class="btn-logout" id="btn-logout" title="Logout">🚪</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── Main ────────────────────────────────────────────── -->
+  <main class="admin-main">
+
+    <div class="topbar">
+      <div class="topbar-title">Dashboard Overview</div>
+      <div class="topbar-right">
+        <span class="topbar-date" id="topbar-date"></span>
+      </div>
+    </div>
+
+    <div class="page-content">
+
+      <!-- Stats -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon blue">👥</div>
+          <div class="stat-info">
+            <div class="stat-value" id="stat-total">—</div>
+            <div class="stat-label">Total Students</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon green">✅</div>
+          <div class="stat-info">
+            <div class="stat-value" id="stat-approved">—</div>
+            <div class="stat-label">Approved</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon amber">⏳</div>
+          <div class="stat-info">
+            <div class="stat-value" id="stat-pending">—</div>
+            <div class="stat-label">Pending Approval</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon red">👨‍💼</div>
+          <div class="stat-info">
+            <div class="stat-value" id="stat-admins">—</div>
+            <div class="stat-label">Admins</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pending Approvals -->
+      <div class="section-header">
+        <div>
+          <div class="section-title">⏳ Pending Approvals</div>
+          <div class="section-sub">Students waiting for your approval</div>
+        </div>
+        <a href="users.html" class="btn btn-outline btn-sm">View All Students</a>
+      </div>
+
+      <div class="table-wrap">
+        <div class="empty-state" id="pending-empty" style="display:none;">
+          <div class="icon">🎉</div>
+          <h3>No pending approvals</h3>
+          <p>All students have been reviewed.</p>
+        </div>
+        <table id="pending-table">
+          <thead>
+            <tr>
+              <th>Student</th>
+              <th>Phone</th>
+              <th>Course & Level</th>
+              <th>Registered On</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="pending-tbody"></tbody>
+        </table>
+      </div>
+
+      <!-- Recent Approved -->
+      <div class="section-header mt-24">
+        <div>
+          <div class="section-title">✅ Recently Approved</div>
+          <div class="section-sub">Last 5 approved students</div>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <div class="empty-state hidden" id="approved-empty">
+          <div class="icon">📋</div>
+          <h3>No approved students yet</h3>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Student</th>
+              <th>Course & Level</th>
+              <th>Registered On</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="approved-tbody"></tbody>
+        </table>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- Reject Modal -->
+<div class="modal-overlay hidden" id="reject-modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">Reject Student</div>
+      <button class="btn-modal-close" onclick="closeRejectModal()">✕</button>
+    </div>
+    <p class="text-secondary fs-14 mb-16">
+      Optionally provide a reason. The student will receive an email.
+    </p>
+    <div class="form-group">
+      <label class="form-label">Reason (optional)</label>
+      <textarea id="reject-reason" class="form-input" rows="3"
+        placeholder="e.g. Not enrolled in our classes..."
+        style="resize:vertical;"></textarea>
+    </div>
+    <div class="flex flex-gap-12 mt-16">
+      <button class="btn btn-outline" onclick="closeRejectModal()">Cancel</button>
+      <button class="btn btn-danger" onclick="confirmReject()">Confirm Reject</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { auth, db, EMAILJS_CONFIG } from '../js/firebase-config.js';
+  import { onAuthStateChanged, signOut }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import { collection, query, where, orderBy, getDocs,
+    doc, updateDoc, serverTimestamp, getDoc, limit }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  let currentRejectUid = null;
+
+  // Toast
+  function showToast(msg, type = 'info') {
+    const c = document.getElementById('toast-container');
+    const t = document.createElement('div');
+    t.className = `toast toast-${type}`;
+    t.innerHTML = `<span>${{success:'✅',error:'❌',info:'ℹ️'}[type]}</span> ${msg}`;
+    c.appendChild(t);
+    setTimeout(() => t.remove(), 4000);
+  }
+
+  // Date
+  document.getElementById('topbar-date').textContent =
+    new Date().toLocaleDateString('en-IN',
+      { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+
+  // Auth Guard
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) { window.location.href = '../index.html'; return; }
+    const snap = await getDoc(doc(db, 'users', user.uid));
+    if (!snap.exists()) { window.location.href = '../index.html'; return; }
+    const data = snap.data();
+    if (data.role !== 'admin' && data.role !== 'superadmin') {
+      window.location.href = '../index.html'; return;
+    }
+    // Fill sidebar
+    document.getElementById('sidebar-avatar').textContent =
+      (data.firstName[0] + data.lastName[0]).toUpperCase();
+    document.getElementById('sidebar-name').textContent =
+      data.firstName + ' ' + data.lastName;
+    document.getElementById('sidebar-role-tag').textContent =
+      data.role === 'superadmin' ? '👑 Super Admin' : '🛡️ Admin';
+    document.getElementById('sidebar-role-label').textContent =
+      data.role === 'superadmin' ? '👑 Super Admin Panel' : '🛡️ Admin Panel';
+
+    document.getElementById('page-loader').classList.add('hidden');
+    loadStats();
+    loadPending();
+    loadRecentApproved();
+  });
+
+  // Logout
+  document.getElementById('btn-logout').addEventListener('click', async () => {
+    await signOut(auth);
+    window.location.href = '../index.html';
+  });
+
+  // Load Stats
+  async function loadStats() {
+    const all = await getDocs(collection(db, 'users'));
+    let total = 0, approved = 0, pending = 0, admins = 0;
+    all.forEach(d => {
+      const u = d.data();
+      if (u.role === 'student') {
+        total++;
+        if (u.status === 'approved') approved++;
+        if (u.status === 'pending')  pending++;
+      }
+      if (u.role === 'admin') admins++;
+    });
+    document.getElementById('stat-total').textContent    = total;
+    document.getElementById('stat-approved').textContent = approved;
+    document.getElementById('stat-pending').textContent  = pending;
+    document.getElementById('stat-admins').textContent   = admins;
+    if (pending > 0) {
+      const b = document.getElementById('pending-badge');
+      b.textContent = pending;
+      b.classList.remove('hidden');
+    }
+  }
+
+  // Load Pending
+  async function loadPending() {
+    const q    = query(collection(db, 'users'),
+      where('role','==','student'), where('status','==','pending'),
+      orderBy('createdAt','desc'));
+    const snap = await getDocs(q);
+    const tbody = document.getElementById('pending-tbody');
+    tbody.innerHTML = '';
+
+    if (snap.empty) {
+      document.getElementById('pending-table').style.display = 'none';
+      document.getElementById('pending-empty').style.display = 'block';
+      return;
+    }
+
+    snap.forEach(d => {
+      const u   = d.data();
+      const uid = d.id;
+      const date = u.createdAt ? u.createdAt.toDate().toLocaleDateString('en-IN') : '—';
+      const ini  = ((u.firstName||'?')[0]+(u.lastName||'?')[0]).toUpperCase();
+      tbody.innerHTML += `
+        <tr id="row-${uid}">
+          <td>
+            <div class="student-cell">
+              <div class="student-avatar">${ini}</div>
+              <div>
+                <div class="student-name">${u.firstName} ${u.lastName}</div>
+                <div class="student-email">${u.email}</div>
+              </div>
+            </div>
+          </td>
+          <td>${u.phone||'—'}</td>
+          <td>
+            <span class="badge badge-info">${u.course||'—'}</span>&nbsp;
+            <span class="badge badge-neutral">${u.level||'—'}</span>
+          </td>
+          <td class="text-secondary">${date}</td>
+          <td>
+            <div class="action-btns">
+              <button class="btn-approve"
+                onclick="approveStudent('${uid}','${u.email}','${u.firstName}','${u.course}','${u.level}')">
+                ✅ Approve
+              </button>
+              <button class="btn-reject" onclick="openRejectModal('${uid}')">
+                ❌ Reject
+              </button>
+            </div>
+          </td>
+        </tr>`;
+    });
+  }
+
+  // Load Recent Approved
+  async function loadRecentApproved() {
+    const q    = query(collection(db, 'users'),
+      where('role','==','student'), where('status','==','approved'),
+      orderBy('createdAt','desc'), limit(5));
+    const snap = await getDocs(q);
+    const tbody = document.getElementById('approved-tbody');
+    tbody.innerHTML = '';
+
+    if (snap.empty) {
+      document.getElementById('approved-empty').classList.remove('hidden');
+      return;
+    }
+    snap.forEach(d => {
+      const u   = d.data();
+      const date = u.createdAt ? u.createdAt.toDate().toLocaleDateString('en-IN') : '—';
+      const ini  = ((u.firstName||'?')[0]+(u.lastName||'?')[0]).toUpperCase();
+      tbody.innerHTML += `
+        <tr>
+          <td>
+            <div class="student-cell">
+              <div class="student-avatar">${ini}</div>
+              <div>
+                <div class="student-name">${u.firstName} ${u.lastName}</div>
+                <div class="student-email">${u.email}</div>
+              </div>
+            </div>
+          </td>
+          <td>
+            <span class="badge badge-info">${u.course}</span>&nbsp;
+            <span class="badge badge-neutral">${u.level}</span>
+          </td>
+          <td class="text-secondary">${date}</td>
+          <td><span class="badge badge-success">✅ Approved</span></td>
+        </tr>`;
+    });
+  }
+
+  // Approve
+  window.approveStudent = async function(uid, email, firstName, course, level) {
+    try {
+      await updateDoc(doc(db, 'users', uid), {
+        status: 'approved', approvedAt: serverTimestamp()
+      });
+      await emailjs.send(EMAILJS_CONFIG.serviceId, EMAILJS_CONFIG.templateId, {
+        to_email: email, student_name: firstName,
+        subject:  'StudyBuddy — Your Account is Approved! 🎉',
+        message:  `Great news! Your StudyBuddy account has been approved.\n\nYou can now login and start your ${course} ${level} journey!\n\nLogin: https://studybuddy8310.github.io/studybuddy\n\nBest of luck!\n— Team StudyBuddy`
+      }, EMAILJS_CONFIG.publicKey);
+
+      document.getElementById('row-'+uid)?.remove();
+      showToast(`${firstName} approved! Email sent. ✅`, 'success');
+      loadStats(); loadRecentApproved();
+      if (!document.getElementById('pending-tbody').children.length) {
+        document.getElementById('pending-table').style.display = 'none';
+        document.getElementById('pending-empty').style.display = 'block';
+      }
+    } catch(e) {
+      showToast('Failed to approve. Try again.', 'error');
+      console.error(e);
+    }
+  };
+
+  // Reject Modal
+  window.openRejectModal  = (uid) => {
+    currentRejectUid = uid;
+    document.getElementById('reject-reason').value = '';
+    document.getElementById('reject-modal').classList.remove('hidden');
+  };
+  window.closeRejectModal = () => {
+    document.getElementById('reject-modal').classList.add('hidden');
+    currentRejectUid = null;
+  };
+  window.confirmReject = async function() {
+    if (!currentRejectUid) return;
+    const reason = document.getElementById('reject-reason').value.trim();
+    try {
+      const snap = await getDoc(doc(db, 'users', currentRejectUid));
+      const u    = snap.data();
+      await updateDoc(doc(db, 'users', currentRejectUid), {
+        status: 'rejected', rejectedAt: serverTimestamp(), rejectReason: reason
+      });
+      await emailjs.send(EMAILJS_CONFIG.serviceId, EMAILJS_CONFIG.templateId, {
+        to_email: u.email, student_name: u.firstName,
+        subject:  'StudyBuddy — Account Registration Update',
+        message:  `We regret to inform you that your account was not approved.\n\n${reason ? 'Reason: '+reason+'\n\n':''}Contact your admin for more info.\n\n— Team StudyBuddy`
+      }, EMAILJS_CONFIG.publicKey);
+
+      document.getElementById('row-'+currentRejectUid)?.remove();
+      closeRejectModal();
+      showToast('Student rejected. Email sent.', 'info');
+      loadStats();
+      if (!document.getElementById('pending-tbody').children.length) {
+        document.getElementById('pending-table').style.display = 'none';
+        document.getElementById('pending-empty').style.display = 'block';
+      }
+    } catch(e) {
+      showToast('Failed to reject. Try again.', 'error');
+      console.error(e);
+    }
+  };
+
+</script>
+</body>
+</html>

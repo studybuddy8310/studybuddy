@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>StudyBuddy — Tips & Ideas</title>
+  <link rel="stylesheet" href="../css/global.css"/>
+  <link rel="stylesheet" href="../css/admin.css"/>
+  <style>
+    .tips-layout {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 24px;
+      align-items: start;
+    }
+    /* Add Tip Form */
+    .add-tip-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      position: sticky;
+      top: 88px;
+    }
+    .add-tip-card h3 {
+      font-size: 16px;
+      margin-bottom: 20px;
+      color: var(--primary);
+    }
+    .category-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+    .cat-btn {
+      padding: 8px 10px;
+      border: 2px solid var(--border);
+      border-radius: var(--radius-md);
+      background: var(--surface);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      color: var(--text-secondary);
+      font-family: var(--font-body);
+      text-align: center;
+      transition: all 0.2s;
+    }
+    .cat-btn.active {
+      border-color: var(--primary);
+      background: var(--primary-light);
+      color: var(--primary);
+    }
+    .image-upload-area {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: var(--surface-2);
+    }
+    .image-upload-area:hover {
+      border-color: var(--primary);
+      background: var(--primary-light);
+    }
+    .image-upload-area input { display: none; }
+    .image-preview {
+      width: 100%;
+      max-height: 160px;
+      object-fit: cover;
+      border-radius: var(--radius-md);
+      margin-top: 10px;
+      display: none;
+    }
+    /* Tips List */
+    .tip-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      margin-bottom: 16px;
+      transition: box-shadow 0.2s;
+    }
+    .tip-card:hover { box-shadow: var(--shadow-sm); }
+    .tip-card-img {
+      width: 100%;
+      height: 180px;
+      object-fit: cover;
+    }
+    .tip-card-body { padding: 18px 20px; }
+    .tip-card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .tip-title {
+      font-weight: 700;
+      font-size: 15px;
+      color: var(--text-primary);
+      flex: 1;
+    }
+    .tip-content {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      white-space: pre-wrap;
+    }
+    .tip-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 12px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .tip-actions {
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .published-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+    .toggle-switch {
+      width: 40px; height: 22px;
+      background: var(--border);
+      border-radius: 11px;
+      position: relative;
+      transition: background 0.2s;
+      cursor: pointer;
+    }
+    .toggle-switch.on { background: var(--success); }
+    .toggle-switch::after {
+      content: '';
+      position: absolute;
+      width: 16px; height: 16px;
+      background: #fff;
+      border-radius: 50%;
+      top: 3px; left: 3px;
+      transition: transform 0.2s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .toggle-switch.on::after { transform: translateX(18px); }
+    .cloudinary-note {
+      background: var(--accent-light);
+      border: 1px solid rgba(0,201,167,0.3);
+      border-radius: var(--radius-md);
+      padding: 10px 14px;
+      font-size: 12px;
+      color: #006B55;
+      margin-bottom: 12px;
+    }
+  </style>
+</head>
+<body>
+
+<div id="page-loader">
+  <div class="logo-text">📚 StudyBuddy</div>
+  <div class="spinner spinner-primary"></div>
+</div>
+<div id="toast-container"></div>
+
+<div class="admin-layout">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon">📚</div>
+      <div class="sidebar-logo-text">Study<span>Buddy</span></div>
+    </div>
+    <div class="sidebar-role" id="sidebar-role-label">Admin Panel</div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Main</div>
+      <a href="dashboard.html" class="nav-item"><span class="nav-item-icon">🏠</span> Dashboard</a>
+      <a href="users.html" class="nav-item"><span class="nav-item-icon">👥</span> Students</a>
+      <div class="nav-section-label">Content</div>
+      <a href="structure.html" class="nav-item"><span class="nav-item-icon">🗂️</span> Course Structure</a>
+      <a href="materials.html" class="nav-item"><span class="nav-item-icon">📄</span> Study Materials</a>
+      <a href="tests.html" class="nav-item"><span class="nav-item-icon">📝</span> Tests & MCQs</a>
+      <a href="tips.html" class="nav-item active"><span class="nav-item-icon">💡</span> Tips & Ideas</a>
+      <div class="nav-section-label">Communication</div>
+      <a href="communications.html" class="nav-item"><span class="nav-item-icon">📧</span> Send Emails</a>
+      <a href="schedule.html" class="nav-item"><span class="nav-item-icon">📅</span> Exam Dates</a>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="sidebar-user">
+        <div class="sidebar-avatar" id="sidebar-avatar">A</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name" id="sidebar-name">Admin</div>
+          <div class="sidebar-user-role" id="sidebar-role-tag">Admin</div>
+        </div>
+        <button class="btn-logout" id="btn-logout" title="Logout">🚪</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="admin-main">
+    <div class="topbar">
+      <div class="topbar-title">Tips & Ideas</div>
+      <div class="topbar-right">
+        <span class="topbar-date" id="topbar-date"></span>
+      </div>
+    </div>
+
+    <div class="page-content">
+      <div class="tips-layout">
+
+        <!-- Left: Tips List -->
+        <div>
+          <div class="section-header mb-16">
+            <div>
+              <div class="section-title">All Tips & Ideas</div>
+              <div class="section-sub" id="tips-count">Loading...</div>
+            </div>
+            <div class="page-tabs" style="margin:0;">
+              <button class="page-tab active" onclick="filterTips('all')">All</button>
+              <button class="page-tab" onclick="filterTips('published')">Published</button>
+              <button class="page-tab" onclick="filterTips('draft')">Drafts</button>
+            </div>
+          </div>
+          <div id="tips-list">
+            <div class="empty-state">
+              <div class="icon">⏳</div>
+              <h3>Loading tips...</h3>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Add Tip Form -->
+        <div class="add-tip-card">
+          <h3>💡 Add New Tip</h3>
+
+          <div class="form-group">
+            <label class="form-label">Title</label>
+            <input type="text" id="tip-title" class="form-input"
+              placeholder="e.g. How to tackle FR Paper"/>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Category</label>
+            <div class="category-grid">
+              <button class="cat-btn active" data-cat="Study Tips" onclick="selectCat(this)">
+                📖 Study Tips
+              </button>
+              <button class="cat-btn" data-cat="Exam Tips" onclick="selectCat(this)">
+                📝 Exam Tips
+              </button>
+              <button class="cat-btn" data-cat="Motivation" onclick="selectCat(this)">
+                🔥 Motivation
+              </button>
+              <button class="cat-btn" data-cat="Preparation" onclick="selectCat(this)">
+                🎯 Preparation
+              </button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Target Audience</label>
+            <select id="tip-target" class="form-select">
+              <option value="All">All Students</option>
+              <option value="CA-Foundation">CA Foundation</option>
+              <option value="CA-Intermediate">CA Intermediate</option>
+              <option value="CA-Final">CA Final</option>
+              <option value="FRM-I">FRM Part I</option>
+              <option value="FRM-II">FRM Part II</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Content</label>
+            <textarea id="tip-content" class="form-input" rows="5"
+              placeholder="Write your tip here..."
+              style="resize:vertical;"></textarea>
+          </div>
+
+          <!-- Image Upload via Cloudinary -->
+          <div class="form-group">
+            <label class="form-label">Image (Optional)</label>
+            <div class="cloudinary-note">
+              📸 Image uploads via Cloudinary — free & instant.
+            </div>
+            <div class="image-upload-area" onclick="document.getElementById('img-input').click()">
+              <div id="upload-prompt">
+                🖼️ Click to upload image<br/>
+                <span style="font-size:12px;color:var(--text-muted);">JPG, PNG, WebP — Max 5MB</span>
+              </div>
+              <input type="file" id="img-input" accept="image/*"
+                onchange="handleImageSelect(event)"/>
+              <img id="image-preview" class="image-preview"/>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:8px;">
+              <input type="text" id="tip-image-url" class="form-input"
+                placeholder="Or paste image URL directly"
+                style="font-size:12px;"
+                oninput="onImageUrlInput()"/>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="published-toggle">
+              <div class="toggle-switch on" id="pub-toggle" onclick="togglePublish()"></div>
+              <span id="pub-label">Published (visible to students)</span>
+            </label>
+          </div>
+
+          <button class="btn btn-primary btn-full" id="btn-add-tip" onclick="addTip()">
+            Publish Tip
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </main>
+</div>
+
+<script type="module">
+  import { auth, db, CLOUDINARY_CONFIG } from '../js/firebase-config.js';
+  import { onAuthStateChanged, signOut }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import { collection, addDoc, getDocs, doc,
+    getDoc, updateDoc, deleteDoc, orderBy, query, serverTimestamp }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  let allTips      = [];
+  let filterMode   = 'all';
+  let isPublished  = true;
+  let selectedCat  = 'Study Tips';
+  let uploadedImgUrl = '';
+  let currentAdminName = '';
+
+  function showToast(msg, type='info') {
+    const c = document.getElementById('toast-container');
+    const t = document.createElement('div');
+    t.className = `toast toast-${type}`;
+    t.innerHTML = `<span>${{success:'✅',error:'❌',info:'ℹ️'}[type]}</span> ${msg}`;
+    c.appendChild(t); setTimeout(() => t.remove(), 4000);
+  }
+
+  document.getElementById('topbar-date').textContent =
+    new Date().toLocaleDateString('en-IN',
+      {weekday:'long',day:'numeric',month:'long',year:'numeric'});
+
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) { window.location.href = '../index.html'; return; }
+    const snap = await getDoc(doc(db, 'users', user.uid));
+    if (!snap.exists()) { window.location.href = '../index.html'; return; }
+    const data = snap.data();
+    if (data.role !== 'admin' && data.role !== 'superadmin') {
+      window.location.href = '../index.html'; return;
+    }
+    document.getElementById('sidebar-avatar').textContent =
+      (data.firstName[0]+data.lastName[0]).toUpperCase();
+    document.getElementById('sidebar-name').textContent =
+      data.firstName+' '+data.lastName;
+    document.getElementById('sidebar-role-tag').textContent =
+      data.role === 'superadmin' ? '👑 Super Admin' : '🛡️ Admin';
+    currentAdminName = data.firstName+' '+data.lastName;
+    document.getElementById('page-loader').classList.add('hidden');
+    loadTips();
+  });
+
+  document.getElementById('btn-logout').addEventListener('click', async () => {
+    await signOut(auth); window.location.href = '../index.html';
+  });
+
+  // ── Category Select ────────────────────────────────────────
+  window.selectCat = function(btn) {
+    document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedCat = btn.dataset.cat;
+  };
+
+  // ── Published Toggle ───────────────────────────────────────
+  window.togglePublish = function() {
+    isPublished = !isPublished;
+    const tog = document.getElementById('pub-toggle');
+    const lbl = document.getElementById('pub-label');
+    tog.classList.toggle('on', isPublished);
+    lbl.textContent = isPublished
+      ? 'Published (visible to students)'
+      : 'Draft (hidden from students)';
+    document.getElementById('btn-add-tip').textContent =
+      isPublished ? 'Publish Tip' : 'Save as Draft';
+  };
+
+  // ── Image Handling ─────────────────────────────────────────
+  window.handleImageSelect = async function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('Image too large. Max 5MB.', 'error'); return;
+    }
+
+    document.getElementById('upload-prompt').textContent = '⏳ Uploading...';
+
+    // Upload to Cloudinary
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', CLOUDINARY_CONFIG.uploadPreset);
+
+    try {
+      const res  = await fetch(
+        `https://api.cloudinary.com/v1_1/${CLOUDINARY_CONFIG.cloudName}/image/upload`,
+        { method: 'POST', body: formData }
+      );
+      const data = await res.json();
+      uploadedImgUrl = data.secure_url;
+      document.getElementById('tip-image-url').value = uploadedImgUrl;
+      document.getElementById('image-preview').src   = uploadedImgUrl;
+      document.getElementById('image-preview').style.display = 'block';
+      document.getElementById('upload-prompt').textContent = '✅ Image uploaded!';
+      showToast('Image uploaded successfully!', 'success');
+    } catch(err) {
+      console.error(err);
+      showToast('Image upload failed. Check Cloudinary config.', 'error');
+      document.getElementById('upload-prompt').innerHTML =
+        '🖼️ Click to upload image<br/><span style="font-size:12px;color:var(--text-muted);">JPG, PNG, WebP — Max 5MB</span>';
+    }
+  };
+
+  window.onImageUrlInput = function() {
+    const url = document.getElementById('tip-image-url').value.trim();
+    uploadedImgUrl = url;
+    if (url) {
+      document.getElementById('image-preview').src = url;
+      document.getElementById('image-preview').style.display = 'block';
+    } else {
+      document.getElementById('image-preview').style.display = 'none';
+    }
+  };
+
+  // ── Load Tips ──────────────────────────────────────────────
+  async function loadTips() {
+    try {
+      const snap = await getDocs(
+        query(collection(db, 'tips'), orderBy('createdAt', 'desc'))
+      );
+      allTips = [];
+      snap.forEach(d => allTips.push({ id: d.id, ...d.data() }));
+      renderTips();
+    } catch(e) {
+      console.error(e);
+      document.getElementById('tips-list').innerHTML =
+        '<div class="empty-state"><div class="icon">❌</div><h3>Failed to load tips</h3></div>';
+    }
+  }
+
+  // ── Filter Tips ────────────────────────────────────────────
+  window.filterTips = function(mode) {
+    filterMode = mode;
+    document.querySelectorAll('.page-tab').forEach((t,i) =>
+      t.classList.toggle('active', ['all','published','draft'][i] === mode));
+    renderTips();
+  };
+
+  // ── Render Tips List ───────────────────────────────────────
+  function renderTips() {
+    const list     = document.getElementById('tips-list');
+    const filtered = allTips.filter(t => {
+      if (filterMode === 'published') return t.isPublished;
+      if (filterMode === 'draft')     return !t.isPublished;
+      return true;
+    });
+
+    document.getElementById('tips-count').textContent =
+      `${filtered.length} tip${filtered.length !== 1 ? 's' : ''}`;
+
+    if (!filtered.length) {
+      list.innerHTML = `
+        <div class="empty-state">
+          <div class="icon">💡</div>
+          <h3>No tips yet</h3>
+          <p>Use the form on the right to add your first tip.</p>
+        </div>`;
+      return;
+    }
+
+    const catColors = {
+      'Study Tips':  '#EEF2FF',
+      'Exam Tips':   '#FFF6E0',
+      'Motivation':  '#FFF0F0',
+      'Preparation': '#E0FAF5',
+    };
+    const catText = {
+      'Study Tips':  '#2D5BE3',
+      'Exam Tips':   '#8A5F00',
+      'Motivation':  '#A0001A',
+      'Preparation': '#006B55',
+    };
+
+    list.innerHTML = filtered.map(tip => {
+      const date = tip.createdAt
+        ? tip.createdAt.toDate().toLocaleDateString('en-IN') : 'Just now';
+      const bg   = catColors[tip.category] || '#F4F7FF';
+      const col  = catText[tip.category]   || '#2D5BE3';
+      return `
+        <div class="tip-card">
+          ${tip.imageUrl
+            ? `<img src="${tip.imageUrl}" class="tip-card-img" onerror="this.style.display='none'"/>`
+            : ''}
+          <div class="tip-card-body">
+            <div class="tip-card-header">
+              <div>
+                <span style="font-size:11px;font-weight:700;padding:3px 10px;
+                  border-radius:20px;background:${bg};color:${col};margin-bottom:6px;display:inline-block;">
+                  ${tip.category||'General'}
+                </span>
+                <div class="tip-title">${tip.title}</div>
+              </div>
+              <div class="tip-actions">
+                <button class="btn btn-outline btn-sm"
+                  onclick="toggleTipPublish('${tip.id}', ${tip.isPublished})">
+                  ${tip.isPublished ? '📤 Unpublish' : '📥 Publish'}
+                </button>
+                <button class="btn btn-sm"
+                  style="background:var(--danger-light);color:var(--danger);"
+                  onclick="deleteTip('${tip.id}')">🗑</button>
+              </div>
+            </div>
+            <div class="tip-content">${(tip.content||'').substring(0,200)}${tip.content?.length > 200 ? '...' : ''}</div>
+            <div class="tip-meta">
+              <span>📅 ${date}</span>
+              <span>•</span>
+              <span>👤 ${tip.createdBy||'Admin'}</span>
+              <span>•</span>
+              <span>🎯 ${tip.targetLevel||'All'}</span>
+              <span>•</span>
+              <span>${tip.isPublished
+                ? '<span class="badge badge-success">✅ Published</span>'
+                : '<span class="badge badge-neutral">📝 Draft</span>'}</span>
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  // ── Add Tip ────────────────────────────────────────────────
+  window.addTip = async function() {
+    const title    = document.getElementById('tip-title').value.trim();
+    const content  = document.getElementById('tip-content').value.trim();
+    const target   = document.getElementById('tip-target').value;
+    const imageUrl = document.getElementById('tip-image-url').value.trim() || uploadedImgUrl || '';
+
+    if (!title)   { showToast('Enter a title.', 'error');   return; }
+    if (!content) { showToast('Enter content.', 'error'); return; }
+
+    const btn = document.getElementById('btn-add-tip');
+    btn.disabled  = true;
+    btn.innerHTML = '<span class="spinner"></span> Saving...';
+
+    try {
+      const newTip = await addDoc(collection(db, 'tips'), {
+        title, content, imageUrl,
+        category:    selectedCat,
+        targetLevel: target,
+        isPublished: isPublished,
+        createdBy:   currentAdminName,
+        createdAt:   serverTimestamp()
+      });
+
+      // Add to local state
+      allTips.unshift({
+        id: newTip.id, title, content, imageUrl,
+        category: selectedCat, targetLevel: target,
+        isPublished, createdBy: currentAdminName,
+        createdAt: { toDate: () => new Date() }
+      });
+
+      // Reset form
+      document.getElementById('tip-title').value   = '';
+      document.getElementById('tip-content').value = '';
+      document.getElementById('tip-image-url').value = '';
+      document.getElementById('image-preview').style.display = 'none';
+      document.getElementById('upload-prompt').innerHTML =
+        '🖼️ Click to upload image<br/><span style="font-size:12px;color:var(--text-muted);">JPG, PNG, WebP — Max 5MB</span>';
+      uploadedImgUrl = '';
+
+      showToast('Tip published! ✅', 'success');
+      renderTips();
+    } catch(e) {
+      console.error(e);
+      showToast('Failed to save tip. Try again.', 'error');
+    } finally {
+      btn.disabled  = false;
+      btn.innerHTML = isPublished ? 'Publish Tip' : 'Save as Draft';
+    }
+  };
+
+  // ── Toggle Publish ─────────────────────────────────────────
+  window.toggleTipPublish = async function(tipId, current) {
+    try {
+      await updateDoc(doc(db, 'tips', tipId), { isPublished: !current });
+      const tip = allTips.find(t => t.id === tipId);
+      if (tip) tip.isPublished = !current;
+      showToast(!current ? 'Tip published!' : 'Tip unpublished.', 'info');
+      renderTips();
+    } catch(e) {
+      showToast('Failed. Try again.', 'error');
+    }
+  };
+
+  // ── Delete Tip ─────────────────────────────────────────────
+  window.deleteTip = async function(tipId) {
+    if (!confirm('Delete this tip permanently?')) return;
+    try {
+      await deleteDoc(doc(db, 'tips', tipId));
+      allTips = allTips.filter(t => t.id !== tipId);
+      showToast('Tip deleted.', 'info');
+      renderTips();
+    } catch(e) {
+      showToast('Failed to delete. Try again.', 'error');
+    }
+  };
+
+</script>
+</body>
+</html>

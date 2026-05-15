@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>StudyBuddy — Dashboard</title>
+  <link rel="stylesheet" href="../css/global.css"/>
+  <link rel="stylesheet" href="../css/student.css"/>
+</head>
+<body>
+
+<div id="page-loader">
+  <div class="logo-text">📚 StudyBuddy</div>
+  <div class="spinner spinner-primary"></div>
+</div>
+<div id="toast-container"></div>
+
+<div class="student-layout">
+
+  <!-- ── Sidebar ─────────────────────────────────────────── -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon">📚</div>
+      <div class="sidebar-logo-text">Study<span>Buddy</span></div>
+    </div>
+
+    <!-- Course + Level badge -->
+    <div class="sidebar-level-badge">
+      <div class="course" id="sb-course">CA</div>
+      <div class="level"  id="sb-level">CA Final</div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Overview</div>
+      <a href="dashboard.html" class="nav-item active">
+        <span class="nav-item-icon">🏠</span> Home
+      </a>
+      <a href="progress.html" class="nav-item">
+        <span class="nav-item-icon">📊</span> Progress Dashboard
+      </a>
+
+      <div class="nav-section-label">Study</div>
+      <a href="material.html" class="nav-item">
+        <span class="nav-item-icon">📚</span> Study Material
+      </a>
+      <a href="mcq.html" class="nav-item">
+        <span class="nav-item-icon">✏️</span> Practice MCQ
+      </a>
+      <a href="tests.html" class="nav-item">
+        <span class="nav-item-icon">📝</span> Mock Tests
+      </a>
+
+      <div class="nav-section-label">Tools</div>
+      <a href="timer.html" class="nav-item">
+        <span class="nav-item-icon">⏱️</span> Study Timer
+      </a>
+      <a href="tips.html" class="nav-item">
+        <span class="nav-item-icon">💡</span> Tips & Ideas
+      </a>
+
+      <div class="nav-section-label">Account</div>
+      <a href="profile.html" class="nav-item">
+        <span class="nav-item-icon">👤</span> My Profile
+      </a>
+    </nav>
+
+    <div class="sidebar-bottom">
+      <div class="sidebar-user">
+        <div class="sidebar-avatar" id="sidebar-avatar">S</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name" id="sidebar-name">Student</div>
+          <div class="sidebar-user-role">Student</div>
+        </div>
+        <button class="btn-logout" id="btn-logout" title="Logout">🚪</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── Main Content ─────────────────────────────────────── -->
+  <main class="student-main">
+
+    <!-- Blue Hero Panel -->
+    <div class="page-hero dashboard-hero" style="margin:0 0 0 0;">
+      <button class="btn-hamburger hero-hamburger" id="btn-hamburger" onclick="toggleSidebar()" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="hero-title-wrap">
+        <h1 id="welcome-heading">Good Morning, <span id="welcome-name" style="color:var(--accent);">Student</span>! 👋</h1>
+        <p id="welcome-sub">Keep pushing — every chapter you complete brings you closer to success.</p>
+        <div class="welcome-stats">
+          <div class="welcome-stat">
+            <div class="welcome-stat-val" id="ws-streak">0</div>
+            <div class="welcome-stat-label">Day Streak 🔥</div>
+          </div>
+          <div class="welcome-stat">
+            <div class="welcome-stat-val" id="ws-today">0h</div>
+            <div class="welcome-stat-label">Studied Today</div>
+          </div>
+          <div class="welcome-stat">
+            <div class="welcome-stat-val" id="ws-total">0h</div>
+            <div class="welcome-stat-label">Total Hours</div>
+          </div>
+          <div class="welcome-stat">
+            <div class="welcome-stat-val" id="ws-progress">0%</div>
+            <div class="welcome-stat-label">Overall Progress</div>
+          </div>
+        </div>
+      </div>
+      <div class="hero-badges">
+        <div class="streak-badge" id="streak-badge">🔥 0 Day Streak</div>
+        <div class="today-badge"  id="today-badge">📚 0h 0m Today</div>
+      </div>
+    </div>
+
+    <!-- Page Content -->
+    <div class="page-content">
+
+      <!-- Main Navigation Cards -->
+      <div class="dashboard-grid">
+
+        <a href="progress.html" class="dash-card" style="--card-accent:var(--primary-light);">
+          <div class="dash-card-icon">📊</div>
+          <div class="dash-card-title">Progress Dashboard</div>
+          <div class="dash-card-sub">Track syllabus chapter by chapter</div>
+        </a>
+
+        <a href="material.html" class="dash-card" style="--card-accent:#FFF0F0;">
+          <div class="dash-card-icon">📚</div>
+          <div class="dash-card-title">Study Material</div>
+          <div class="dash-card-sub">Notes, QB, MTP & Suggested Answers</div>
+        </a>
+
+        <a href="mcq.html" class="dash-card" style="--card-accent:#E0FAF5;">
+          <div class="dash-card-icon">✏️</div>
+          <div class="dash-card-title">Practice MCQ</div>
+          <div class="dash-card-sub">Topic-wise & case-based MCQs</div>
+        </a>
+
+        <a href="tests.html" class="dash-card" style="--card-accent:var(--warning-light);">
+          <div class="dash-card-icon">📝</div>
+          <div class="dash-card-title">Mock Tests</div>
+          <div class="dash-card-sub">Timed tests set by your faculty</div>
+        </a>
+
+        <a href="timer.html" class="dash-card" style="--card-accent:#F0F4FF;">
+          <div class="dash-card-icon">⏱️</div>
+          <div class="dash-card-title">Study Timer</div>
+          <div class="dash-card-sub">Track your study hours & streaks</div>
+        </a>
+
+        <a href="tips.html" class="dash-card" style="--card-accent:#FFF8E0;">
+          <div class="dash-card-icon">💡</div>
+          <div class="dash-card-title">Tips & Ideas</div>
+          <div class="dash-card-sub">Study & exam tips from faculty</div>
+        </a>
+
+      </div>
+
+      <!-- Bottom Section: Today's Study + Tips -->
+      <div class="bottom-grid">
+
+        <!-- Today's Study Summary -->
+        <div class="study-card">
+          <div class="study-card-title">
+            📚 Today's Study
+            <span style="font-size:12px;color:var(--text-muted);font-weight:400;" id="study-date"></span>
+          </div>
+
+          <div id="today-sessions">
+            <!-- Filled by JS -->
+            <div style="text-align:center;padding:24px;color:var(--text-muted);font-size:14px;">
+              ⏱️ No study sessions today yet.<br/>
+              <a href="timer.html" style="color:var(--primary);font-weight:600;margin-top:8px;display:inline-block;">
+                Start studying →
+              </a>
+            </div>
+          </div>
+
+          <div class="total-row" id="total-row" style="display:none;">
+            <div class="total-label">Total Today</div>
+            <div class="total-time" id="total-time">0h 0m</div>
+          </div>
+        </div>
+
+        <!-- Tips Preview -->
+        <div class="tips-preview">
+          <div class="tips-preview-title">💡 Latest from Faculty</div>
+          <div id="tips-list">
+            <div style="text-align:center;padding:20px;color:var(--text-muted);font-size:13px;">
+              Loading tips...
+            </div>
+          </div>
+          <a href="tips.html" class="tips-view-all">View all tips →</a>
+        </div>
+
+      </div>
+
+    </div><!-- /.page-content -->
+  </main>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     JAVASCRIPT
+═════════════════════════════════════════════════════════ -->
+<script type="module">
+  import { auth, db } from '../js/firebase-config.js';
+  import { onAuthStateChanged, signOut }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import { doc, getDoc, collection, query,
+    where, getDocs, orderBy, limit, updateDoc }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  // Expose to window so the plain <script> block can access them
+  window._db = db;
+  window._firestoreUpdateDoc = updateDoc;
+  window._firestoreDoc = doc;
+
+  // ── Helpers ───────────────────────────────────────────────
+  function showToast(msg,type='info'){
+    const c=document.getElementById('toast-container');
+    const t=document.createElement('div');
+    t.className=`toast toast-${type}`;
+    t.innerHTML=`<span>${{success:'✅',error:'❌',info:'ℹ️'}[type]}</span> ${msg}`;
+    c.appendChild(t);setTimeout(()=>t.remove(),4000);
+  }
+
+  // ── 5AM Rule — get current "study day" ───────────────────
+  function getStudyDay(date = new Date()) {
+    const d = new Date(date);
+    if (d.getHours() < 5) d.setDate(d.getDate() - 1);
+    return d.toISOString().split('T')[0]; // YYYY-MM-DD
+  }
+
+  // ── Format seconds to "Xh Ym" ────────────────────────────
+  function fmtTime(seconds) {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    if (h === 0) return `${m}m`;
+    if (m === 0) return `${h}h`;
+    return `${h}h ${m}m`;
+  }
+
+  // ── Greeting based on time ────────────────────────────────
+  function getGreeting() {
+    const h = new Date().getHours();
+    if (h >= 5  && h < 12) return 'Good Morning';
+    if (h >= 12 && h < 17) return 'Good Afternoon';
+    if (h >= 17 && h < 21) return 'Good Evening';
+    return 'Burning Midnight Oil 🌙';
+  }
+
+  // ── Auth Guard ────────────────────────────────────────────
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) { window.location.href = '../index.html'; return; }
+
+    const snap = await getDoc(doc(db, 'users', user.uid));
+    if (!snap.exists()) { window.location.href = '../index.html'; return; }
+    const data = snap.data();
+
+    // Only approved students
+    if (data.role !== 'student' || data.status !== 'approved') {
+      window.location.href = '../index.html'; return;
+    }
+
+    // ── Fill UI ──────────────────────────────────────────
+    const firstName = data.firstName;
+    const initials  = (data.firstName[0]+data.lastName[0]).toUpperCase();
+    const greeting  = getGreeting();
+
+    document.getElementById('sidebar-avatar').textContent = initials;
+    document.getElementById('sidebar-name').textContent   = firstName+' '+data.lastName;
+    document.getElementById('sb-course').textContent      = data.course;
+    document.getElementById('sb-level').textContent       = data.level;
+    document.getElementById('welcome-heading').innerHTML  = `${greeting}, <span id="welcome-name">${firstName}</span>! 👋`;
+
+    // Date for study section
+    const today = new Date();
+    document.getElementById('study-date').textContent =
+      today.toLocaleDateString('en-IN', {weekday:'long', day:'numeric', month:'long'});
+
+    // ── Hide loader immediately once UI is populated ─────────
+    document.getElementById('page-loader').classList.add('hidden');
+
+    // ── Load data in background (non-blocking) ────────────
+    Promise.all([
+      loadStreak(user.uid),
+      loadTodaySessions(user.uid),
+      loadTotalHours(user.uid),
+      loadOverallProgress(user.uid, data.level),
+      loadTips(data.level)
+    ]);
+
+    // Show popup if examAttempt missing, OR if group is missing for CA-Intermediate/CA-Final
+    const needsGroup = ['CA-Intermediate','CA-Final'].includes(data.level) && !data.group;
+    if(!data.examAttempt || needsGroup){
+      showAttemptPopup(user.uid, data.level, data.course);
+    }
+  });
+
+  // ── Logout ────────────────────────────────────────────────
+  document.getElementById('btn-logout').addEventListener('click', async () => {
+    await signOut(auth); window.location.href = '../index.html';
+  });
+
+  // ── Load Streak ───────────────────────────────────────────
+  async function loadStreak(uid) {
+    try {
+      const snap = await getDoc(doc(db, 'streaks', uid));
+      const streak = snap.exists() ? (snap.data().currentStreak || 0) : 0;
+      document.getElementById('streak-badge').textContent = `🔥 ${streak} Day Streak`;
+      document.getElementById('ws-streak').textContent    = streak;
+    } catch(e) { console.error('Streak error:', e); }
+  }
+
+  // ── Load Today's Sessions ─────────────────────────────────
+  async function loadTodaySessions(uid) {
+    try {
+      const studyDay = getStudyDay();
+      const q = query(
+        collection(db, 'timerSessions', uid, 'sessions'),
+        where('studyDay', '==', studyDay),
+        orderBy('startTime', 'desc')
+      );
+      const snap = await getDocs(q);
+
+      if (snap.empty) return; // stays default empty message
+
+      // Group by paper
+      const paperMap = {};
+      let totalSeconds = 0;
+      snap.forEach(d => {
+        const s = d.data();
+        const paper = s.paperName || 'General';
+        if (!paperMap[paper]) paperMap[paper] = 0;
+        paperMap[paper] += (s.duration || 0);
+        totalSeconds    += (s.duration || 0);
+      });
+
+      // Max bar = biggest paper
+      const maxSec = Math.max(...Object.values(paperMap));
+
+      // Build HTML
+      const container = document.getElementById('today-sessions');
+      container.innerHTML = Object.entries(paperMap).map(([paper, secs]) => {
+        const pct = maxSec > 0 ? Math.round((secs/maxSec)*100) : 0;
+        return `
+          <div class="paper-bar">
+            <div class="paper-bar-header">
+              <span class="paper-bar-name">${paper}</span>
+              <span class="paper-bar-time">${fmtTime(secs)}</span>
+            </div>
+            <div class="bar-track">
+              <div class="bar-fill" style="width:${pct}%"></div>
+            </div>
+          </div>`;
+      }).join('');
+
+      // Total row
+      document.getElementById('total-row').style.display = 'flex';
+      document.getElementById('total-time').textContent  = fmtTime(totalSeconds);
+
+      // Topbar badge
+      document.getElementById('today-badge').textContent = `📚 ${fmtTime(totalSeconds)} Today`;
+      document.getElementById('ws-today').textContent    = fmtTime(totalSeconds);
+
+    } catch(e) { console.error('Sessions error:', e); }
+  }
+
+  // ── Load Overall Progress ─────────────────────────────────
+  // Reads from a pre-aggregated summary doc written by progress.html
+  // Silently shows 0% if collection doesn't exist or rules not yet set
+  async function loadOverallProgress(uid, level) {
+    try {
+      const snap = await getDoc(doc(db, 'progressSummary', uid));
+      const pct = snap.exists() ? (snap.data().overallPct || 0) : 0;
+      document.getElementById('ws-progress').textContent = pct + '%';
+    } catch(e) {
+      // progressSummary doc missing or no rules yet — show 0%, not an error
+      document.getElementById('ws-progress').textContent = '0%';
+    }
+  }
+
+  // ── Load Total Hours (all time) ───────────────────────────
+  // Reads from aggregated streak/stats doc first, falls back to full scan
+  async function loadTotalHours(uid) {
+    try {
+      // Try fast path: aggregated stats doc
+      const statsSnap = await getDoc(doc(db, 'streaks', uid));
+      if (statsSnap.exists() && statsSnap.data().totalSeconds != null) {
+        document.getElementById('ws-total').textContent = fmtTime(statsSnap.data().totalSeconds);
+        return;
+      }
+      // Fallback: full scan
+      const snap = await getDocs(collection(db, 'timerSessions', uid, 'sessions'));
+      let total = 0;
+      snap.forEach(d => total += (d.data().duration || 0));
+      document.getElementById('ws-total').textContent = fmtTime(total);
+    } catch(e) { console.error('Total hours error:', e); }
+  }
+
+  // ── Load Tips ─────────────────────────────────────────────
+  async function loadTips(level) {
+    try {
+      const q = query(
+        collection(db, 'tips'),
+        where('isPublished', '==', true),
+        orderBy('createdAt', 'desc'),
+        limit(4)
+      );
+      const snap = await getDocs(q);
+      const list = document.getElementById('tips-list');
+
+      if (snap.empty) {
+        list.innerHTML = `
+          <div style="text-align:center;padding:20px;color:var(--text-muted);font-size:13px;">
+            No tips posted yet.
+          </div>`;
+        return;
+      }
+
+      // Filter for this level or 'All'
+      const tips = [];
+      snap.forEach(d => {
+        const t = d.data();
+        if (t.targetLevel === 'All' || t.targetLevel === level) {
+          tips.push({ id: d.id, ...t });
+        }
+      });
+
+      if (!tips.length) {
+        list.innerHTML = `<div style="text-align:center;padding:20px;color:var(--text-muted);font-size:13px;">No tips for your level yet.</div>`;
+        return;
+      }
+
+      list.innerHTML = tips.slice(0,3).map(tip => `
+        <div class="tip-mini" onclick="window.location.href='tips.html'">
+          <div class="tip-mini-cat">${tip.category || 'General'}</div>
+          <div class="tip-mini-title">${tip.title}</div>
+          <div class="tip-mini-preview">${(tip.content||'').substring(0,70)}...</div>
+        </div>`).join('');
+
+    } catch(e) { console.error('Tips error:', e); }
+  }
+
+</script>
+
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<!-- ── First Login: Exam Attempt + Group Popup ──────────────── -->
+<div id="attempt-popup-overlay" style="display:none;position:fixed;inset:0;background:rgba(26,26,46,0.65);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:10000;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:20px;padding:36px 32px;max-width:440px;width:92%;box-shadow:0 24px 64px rgba(0,0,0,0.22);text-align:center;">
+    <div style="font-size:48px;margin-bottom:12px;">🎯</div>
+    <div style="font-family:var(--font-heading);font-size:1.3rem;font-weight:700;color:var(--text-primary);margin-bottom:6px;">Welcome to StudyBuddy!</div>
+    <div style="font-size:13px;color:var(--text-secondary);margin-bottom:24px;line-height:1.6;">Set up your study plan by selecting your exam group and target attempt.</div>
+
+    <!-- Group selector — shown only for CA-Intermediate / CA-Final -->
+    <div id="popup-group-wrap" style="display:none;text-align:left;margin-bottom:18px;">
+      <label style="font-size:12px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:6px;">📚 Exam Group</label>
+      <select id="attempt-popup-group" style="width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:var(--radius-md);font-size:14px;font-family:var(--font-body);color:var(--text-primary);background:#fff;cursor:pointer;">
+        <option value="">— Select your group —</option>
+        <option value="group1">Group I</option>
+        <option value="group2">Group II</option>
+        <option value="both">Both Groups</option>
+      </select>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:5px;">Your progress dashboard will show only papers from your selected group.</div>
+    </div>
+
+    <!-- Attempt selector -->
+    <div style="text-align:left;margin-bottom:20px;">
+      <label style="font-size:12px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:6px;">🗓️ Target Exam Attempt</label>
+      <select id="attempt-popup-select" style="width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:var(--radius-md);font-size:14px;font-family:var(--font-body);color:var(--text-primary);background:#fff;cursor:pointer;">
+        <option value="">— Select your attempt —</option>
+      </select>
+    </div>
+
+    <button id="attempt-popup-btn" onclick="saveAttemptPopup()" style="width:100%;padding:13px;background:var(--primary);color:#fff;border:none;border-radius:var(--radius-md);font-size:14px;font-weight:700;cursor:pointer;font-family:var(--font-body);">Confirm & Start Studying →</button>
+  </div>
+</div>
+<script>
+  // ── Sidebar Toggle ────────────────────────────────────────
+  window.toggleSidebar = function(){
+    const sb  = document.getElementById('sidebar');
+    const btn = document.getElementById('btn-hamburger');
+    const ov  = document.getElementById('sidebar-overlay');
+    const open = sb.classList.toggle('open');
+    btn.classList.toggle('open', open);
+    ov.classList.toggle('show', open);
+  };
+  window.closeSidebar = function(){
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('btn-hamburger').classList.remove('open');
+    document.getElementById('sidebar-overlay').classList.remove('show');
+  };
+  document.addEventListener('DOMContentLoaded', function(){
+    document.querySelectorAll('.nav-item').forEach(function(a){
+      a.addEventListener('click', window.closeSidebar);
+    });
+  });
+
+  // ── Exam Attempt + Group Popup ────────────────────────────
+  let _attemptUid = null;
+  let _attemptHasGroups = false;
+
+  window.showAttemptPopup = function(uid, level, course){
+    _attemptUid = uid;
+    const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    let examMonths = [];
+    const l = (level||'').toLowerCase();
+    if(l.includes('foundation')||l.includes('intermediate')) examMonths=[0,4,8];
+    else if(l.includes('final'))  examMonths=[4,10];
+    else if(l.includes('frm'))    examMonths=[4,7,10];
+    else if(l.includes('cfa')){
+      if(l.includes('level i')||l.includes('level 1'))       examMonths=[1,4,7,10];
+      else if(l.includes('level ii')||l.includes('level 2')) examMonths=[4,7,10];
+      else if(l.includes('level iii')||l.includes('level 3'))examMonths=[0,7];
+      else examMonths=[1,4,7,10];
+    } else examMonths=[0,4,8];
+
+    // Show group selector only for CA-Intermediate and CA-Final
+    _attemptHasGroups = ['CA-Intermediate','CA-Final'].includes(level);
+    document.getElementById('popup-group-wrap').style.display = _attemptHasGroups ? 'block' : 'none';
+    document.getElementById('attempt-popup-group').value = '';
+
+    // Build next 3 attempts — strictly AFTER current month
+    const today = new Date();
+    const attempts = [];
+    let checkDate = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+    for(let i = 0; attempts.length < 3 && i < 48; i++){
+      const m = checkDate.getMonth();
+      const y = checkDate.getFullYear();
+      if(examMonths.includes(m)){
+        attempts.push({ val:`${y}-${String(m+1).padStart(2,'0')}`, lbl:`${MONTH_NAMES[m]} ${y}` });
+      }
+      checkDate.setMonth(checkDate.getMonth()+1);
+    }
+
+    const sel = document.getElementById('attempt-popup-select');
+    sel.innerHTML = '<option value="">— Select your attempt —</option>';
+    attempts.forEach(a => {
+      const opt = document.createElement('option');
+      opt.value = a.val; opt.textContent = a.lbl;
+      sel.appendChild(opt);
+    });
+
+    document.getElementById('attempt-popup-overlay').style.display = 'flex';
+  };
+
+  window.saveAttemptPopup = async function(){
+    const sel = document.getElementById('attempt-popup-select');
+    const grpSel = document.getElementById('attempt-popup-group');
+
+    // Validate attempt
+    if(!sel.value){ sel.style.borderColor='var(--danger)'; return; }
+    sel.style.borderColor = 'var(--border)';
+
+    // Validate group if required
+    if(_attemptHasGroups && !grpSel.value){
+      grpSel.style.borderColor = 'var(--danger)'; return;
+    }
+    if(_attemptHasGroups) grpSel.style.borderColor = 'var(--border)';
+
+    const btn = document.getElementById('attempt-popup-btn');
+    btn.disabled = true; btn.textContent = 'Saving…';
+    try{
+      const updateData = { examAttempt: sel.value };
+      if(_attemptHasGroups) updateData.group = grpSel.value;
+      await window._firestoreUpdateDoc(window._firestoreDoc(window._db,'users',_attemptUid), updateData);
+      document.getElementById('attempt-popup-overlay').style.display='none';
+    }catch(e){
+      console.error(e);
+      btn.disabled=false; btn.textContent='Confirm & Start Studying →';
+    }
+  };
+</script>
+</body>
+</html>

@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>StudyBuddy — Test MCQ Editor</title>
+  <link rel="stylesheet" href="../css/global.css"/>
+  <link rel="stylesheet" href="../css/admin.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    .options-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+    .option-row{display:flex;align-items:center;gap:8px;}
+    .option-label{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;color:#fff;}
+    .opt-a{background:#2D5BE3;}.opt-b{background:#00C9A7;}.opt-c{background:#FFB830;}.opt-d{background:#FF4757;}
+    .correct-row{display:flex;align-items:center;gap:16px;margin:12px 0;flex-wrap:wrap;}
+    .correct-options{display:flex;gap:10px;}
+    .correct-opt{display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;border:2px solid var(--border);cursor:pointer;font-size:13px;font-weight:600;transition:all 0.2s;background:var(--surface);color:var(--text-secondary);}
+    .correct-opt input{display:none;}
+    .correct-opt.selected{border-color:var(--success);background:var(--success-light);color:#006B55;}
+    .q-toolbar{display:flex;gap:6px;margin-bottom:6px;}
+    .q-toolbar button{padding:4px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;background:var(--surface);color:var(--text-secondary);font-family:var(--font-body);transition:all 0.2s;}
+    .q-toolbar button:hover{background:var(--primary-light);color:var(--primary);}
+    .mcq-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:14px 16px;display:flex;gap:12px;margin-bottom:8px;}
+    .mcq-num{font-size:12px;font-weight:700;color:var(--text-muted);min-width:28px;padding-top:2px;}
+    .mcq-body{flex:1;}
+    .mcq-question{font-size:14px;color:var(--text-primary);margin-bottom:8px;line-height:1.5;}
+    .mcq-options{display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;font-size:12px;color:var(--text-secondary);}
+    .mcq-option-correct{color:var(--success);font-weight:700;}
+    .mcq-del{background:var(--danger-light);color:var(--danger);border:none;padding:5px 10px;border-radius:var(--radius-sm);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font-body);flex-shrink:0;}
+    .mcq-del:hover{background:var(--danger);color:#fff;}
+    .img-upload-btn{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;background:var(--surface);color:var(--text-secondary);font-family:var(--font-body);transition:all 0.2s;}
+    .img-upload-btn:hover{background:var(--primary-light);color:var(--primary);}
+    .img-upload-btn input{display:none;}
+    .q-img-preview{max-width:100%;max-height:200px;border-radius:8px;margin-top:8px;display:none;}
+    .test-info-banner{background:linear-gradient(135deg,var(--secondary),var(--primary));border-radius:var(--radius-lg);padding:20px 24px;margin-bottom:24px;color:#fff;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;}
+    .test-info-banner h2{font-family:var(--font-heading);font-size:1.2rem;margin-bottom:4px;}
+    .test-info-banner p{font-size:13px;opacity:0.75;}
+    .test-stats{display:flex;gap:20px;}
+    .test-stat{text-align:center;}
+    .test-stat-val{font-family:var(--font-heading);font-size:1.6rem;font-weight:700;}
+    .test-stat-label{font-size:11px;opacity:0.7;text-transform:uppercase;letter-spacing:0.5px;}
+  </style>
+</head>
+<body>
+<div id="page-loader"><div class="logo-text">📚 StudyBuddy</div><div class="spinner spinner-primary"></div></div>
+<div id="toast-container"></div>
+
+<div class="admin-layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><div class="sidebar-logo-icon">📚</div><div class="sidebar-logo-text">Study<span>Buddy</span></div></div>
+    <div class="sidebar-role" id="sidebar-role-label">Admin Panel</div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Main</div>
+      <a href="dashboard.html" class="nav-item"><span class="nav-item-icon">🏠</span> Dashboard</a>
+      <a href="users.html" class="nav-item"><span class="nav-item-icon">👥</span> Students</a>
+      <div class="nav-section-label">Content</div>
+      <a href="structure.html" class="nav-item"><span class="nav-item-icon">🗂️</span> Course Structure</a>
+      <a href="materials.html" class="nav-item"><span class="nav-item-icon">📄</span> Study Materials</a>
+      <a href="tests.html" class="nav-item active"><span class="nav-item-icon">📝</span> Tests & MCQs</a>
+      <a href="tips.html" class="nav-item"><span class="nav-item-icon">💡</span> Tips & Ideas</a>
+      <div class="nav-section-label">Communication</div>
+      <a href="communications.html" class="nav-item"><span class="nav-item-icon">📧</span> Send Emails</a>
+      <a href="schedule.html" class="nav-item"><span class="nav-item-icon">📅</span> Exam Dates</a>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="sidebar-user">
+        <div class="sidebar-avatar" id="sidebar-avatar">A</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name" id="sidebar-name">Admin</div>
+          <div class="sidebar-user-role" id="sidebar-role-tag">Admin</div>
+        </div>
+        <button class="btn-logout" id="btn-logout">🚪</button>
+      </div>
+    </div>
+  </aside>
+
+  <main class="admin-main">
+    <div class="topbar">
+      <div class="topbar-title">
+        <a href="tests.html" style="color:var(--text-muted);font-size:13px;font-weight:500;">← Back to Tests</a>
+        <span style="margin:0 8px;color:var(--border);">|</span>
+        Mock Test MCQ Editor
+      </div>
+      <div class="topbar-right"><span class="topbar-date" id="topbar-date"></span></div>
+    </div>
+
+    <div class="page-content">
+
+      <!-- Test Info Banner -->
+      <div class="test-info-banner" id="test-banner">
+        <div>
+          <h2 id="banner-title">Loading test...</h2>
+          <p id="banner-sub">Mock Test MCQ Editor</p>
+        </div>
+        <div class="test-stats">
+          <div class="test-stat"><div class="test-stat-val" id="q-count">0</div><div class="test-stat-label">Questions</div></div>
+          <div class="test-stat"><div class="test-stat-val" id="total-marks">0</div><div class="test-stat-label">Total Marks</div></div>
+        </div>
+      </div>
+
+      <!-- Action Bar -->
+      <div class="action-bar" style="margin-bottom:20px;">
+        <div class="action-btns">
+          <button class="btn btn-primary btn-sm" onclick="toggleAddForm('mt-form')">+ Add MCQ</button>
+          <button class="btn btn-outline btn-sm" onclick="openMCQBank()">📚 Import from MCQ Bank</button>
+          <label class="btn btn-outline btn-sm" style="cursor:pointer;">
+            📥 Import Excel
+            <input type="file" accept=".xlsx,.xls" style="display:none;" onchange="importTestExcel(event)"/>
+          </label>
+          <button class="btn btn-outline btn-sm" onclick="exportTestExcel()">📤 Export</button>
+          <button class="btn btn-outline btn-sm" onclick="downloadTemplate()">📋 Template</button>
+          <button class="btn btn-sm" style="background:var(--danger-light);color:var(--danger);" onclick="deleteAllQ()">🗑 Delete All</button>
+        </div>
+      </div>
+
+      <!-- Add MCQ Form -->
+      <div class="card" id="mt-form" style="display:none;margin-bottom:20px;">
+        <h3 style="color:var(--primary);font-size:15px;margin-bottom:16px;">➕ Add Question to Test</h3>
+        <div class="form-group">
+          <label class="form-label">Question</label>
+          <div class="q-toolbar">
+            <button type="button" onclick="insertTable('mt-question')">📊 Insert Table</button>
+            <label class="img-upload-btn">📷 Insert Image<input type="file" accept="image/*" onchange="uploadQImage(event)"/></label>
+          </div>
+          <textarea id="mt-question" class="form-input" rows="4" placeholder="Type question here..."></textarea>
+          <img id="mt-q-img" class="q-img-preview"/>
+        </div>
+        <div class="options-grid">
+          <div class="option-row"><div class="option-label opt-a">A</div><input type="text" id="mt-oa" class="form-input" placeholder="Option A"/></div>
+          <div class="option-row"><div class="option-label opt-b">B</div><input type="text" id="mt-ob" class="form-input" placeholder="Option B"/></div>
+          <div class="option-row"><div class="option-label opt-c">C</div><input type="text" id="mt-oc" class="form-input" placeholder="Option C"/></div>
+          <div class="option-row"><div class="option-label opt-d">D</div><input type="text" id="mt-od" class="form-input" placeholder="Option D"/></div>
+        </div>
+        <div class="correct-row">
+          <label class="form-label" style="margin:0;">Correct Answer:</label>
+          <div class="correct-options" id="mt-correct-opts">
+            <label class="correct-opt" onclick="selectCorrect(this,'A')"><input type="radio" name="mt-correct" value="A"/>A</label>
+            <label class="correct-opt" onclick="selectCorrect(this,'B')"><input type="radio" name="mt-correct" value="B"/>B</label>
+            <label class="correct-opt" onclick="selectCorrect(this,'C')"><input type="radio" name="mt-correct" value="C"/>C</label>
+            <label class="correct-opt" onclick="selectCorrect(this,'D')"><input type="radio" name="mt-correct" value="D"/>D</label>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Explanation (Optional)</label>
+          <textarea id="mt-explanation" class="form-input" rows="2" placeholder="Why is this the correct answer?"></textarea>
+        </div>
+        <div class="flex flex-gap-12">
+          <button class="btn btn-primary" onclick="saveMCQ()">💾 Save Question</button>
+          <button class="btn btn-outline" onclick="toggleAddForm('mt-form')">Cancel</button>
+        </div>
+      </div>
+
+      <!-- Questions List -->
+      <div id="mt-q-list">
+        <div style="text-align:center;padding:48px;color:var(--text-muted);">
+          <div style="font-size:48px;margin-bottom:12px;">📝</div>
+          <h3>No questions yet</h3>
+          <p>Use + Add MCQ or Import Excel to add questions</p>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- ════════ MCQ BANK IMPORT MODAL ════════ -->
+<div class="modal-overlay hidden" id="mcq-bank-modal">
+  <div class="modal-box" style="max-width:780px;max-height:90vh;overflow-y:auto;">
+    <div class="modal-header">
+      <div class="modal-title">📚 Import from MCQ Bank</div>
+      <button class="btn-modal-close" onclick="closeMCQBank()">✕</button>
+    </div>
+
+    <!-- Filters -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+      <div class="form-group" style="margin:0;">
+        <label class="form-label">MCQ Type</label>
+        <select id="bank-type" class="form-select" onchange="onBankTypeChange()">
+          <option value="normal">Normal MCQs</option>
+          <option value="casebased">Case Based MCQs</option>
+        </select>
+      </div>
+      <div class="form-group" style="margin:0;">
+        <label class="form-label">Paper</label>
+        <select id="bank-paper" class="form-select" onchange="loadBankQuestions()">
+          <option value="">— Select Paper —</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Chapter filter + search -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+      <div class="form-group" style="margin:0;">
+        <label class="form-label">Filter by Chapter</label>
+        <select id="bank-chapter" class="form-select" onchange="filterBankQuestions()">
+          <option value="">All Chapters</option>
+        </select>
+      </div>
+      <div class="form-group" style="margin:0;">
+        <label class="form-label">Search</label>
+        <input type="text" id="bank-search" class="form-input" placeholder="Search questions..." oninput="filterBankQuestions()"/>
+      </div>
+    </div>
+
+    <!-- Select All + count -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;cursor:pointer;">
+        <input type="checkbox" id="bank-select-all" onchange="toggleSelectAll(this.checked)" style="width:16px;height:16px;"/>
+        Select All Visible
+      </label>
+      <span id="bank-selected-count" style="font-size:13px;color:var(--text-muted);">0 selected</span>
+    </div>
+
+    <!-- Questions list -->
+    <div id="bank-q-list" style="max-height:380px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius-md);padding:8px;">
+      <div style="text-align:center;padding:32px;color:var(--text-muted);">Select a paper to load questions</div>
+    </div>
+
+    <!-- Footer -->
+    <div style="display:flex;gap:12px;margin-top:16px;">
+      <button class="btn btn-primary" onclick="importFromBank()">📥 Add Selected to Test</button>
+      <button class="btn btn-outline" onclick="closeMCQBank()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { auth, db, CLOUDINARY_CONFIG } from '../js/firebase-config.js';
+  import { Modal } from '../js/utils/modal.js';
+  import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import { collection, doc, getDoc, getDocs, addDoc,
+    deleteDoc, query, orderBy, serverTimestamp, writeBatch, updateDoc }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  let testId=sessionStorage.getItem('editTestId');
+  let testLevel=sessionStorage.getItem('editTestLevel');
+  let testData={};
+  let mtCorrect='';
+  let mtQImgUrl='';
+
+  function toast(msg,type='info'){const c=document.getElementById('toast-container');const t=document.createElement('div');t.className=`toast toast-${type}`;t.innerHTML=`<span>${{success:'✅',error:'❌',info:'ℹ️'}[type]}</span> ${msg}`;c.appendChild(t);setTimeout(()=>t.remove(),4000);}
+
+  document.getElementById('topbar-date').textContent=new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+
+  if(!testId||!testLevel){window.location.href='tests.html';}
+
+  onAuthStateChanged(auth,async(user)=>{
+    if(!user){window.location.href='../index.html';return;}
+    const snap=await getDoc(doc(db,'users',user.uid));
+    if(!snap.exists()){window.location.href='../index.html';return;}
+    const data=snap.data();
+    if(data.role!=='admin'&&data.role!=='superadmin'){window.location.href='../index.html';return;}
+    document.getElementById('sidebar-avatar').textContent=(data.firstName[0]+data.lastName[0]).toUpperCase();
+    document.getElementById('sidebar-name').textContent=data.firstName+' '+data.lastName;
+    document.getElementById('sidebar-role-tag').textContent=data.role==='superadmin'?'👑 Super Admin':'🛡️ Admin';
+    document.getElementById('page-loader').classList.add('hidden');
+    loadTest();
+  });
+  document.getElementById('btn-logout').addEventListener('click',async()=>{await signOut(auth);window.location.href='../index.html';});
+
+  async function loadTest(){
+    try{
+      const snap=await getDoc(doc(db,'mockTests',testLevel,'tests',testId));
+      if(!snap.exists()){toast('Test not found.','error');return;}
+      testData=snap.data();
+      document.getElementById('banner-title').textContent=testData.title||'Mock Test';
+      document.getElementById('banner-sub').textContent=`${testLevel} • ${testData.negativeMarking>0?'Negative: -'+testData.negativeMarking:'No Negative Marking'}`;
+      loadQuestions();
+    }catch(e){console.error(e);}
+  }
+
+  async function loadQuestions(){
+    try{
+      const snap=await getDocs(
+        query(collection(db,'mockTests',testLevel,'tests',testId,'questions'),orderBy('order','asc'))
+      );
+      const qs=[];snap.forEach(d=>qs.push({id:d.id,...d.data()}));
+      const marks=testData.marksPerQ||1;
+      document.getElementById('q-count').textContent=qs.length;
+      document.getElementById('total-marks').textContent=qs.length*marks;
+      // Update count in test doc
+      await updateDoc(doc(db,'mockTests',testLevel,'tests',testId),{questionCount:qs.length});
+      renderQuestions(qs);
+    }catch(e){console.error(e);}
+  }
+
+  function renderQuestions(qs){
+    const list=document.getElementById('mt-q-list');
+    if(!qs.length){
+      list.innerHTML='<div style="text-align:center;padding:48px;color:var(--text-muted);"><div style="font-size:48px;margin-bottom:12px;">📝</div><h3>No questions yet</h3><p>Use + Add MCQ or Import Excel</p></div>';
+      return;
+    }
+    list.innerHTML=qs.map((q,i)=>`
+      <div class="mcq-item">
+        <div class="mcq-num">Q${i+1}</div>
+        <div class="mcq-body">
+          <div class="mcq-question">${q.question||''}</div>
+          ${q.imageUrl?`<img src="${q.imageUrl}" style="max-height:120px;border-radius:8px;margin-bottom:8px;"/>`:''}
+          <div class="mcq-options">
+            ${['A','B','C','D'].map((o,oi)=>`<div class="${q.correct===o?'mcq-option-correct':''}">${q.correct===o?'✅':'○'} ${o}. ${[q.optionA,q.optionB,q.optionC,q.optionD][oi]||''}</div>`).join('')}
+          </div>
+          ${q.explanation?`<div style="margin-top:6px;"><span class="badge badge-info">💡 ${q.explanation}</span></div>`:''}
+        </div>
+        <button class="mcq-del" onclick="deleteQ('${q.id}')">🗑 Delete</button>
+      </div>`).join('');
+  }
+
+  window.toggleAddForm=function(id){const el=document.getElementById(id);el.style.display=el.style.display==='none'?'block':'none';};
+  window.selectCorrect=function(el,val){document.querySelectorAll('#mt-correct-opts .correct-opt').forEach(e=>e.classList.remove('selected'));el.classList.add('selected');mtCorrect=val;};
+  window.insertTable=function(id){const el=document.getElementById(id);el.value+='\n<table border="1" style="border-collapse:collapse;width:100%;"><tr><th>Col 1</th><th>Col 2</th></tr><tr><td>Data</td><td>Data</td></tr></table>\n';};
+
+  window.uploadQImage=async function(event){
+    const file=event.target.files[0];if(!file)return;
+    const fd=new FormData();fd.append('file',file);fd.append('upload_preset',CLOUDINARY_CONFIG.uploadPreset);
+    try{
+      const res=await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CONFIG.cloudName}/image/upload`,{method:'POST',body:fd});
+      const data=await res.json();mtQImgUrl=data.secure_url;
+      const img=document.getElementById('mt-q-img');img.src=mtQImgUrl;img.style.display='block';
+      toast('Image uploaded!','success');
+    }catch(e){toast('Upload failed.','error');}
+  };
+
+  window.saveMCQ=async function(){
+    const question=document.getElementById('mt-question').value.trim();
+    const oa=document.getElementById('mt-oa').value.trim();
+    const ob=document.getElementById('mt-ob').value.trim();
+    const oc=document.getElementById('mt-oc').value.trim();
+    const od=document.getElementById('mt-od').value.trim();
+    const explanation=document.getElementById('mt-explanation').value.trim();
+    if(!question){toast('Enter question.','error');return;}
+    if(!oa||!ob||!oc||!od){toast('Fill all options.','error');return;}
+    if(!mtCorrect){toast('Select correct answer.','error');return;}
+    // Get current count for order
+    const snap=await getDocs(collection(db,'mockTests',testLevel,'tests',testId,'questions'));
+    const order=snap.size+1;
+    try{
+      await addDoc(collection(db,'mockTests',testLevel,'tests',testId,'questions'),{
+        question,optionA:oa,optionB:ob,optionC:oc,optionD:od,
+        correct:mtCorrect,explanation,order,
+        imageUrl:mtQImgUrl||'',createdAt:serverTimestamp()
+      });
+      toast('Question saved! ✅','success');
+      // Reset
+      document.getElementById('mt-question').value='';
+      document.getElementById('mt-explanation').value='';
+      ['mt-oa','mt-ob','mt-oc','mt-od'].forEach(id=>document.getElementById(id).value='');
+      document.querySelectorAll('#mt-correct-opts .correct-opt').forEach(e=>e.classList.remove('selected'));
+      mtCorrect='';mtQImgUrl='';document.getElementById('mt-q-img').style.display='none';
+      loadQuestions();
+    }catch(e){toast('Save failed.','error');console.error(e);}
+  };
+
+  window.deleteQ=async function(qId){
+    const yes=await Modal.danger('Delete Question?','This question will be permanently deleted.','Delete');
+    if(!yes)return;
+    try{
+      await deleteDoc(doc(db,'mockTests',testLevel,'tests',testId,'questions',qId));
+      toast('Deleted.','info');loadQuestions();
+    }catch(e){toast('Failed.','error');}
+  };
+
+  window.deleteAllQ=async function(){
+    const yes=await Modal.danger('Delete ALL Questions?','Every question in this test will be deleted permanently.','Delete All');
+    if(!yes)return;
+    try{
+      const snap=await getDocs(collection(db,'mockTests',testLevel,'tests',testId,'questions'));
+      const batch=writeBatch(db);
+      snap.forEach(d=>batch.delete(d.ref));
+      await batch.commit();
+      toast('All questions deleted.','info');loadQuestions();
+    }catch(e){toast('Failed.','error');}
+  };
+
+  window.importTestExcel=async function(event){
+    const file=event.target.files[0];if(!file)return;
+    const reader=new FileReader();
+    reader.onload=async(e)=>{
+      try{
+        const wb=XLSX.read(e.target.result,{type:'array'});
+        const ws=wb.Sheets[wb.SheetNames[0]];
+        const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+        const dataRows=rows.slice(1).filter(r=>r[0]?.toString().trim());
+        const snap=await getDocs(collection(db,'mockTests',testLevel,'tests',testId,'questions'));
+        let order=snap.size+1;
+        const batch=writeBatch(db);
+        let saved=0;
+        dataRows.forEach(r=>{
+          if(!r[0]?.toString().trim())return;
+          const ref=doc(collection(db,'mockTests',testLevel,'tests',testId,'questions'));
+          batch.set(ref,{
+            question:r[0].toString().trim(),optionA:r[1].toString().trim(),
+            optionB:r[2].toString().trim(),optionC:r[3].toString().trim(),
+            optionD:r[4].toString().trim(),correct:r[5].toString().trim().toUpperCase(),
+            explanation:r[6]?.toString().trim()||'',order:order++,
+            createdAt:serverTimestamp()
+          });saved++;
+        });
+        await batch.commit();
+        toast(`${saved} questions imported! ✅`,'success');
+        loadQuestions();
+      }catch(err){toast('Import failed.','error');console.error(err);}
+      event.target.value='';
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
+  window.exportTestExcel=async function(){
+    try{
+      const snap=await getDocs(query(collection(db,'mockTests',testLevel,'tests',testId,'questions'),orderBy('order','asc')));
+      const rows=[['Question','Option A','Option B','Option C','Option D','Correct (A/B/C/D)','Explanation']];
+      snap.forEach(d=>{const q=d.data();rows.push([q.question,q.optionA,q.optionB,q.optionC,q.optionD,q.correct,q.explanation||'']);});
+      const wb=XLSX.utils.book_new();
+      const ws=XLSX.utils.aoa_to_sheet(rows);
+      ws['!cols']=[{wch:50},{wch:25},{wch:25},{wch:25},{wch:25},{wch:10},{wch:40}];
+      XLSX.utils.book_append_sheet(wb,ws,'Questions');
+      XLSX.writeFile(wb,`Test_MCQs_Export_${Date.now()}.xlsx`);
+      toast('Exported!','success');
+    }catch(e){toast('Export failed.','error');}
+  };
+
+  window.downloadTemplate=function(){
+    const headers=['Question','Option A','Option B','Option C','Option D','Correct (A/B/C/D)','Explanation (Optional)'];
+    const sample=['Which of the following is correct as per Ind AS 2?','FIFO or Weighted Average','LIFO only','FIFO only','Any method','A','Only FIFO or Weighted Average is permitted under Ind AS 2.'];
+    const wb=XLSX.utils.book_new();
+    const ws=XLSX.utils.aoa_to_sheet([headers,sample]);
+    ws['!cols']=[{wch:50},{wch:25},{wch:25},{wch:25},{wch:25},{wch:10},{wch:40}];
+    XLSX.utils.book_append_sheet(wb,ws,'Template');
+    XLSX.writeFile(wb,'MockTest_MCQ_Template.xlsx');
+    toast('Template downloaded!','success');
+  };
+
+  // ── MCQ Bank Import ─────────────────────────────────────────
+  let bankAllQuestions = [];   // all loaded from Firestore
+  let bankVisible     = [];   // after chapter/search filter
+  let bankSelected    = new Set(); // doc IDs selected
+
+  window.openMCQBank = async function(){
+    bankAllQuestions=[];bankVisible=[];bankSelected.clear();
+    updateBankCount();
+    // Pre-load papers for the test level (same as test's level)
+    await loadBankPapers();
+    document.getElementById('bank-search').value='';
+    document.getElementById('bank-chapter').innerHTML='<option value="">All Chapters</option>';
+    document.getElementById('bank-q-list').innerHTML='<div style="text-align:center;padding:32px;color:var(--text-muted);">Select a paper to load questions</div>';
+    document.getElementById('bank-select-all').checked=false;
+    document.getElementById('mcq-bank-modal').classList.remove('hidden');
+  };
+
+  window.closeMCQBank = function(){
+    document.getElementById('mcq-bank-modal').classList.add('hidden');
+  };
+
+  async function loadBankPapers(){
+    const sel=document.getElementById('bank-paper');
+    sel.innerHTML='<option value="">— Select Paper —</option>';
+    try{
+      const snap=await getDocs(collection(db,'courseStructure',testLevel,'papers'));
+      const papers=[];snap.forEach(d=>papers.push({id:d.id,...d.data()}));
+      papers.sort((a,b)=>(a.order||0)-(b.order||0));
+      papers.forEach(p=>{const o=document.createElement('option');o.value=p.id;o.textContent=p.name;sel.appendChild(o);});
+    }catch(e){toast('Failed to load papers.','error');}
+  }
+
+  window.onBankTypeChange=async function(){
+    document.getElementById('bank-paper').value='';
+    bankAllQuestions=[];bankVisible=[];bankSelected.clear();
+    document.getElementById('bank-chapter').innerHTML='<option value="">All Chapters</option>';
+    document.getElementById('bank-q-list').innerHTML='<div style="text-align:center;padding:32px;color:var(--text-muted);">Select a paper to load questions</div>';
+    document.getElementById('bank-select-all').checked=false;
+    updateBankCount();
+  };
+
+  window.loadBankQuestions=async function(){
+    const paper=document.getElementById('bank-paper').value;
+    const type=document.getElementById('bank-type').value;
+    if(!paper)return;
+    document.getElementById('bank-q-list').innerHTML='<div style="text-align:center;padding:32px;color:var(--text-muted);">⏳ Loading...</div>';
+    bankAllQuestions=[];bankVisible=[];bankSelected.clear();
+    document.getElementById('bank-select-all').checked=false;
+    updateBankCount();
+    try{
+      const colRef=type==='normal'
+        ?collection(db,'mcqs',testLevel,'papers',paper,'questions')
+        :collection(db,'casebasedMCQs',testLevel,'papers',paper,'questions');
+      const snap=await getDocs(query(colRef,orderBy('createdAt','asc')));
+      snap.forEach(d=>bankAllQuestions.push({id:d.id,...d.data()}));
+      // Build chapter filter
+      const chapters=[...new Set(bankAllQuestions.map(q=>q.chapterName||'').filter(Boolean))];
+      const chSel=document.getElementById('bank-chapter');
+      chSel.innerHTML='<option value="">All Chapters</option>';
+      chapters.forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;chSel.appendChild(o);});
+      filterBankQuestions();
+    }catch(e){
+      document.getElementById('bank-q-list').innerHTML='<div style="text-align:center;padding:32px;color:var(--danger);">❌ Failed to load</div>';
+      console.error(e);
+    }
+  };
+
+  window.filterBankQuestions=function(){
+    const chapter=document.getElementById('bank-chapter').value;
+    const search=document.getElementById('bank-search').value.toLowerCase();
+    bankVisible=bankAllQuestions.filter(q=>{
+      const chMatch=!chapter||(q.chapterName||'')==chapter;
+      const sMatch=!search||q.question.toLowerCase().includes(search)
+        ||(q.optionA||'').toLowerCase().includes(search)
+        ||(q.optionB||'').toLowerCase().includes(search);
+      return chMatch&&sMatch;
+    });
+    renderBankQuestions();
+  };
+
+  function renderBankQuestions(){
+    const list=document.getElementById('bank-q-list');
+    if(!bankVisible.length){
+      list.innerHTML='<div style="text-align:center;padding:32px;color:var(--text-muted);">No questions found</div>';
+      return;
+    }
+    list.innerHTML=bankVisible.map((q,i)=>`
+      <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 8px;border-bottom:1px solid var(--border);">
+        <input type="checkbox" class="bank-cb" data-id="${q.id}"
+          style="width:16px;height:16px;margin-top:3px;flex-shrink:0;"
+          ${bankSelected.has(q.id)?'checked':''}
+          onchange="toggleBankQ('${q.id}',this.checked)"/>
+        <div style="flex:1;">
+          <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:4px;">
+            Q${i+1}${q.chapterName?` <span style="font-size:11px;color:var(--text-muted);font-weight:400;">[${q.chapterName}]</span>`:''}
+          </div>
+          <div style="font-size:13px;color:var(--text-primary);margin-bottom:6px;line-height:1.5;">${q.question}</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px 16px;font-size:12px;color:var(--text-secondary);">
+            <span ${q.correct==='A'?'style="color:var(--success);font-weight:700;"':''}>A. ${q.optionA||''}</span>
+            <span ${q.correct==='B'?'style="color:var(--success);font-weight:700;"':''}>B. ${q.optionB||''}</span>
+            <span ${q.correct==='C'?'style="color:var(--success);font-weight:700;"':''}>C. ${q.optionC||''}</span>
+            <span ${q.correct==='D'?'style="color:var(--success);font-weight:700;"':''}>D. ${q.optionD||''}</span>
+          </div>
+        </div>
+      </div>`).join('');
+    updateBankCount();
+  }
+
+  window.toggleBankQ=function(id,checked){
+    if(checked)bankSelected.add(id); else bankSelected.delete(id);
+    updateBankCount();
+  };
+
+  window.toggleSelectAll=function(checked){
+    bankVisible.forEach(q=>{ if(checked)bankSelected.add(q.id); else bankSelected.delete(q.id); });
+    document.querySelectorAll('.bank-cb').forEach(cb=>{cb.checked=checked;});
+    updateBankCount();
+  };
+
+  function updateBankCount(){
+    document.getElementById('bank-selected-count').textContent=`${bankSelected.size} selected`;
+  }
+
+  window.importFromBank=async function(){
+    if(!bankSelected.size){toast('Select at least one question.','error');return;}
+    const selectedQs=bankAllQuestions.filter(q=>bankSelected.has(q.id));
+    try{
+      const snap=await getDocs(collection(db,'mockTests',testLevel,'tests',testId,'questions'));
+      let order=snap.size+1;
+      const batch=writeBatch(db);
+      selectedQs.forEach(q=>{
+        const ref=doc(collection(db,'mockTests',testLevel,'tests',testId,'questions'));
+        batch.set(ref,{
+          question:q.question,
+          optionA:q.optionA||'',optionB:q.optionB||'',
+          optionC:q.optionC||'',optionD:q.optionD||'',
+          correct:q.correct,explanation:q.explanation||'',
+          imageUrl:q.imageUrl||'',chapterName:q.chapterName||'',
+          order:order++,createdAt:serverTimestamp()
+        });
+      });
+      await batch.commit();
+      toast(`${selectedQs.length} questions added to test! ✅`,'success');
+      closeMCQBank();
+      loadQuestions();
+    }catch(e){toast('Import failed.','error');console.error(e);}
+  };
+
+</script>
+</body>
+</html>

@@ -1,0 +1,1185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>StudyBuddy — Tests & MCQs</title>
+  <link rel="stylesheet" href="../css/global.css"/>
+  <link rel="stylesheet" href="../css/admin.css"/>
+  <!-- SheetJS for Excel import/export -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    /* ── 3 Box Tabs ───────────────────────────────────────── */
+    .box-tabs {
+      display:flex; gap:0; margin-bottom:28px;
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:var(--radius-lg); padding:6px; width:fit-content;
+    }
+    .box-tab {
+      padding:10px 28px; border-radius:var(--radius-md);
+      font-size:14px; font-weight:600; cursor:pointer;
+      border:none; background:none; font-family:var(--font-body);
+      color:var(--text-secondary); transition:all 0.2s; white-space:nowrap;
+    }
+    .box-tab.active {
+      background:var(--primary); color:#fff;
+      box-shadow:0 2px 8px rgba(45,91,227,0.3);
+    }
+
+    /* ── Top Action Bar ──────────────────────────────────── */
+    .action-bar {
+      display:flex; gap:10px; flex-wrap:wrap;
+      margin-bottom:20px; align-items:center;
+    }
+    .action-bar .selectors {
+      display:flex; gap:10px; flex:1; flex-wrap:wrap;
+    }
+    .action-bar select { min-width:200px; max-width:280px; }
+    .action-btns { display:flex; gap:8px; flex-wrap:wrap; }
+
+    /* ── Add MCQ Form ────────────────────────────────────── */
+    .add-mcq-card {
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:var(--radius-lg); padding:24px; margin-bottom:24px;
+    }
+    .add-mcq-card h3 {
+      font-size:15px; font-weight:600; color:var(--primary);
+      margin-bottom:18px; display:flex; align-items:center; gap:8px;
+    }
+    .options-grid {
+      display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;
+    }
+    .option-row {
+      display:flex; align-items:center; gap:8px;
+    }
+    .option-label {
+      width:28px; height:28px; border-radius:50%;
+      display:flex; align-items:center; justify-content:center;
+      font-size:13px; font-weight:700; flex-shrink:0; color:#fff;
+    }
+    .opt-a { background:#2D5BE3; }
+    .opt-b { background:#00C9A7; }
+    .opt-c { background:#FFB830; }
+    .opt-d { background:#FF4757; }
+    .correct-row {
+      display:flex; align-items:center; gap:16px; margin:12px 0;
+      flex-wrap:wrap;
+    }
+    .correct-row label {
+      font-size:12px; font-weight:700; color:var(--text-muted);
+      text-transform:uppercase; letter-spacing:0.5px;
+    }
+    .correct-options { display:flex; gap:10px; }
+    .correct-opt {
+      display:flex; align-items:center; gap:6px;
+      padding:6px 14px; border-radius:20px;
+      border:2px solid var(--border); cursor:pointer;
+      font-size:13px; font-weight:600; transition:all 0.2s;
+      background:var(--surface); color:var(--text-secondary);
+    }
+    .correct-opt input { display:none; }
+    .correct-opt.selected { border-color:var(--success); background:var(--success-light); color:#006B55; }
+
+    /* Question toolbar */
+    .q-toolbar {
+      display:flex; gap:6px; margin-bottom:6px;
+    }
+    .q-toolbar button {
+      padding:4px 10px; border:1px solid var(--border);
+      border-radius:6px; font-size:12px; font-weight:600;
+      cursor:pointer; background:var(--surface);
+      color:var(--text-secondary); font-family:var(--font-body);
+      transition:all 0.2s;
+    }
+    .q-toolbar button:hover { background:var(--primary-light); color:var(--primary); border-color:var(--primary); }
+
+    /* Marks + passage row */
+    .meta-row { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:12px; }
+    .meta-row .form-group { flex:1; min-width:140px; margin-bottom:0; }
+
+    /* ── MCQ List ─────────────────────────────────────────── */
+    .chapter-block { margin-bottom:20px; }
+    .chapter-block-header {
+      display:flex; align-items:center; justify-content:space-between;
+      background:var(--surface-2); border:1px solid var(--border);
+      border-radius:var(--radius-md) var(--radius-md) 0 0;
+      padding:12px 16px;
+    }
+    .chapter-block-title {
+      font-weight:700; font-size:14px; color:var(--text-primary);
+      display:flex; align-items:center; gap:8px;
+    }
+    .mcq-count-badge {
+      background:var(--primary-light); color:var(--primary);
+      font-size:11px; font-weight:700; padding:2px 8px; border-radius:10px;
+    }
+    .mcq-item {
+      background:var(--surface); border:1px solid var(--border);
+      border-top:none; padding:14px 16px;
+      display:flex; gap:12px; align-items:flex-start;
+      transition:background 0.15s;
+    }
+    .mcq-item:hover { background:var(--surface-2); }
+    .mcq-item:last-child { border-radius:0 0 var(--radius-md) var(--radius-md); }
+    .mcq-num {
+      font-size:12px; font-weight:700; color:var(--text-muted);
+      min-width:28px; padding-top:2px;
+    }
+    .mcq-body { flex:1; }
+    .mcq-question {
+      font-size:14px; color:var(--text-primary); margin-bottom:8px;
+      line-height:1.5;
+    }
+    .mcq-options {
+      display:grid; grid-template-columns:1fr 1fr; gap:4px 16px;
+      font-size:12px; color:var(--text-secondary);
+    }
+    .mcq-option-correct { color:var(--success); font-weight:700; }
+    .mcq-meta {
+      display:flex; gap:8px; margin-top:6px; flex-wrap:wrap;
+    }
+    .mcq-del {
+      background:var(--danger-light); color:var(--danger);
+      border:none; padding:5px 10px; border-radius:var(--radius-sm);
+      font-size:12px; font-weight:600; cursor:pointer;
+      font-family:var(--font-body); transition:all 0.2s; white-space:nowrap;
+      flex-shrink:0;
+    }
+    .mcq-del:hover { background:var(--danger); color:#fff; }
+
+    /* ── Mock Test Cards ─────────────────────────────────── */
+    .test-card {
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:var(--radius-lg); padding:20px; margin-bottom:14px;
+    }
+    .test-card-header {
+      display:flex; align-items:flex-start;
+      justify-content:space-between; gap:12px; margin-bottom:12px;
+    }
+    .test-card-title { font-weight:700; font-size:15px; }
+    .test-card-sub { font-size:13px; color:var(--text-muted); margin-top:3px; }
+    .test-card-actions { display:flex; gap:8px; flex-shrink:0; flex-wrap:wrap; }
+    .test-info-grid {
+      display:grid; grid-template-columns:repeat(4,1fr); gap:10px;
+      background:var(--surface-2); border-radius:var(--radius-md);
+      padding:12px; margin-bottom:12px;
+    }
+    .test-info-item { text-align:center; }
+    .test-info-val { font-weight:700; font-size:15px; color:var(--text-primary); }
+    .test-info-label { font-size:11px; color:var(--text-muted); margin-top:2px; }
+
+    /* Status badges */
+    .status-hidden  { background:#F1F5F9; color:var(--text-secondary); }
+    .status-active  { background:var(--success-light); color:#006B55; }
+    .status-expired { background:var(--danger-light); color:var(--danger); }
+    .status-closed  { background:var(--warning-light); color:#8A5F00; }
+
+    /* Activate form inside card */
+    .activate-form {
+      background:var(--primary-light); border:1px solid rgba(45,91,227,0.2);
+      border-radius:var(--radius-md); padding:16px; margin-top:12px; display:none;
+    }
+    .activate-form.open { display:block; }
+    .activate-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:12px; }
+
+    /* ── Case Study passage ──────────────────────────────── */
+    .passage-box {
+      background:#FFFBEB; border:1px solid #FDE68A;
+      border-radius:var(--radius-md); padding:14px 16px;
+      font-size:13px; color:var(--text-primary); line-height:1.7;
+      margin-bottom:10px;
+    }
+    .passage-label { font-size:10px; font-weight:700; color:#92400E; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px; }
+
+    /* Image upload in question */
+    .img-upload-btn {
+      display:inline-flex; align-items:center; gap:6px;
+      padding:4px 10px; border:1px solid var(--border);
+      border-radius:6px; font-size:12px; font-weight:600;
+      cursor:pointer; background:var(--surface);
+      color:var(--text-secondary); font-family:var(--font-body);
+      transition:all 0.2s;
+    }
+    .img-upload-btn:hover { background:var(--primary-light); color:var(--primary); }
+    .img-upload-btn input { display:none; }
+    .q-img-preview { max-width:100%; max-height:200px; border-radius:8px; margin-top:8px; display:none; }
+
+    .empty-mcq { text-align:center; padding:48px 20px; color:var(--text-muted); }
+    .empty-mcq .icon { font-size:48px; margin-bottom:12px; }
+
+    @media(max-width:768px){
+      .options-grid { grid-template-columns:1fr; }
+      .activate-grid { grid-template-columns:1fr; }
+      .test-info-grid { grid-template-columns:1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div id="page-loader"><div class="logo-text">📚 StudyBuddy</div><div class="spinner spinner-primary"></div></div>
+<div id="toast-container"></div>
+
+<div class="admin-layout">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo"><div class="sidebar-logo-icon">📚</div><div class="sidebar-logo-text">Study<span>Buddy</span></div></div>
+    <div class="sidebar-role" id="sidebar-role-label">Admin Panel</div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Main</div>
+      <a href="dashboard.html" class="nav-item"><span class="nav-item-icon">🏠</span> Dashboard</a>
+      <a href="users.html" class="nav-item"><span class="nav-item-icon">👥</span> Students</a>
+      <div class="nav-section-label">Content</div>
+      <a href="structure.html" class="nav-item"><span class="nav-item-icon">🗂️</span> Course Structure</a>
+      <a href="materials.html" class="nav-item"><span class="nav-item-icon">📄</span> Study Materials</a>
+      <a href="tests.html" class="nav-item active"><span class="nav-item-icon">📝</span> Tests & MCQs</a>
+      <a href="tips.html" class="nav-item"><span class="nav-item-icon">💡</span> Tips & Ideas</a>
+      <div class="nav-section-label">Communication</div>
+      <a href="communications.html" class="nav-item"><span class="nav-item-icon">📧</span> Send Emails</a>
+      <a href="schedule.html" class="nav-item"><span class="nav-item-icon">📅</span> Exam Dates</a>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="sidebar-user">
+        <div class="sidebar-avatar" id="sidebar-avatar">A</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name" id="sidebar-name">Admin</div>
+          <div class="sidebar-user-role" id="sidebar-role-tag">Admin</div>
+        </div>
+        <button class="btn-logout" id="btn-logout">🚪</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="admin-main">
+    <div class="topbar">
+      <div class="topbar-title">Tests & MCQs</div>
+      <div class="topbar-right"><span class="topbar-date" id="topbar-date"></span></div>
+    </div>
+
+    <div class="page-content">
+
+      <!-- 3 Box Tabs -->
+      <div class="box-tabs">
+        <button class="box-tab active" onclick="switchBox('normal')">📝 Normal MCQs</button>
+        <button class="box-tab" onclick="switchBox('casebased')">📊 Case Based</button>
+        <button class="box-tab" onclick="switchBox('mocktest')">📝 Mock Tests</button>
+      </div>
+
+      <!-- ══════════════ BOX 1: NORMAL MCQ ══════════════ -->
+      <div id="box-normal">
+
+        <!-- Selectors + Action Buttons -->
+        <div class="action-bar">
+          <div class="selectors">
+            <select class="form-select" id="nm-level" onchange="onNmLevelChange()">
+              <option value="">— Select Level —</option>
+              <option value="CA-Foundation">CA Foundation</option>
+              <option value="CA-Intermediate">CA Intermediate</option>
+              <option value="CA-Final">CA Final</option>
+              <option value="FRM-I">FRM Part I</option>
+              <option value="FRM-II">FRM Part II</option>
+              <option value="CFA-I">CFA Level I</option>
+              <option value="CFA-II">CFA Level II</option>
+              <option value="CFA-III">CFA Level III</option>
+            </select>
+            <select class="form-select" id="nm-paper" onchange="loadNormalMCQs()">
+              <option value="">— Select Paper —</option>
+            </select>
+          </div>
+          <div class="action-btns">
+            <button class="btn btn-primary btn-sm" onclick="toggleAddForm('nm-form')">+ Add MCQ</button>
+            <label class="btn btn-outline btn-sm" style="cursor:pointer;">
+              📥 Import Excel <input type="file" accept=".xlsx,.xls" style="display:none;" onchange="importExcel(event,'normal')"/>
+            </label>
+            <button class="btn btn-outline btn-sm" onclick="exportExcel('normal')">📤 Export</button>
+            <button class="btn btn-outline btn-sm" onclick="downloadTemplate('normal')">📋 Template</button>
+            <button class="btn btn-sm" style="background:var(--danger-light);color:var(--danger);" onclick="deleteAll('normal')">🗑 Delete All</button>
+          </div>
+        </div>
+
+        <!-- Add MCQ Form -->
+        <div class="add-mcq-card" id="nm-form" style="display:none;">
+          <h3>➕ Add Normal MCQ</h3>
+          <div class="meta-row">
+            <div class="form-group">
+              <label class="form-label">Chapter Name</label>
+              <input type="text" id="nm-chapter" class="form-input" placeholder="e.g. Ind AS 2 or Chapter 3" list="nm-chapter-list"/>
+              <datalist id="nm-chapter-list"></datalist>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Marks per Question</label>
+              <select id="nm-marks" class="form-select">
+                <option value="1">1 Mark</option>
+                <option value="2">2 Marks</option>
+              </select>
+            </div>
+          </div>
+          <!-- Question with toolbar -->
+          <div class="form-group">
+            <label class="form-label">Question</label>
+            <div class="q-toolbar">
+              <button type="button" onclick="insertTable('nm-question')">📊 Insert Table</button>
+              <label class="img-upload-btn">
+                📷 Insert Image
+                <input type="file" accept="image/*" onchange="uploadQImage(event,'nm-q-img')"/>
+              </label>
+            </div>
+            <textarea id="nm-question" class="form-input" rows="4"
+              placeholder="Type your question here. For tables use Insert Table button. For images use Insert Image."></textarea>
+            <img id="nm-q-img" class="q-img-preview"/>
+            <div id="nm-q-img-url" style="display:none;"></div>
+          </div>
+          <!-- Options -->
+          <div class="options-grid">
+            <div class="option-row"><div class="option-label opt-a">A</div><input type="text" id="nm-oa" class="form-input" placeholder="Option A"/></div>
+            <div class="option-row"><div class="option-label opt-b">B</div><input type="text" id="nm-ob" class="form-input" placeholder="Option B"/></div>
+            <div class="option-row"><div class="option-label opt-c">C</div><input type="text" id="nm-oc" class="form-input" placeholder="Option C"/></div>
+            <div class="option-row"><div class="option-label opt-d">D</div><input type="text" id="nm-od" class="form-input" placeholder="Option D"/></div>
+          </div>
+          <!-- Correct answer -->
+          <div class="correct-row">
+            <label class="form-label" style="margin:0;">Correct Answer:</label>
+            <div class="correct-options" id="nm-correct-opts">
+              <label class="correct-opt" onclick="selectCorrect('nm',this,'A')"><input type="radio" name="nm-correct" value="A"/>A</label>
+              <label class="correct-opt" onclick="selectCorrect('nm',this,'B')"><input type="radio" name="nm-correct" value="B"/>B</label>
+              <label class="correct-opt" onclick="selectCorrect('nm',this,'C')"><input type="radio" name="nm-correct" value="C"/>C</label>
+              <label class="correct-opt" onclick="selectCorrect('nm',this,'D')"><input type="radio" name="nm-correct" value="D"/>D</label>
+            </div>
+          </div>
+          <!-- Explanation -->
+          <div class="form-group">
+            <label class="form-label">Explanation (Optional)</label>
+            <textarea id="nm-explanation" class="form-input" rows="2" placeholder="Explain why this answer is correct (leave blank if not needed)"></textarea>
+          </div>
+          <div class="flex flex-gap-12">
+            <button class="btn btn-primary" onclick="saveMCQ('normal')">💾 Save MCQ</button>
+            <button class="btn btn-outline" onclick="toggleAddForm('nm-form')">Cancel</button>
+          </div>
+        </div>
+
+        <!-- MCQ List -->
+        <div id="nm-mcq-list">
+          <div class="empty-mcq"><div class="icon">📝</div><h3>Select level and paper to view MCQs</h3></div>
+        </div>
+      </div>
+
+      <!-- ══════════════ BOX 2: CASE BASED ══════════════ -->
+      <div id="box-casebased" style="display:none;">
+
+        <div class="action-bar">
+          <div class="selectors">
+            <select class="form-select" id="cb-level" onchange="onCbLevelChange()">
+              <option value="">— Select Level —</option>
+              <option value="CA-Foundation">CA Foundation</option>
+              <option value="CA-Intermediate">CA Intermediate</option>
+              <option value="CA-Final">CA Final</option>
+              <option value="FRM-I">FRM Part I</option>
+              <option value="FRM-II">FRM Part II</option>
+              <option value="CFA-I">CFA Level I</option>
+              <option value="CFA-II">CFA Level II</option>
+              <option value="CFA-III">CFA Level III</option>
+            </select>
+            <select class="form-select" id="cb-paper" onchange="loadCaseBased()">
+              <option value="">— Select Paper —</option>
+            </select>
+          </div>
+          <div class="action-btns">
+            <button class="btn btn-primary btn-sm" onclick="toggleAddForm('cb-form')">+ Add Case Study MCQ</button>
+            <label class="btn btn-outline btn-sm" style="cursor:pointer;">
+              📥 Import Excel <input type="file" accept=".xlsx,.xls" style="display:none;" onchange="importExcel(event,'casebased')"/>
+            </label>
+            <button class="btn btn-outline btn-sm" onclick="exportExcel('casebased')">📤 Export</button>
+            <button class="btn btn-outline btn-sm" onclick="downloadTemplate('casebased')">📋 Template</button>
+            <button class="btn btn-sm" style="background:var(--danger-light);color:var(--danger);" onclick="deleteAll('casebased')">🗑 Delete All</button>
+          </div>
+        </div>
+
+        <!-- Add Case Based Form -->
+        <div class="add-mcq-card" id="cb-form" style="display:none;">
+          <h3>➕ Add Case Based MCQ</h3>
+          <div class="meta-row">
+            <div class="form-group">
+              <label class="form-label">Case Study Name</label>
+              <input type="text" id="cb-casename" class="form-input" placeholder="e.g. Case Study 1 or XYZ Ltd Case" list="cb-case-list"/>
+              <datalist id="cb-case-list"></datalist>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Marks per Question</label>
+              <select id="cb-marks" class="form-select">
+                <option value="1">1 Mark</option>
+                <option value="2">2 Marks</option>
+              </select>
+            </div>
+          </div>
+          <!-- Passage -->
+          <div class="form-group">
+            <label class="form-label">Case Passage (shared across all questions in this case)</label>
+            <div class="q-toolbar">
+              <button type="button" onclick="insertTable('cb-passage')">📊 Insert Table</button>
+              <label class="img-upload-btn">📷 Insert Image<input type="file" accept="image/*" onchange="uploadQImage(event,'cb-pass-img')"/></label>
+            </div>
+            <textarea id="cb-passage" class="form-input" rows="5"
+              placeholder="Type the case study passage. All MCQs below will refer to this passage.&#10;&#10;Leave blank if this MCQ uses same passage as an existing case study (same Case Study Name)."></textarea>
+            <img id="cb-pass-img" class="q-img-preview"/>
+          </div>
+          <!-- Question -->
+          <div class="form-group">
+            <label class="form-label">Question</label>
+            <div class="q-toolbar">
+              <button type="button" onclick="insertTable('cb-question')">📊 Insert Table</button>
+              <label class="img-upload-btn">📷 Insert Image<input type="file" accept="image/*" onchange="uploadQImage(event,'cb-q-img')"/></label>
+            </div>
+            <textarea id="cb-question" class="form-input" rows="3" placeholder="Based on the above case, which of the following..."></textarea>
+            <img id="cb-q-img" class="q-img-preview"/>
+          </div>
+          <div class="options-grid">
+            <div class="option-row"><div class="option-label opt-a">A</div><input type="text" id="cb-oa" class="form-input" placeholder="Option A"/></div>
+            <div class="option-row"><div class="option-label opt-b">B</div><input type="text" id="cb-ob" class="form-input" placeholder="Option B"/></div>
+            <div class="option-row"><div class="option-label opt-c">C</div><input type="text" id="cb-oc" class="form-input" placeholder="Option C"/></div>
+            <div class="option-row"><div class="option-label opt-d">D</div><input type="text" id="cb-od" class="form-input" placeholder="Option D"/></div>
+          </div>
+          <div class="correct-row">
+            <label class="form-label" style="margin:0;">Correct Answer:</label>
+            <div class="correct-options" id="cb-correct-opts">
+              <label class="correct-opt" onclick="selectCorrect('cb',this,'A')"><input type="radio" name="cb-correct" value="A"/>A</label>
+              <label class="correct-opt" onclick="selectCorrect('cb',this,'B')"><input type="radio" name="cb-correct" value="B"/>B</label>
+              <label class="correct-opt" onclick="selectCorrect('cb',this,'C')"><input type="radio" name="cb-correct" value="C"/>C</label>
+              <label class="correct-opt" onclick="selectCorrect('cb',this,'D')"><input type="radio" name="cb-correct" value="D"/>D</label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Explanation (Optional)</label>
+            <textarea id="cb-explanation" class="form-input" rows="2" placeholder="Explanation for the correct answer..."></textarea>
+          </div>
+          <div class="flex flex-gap-12">
+            <button class="btn btn-primary" onclick="saveMCQ('casebased')">💾 Save MCQ</button>
+            <button class="btn btn-outline" onclick="toggleAddForm('cb-form')">Cancel</button>
+          </div>
+        </div>
+
+        <div id="cb-mcq-list">
+          <div class="empty-mcq"><div class="icon">📊</div><h3>Select level and paper to view Case Based MCQs</h3></div>
+        </div>
+      </div>
+
+      <!-- ══════════════ BOX 3: MOCK TESTS ══════════════ -->
+      <div id="box-mocktest" style="display:none;">
+
+        <div class="action-bar">
+          <div class="selectors">
+            <select class="form-select" id="mt-level" onchange="onMtLevelChange()">
+              <option value="">— Select Level —</option>
+              <option value="CA-Foundation">CA Foundation</option>
+              <option value="CA-Intermediate">CA Intermediate</option>
+              <option value="CA-Final">CA Final</option>
+              <option value="FRM-I">FRM Part I</option>
+              <option value="FRM-II">FRM Part II</option>
+              <option value="CFA-I">CFA Level I</option>
+              <option value="CFA-II">CFA Level II</option>
+              <option value="CFA-III">CFA Level III</option>
+            </select>
+          </div>
+          <div class="action-btns">
+            <button class="btn btn-primary btn-sm" onclick="openCreateTest()">+ Create Test</button>
+          </div>
+        </div>
+
+        <div id="mt-test-list">
+          <div class="empty-mcq"><div class="icon">📝</div><h3>Select a level to view Mock Tests</h3></div>
+        </div>
+      </div>
+
+    </div><!-- /.page-content -->
+  </main>
+</div>
+
+<!-- ════════ CREATE TEST MODAL ════════ -->
+<div class="modal-overlay hidden" id="create-test-modal">
+  <div class="modal-box" style="max-width:600px; max-height:90vh; overflow-y:auto;">
+    <div class="modal-header">
+      <div class="modal-title">📝 Create Mock Test</div>
+      <button class="btn-modal-close" onclick="closeCreateTest()">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Test Title</label>
+      <input type="text" id="mt-title" class="form-input" placeholder="e.g. Paper 1: FR — Mock Test 1"/>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="form-group">
+        <label class="form-label">Paper</label>
+        <select id="mt-paper-sel" class="form-select"><option value="">— Select Paper —</option></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Marks per Question</label>
+        <select id="mt-marks" class="form-select">
+          <option value="1">1 Mark</option>
+          <option value="2">2 Marks</option>
+        </select>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="form-group">
+        <label class="form-label">Negative Marking</label>
+        <select id="mt-negative" class="form-select">
+          <option value="0">No Negative Marking</option>
+          <option value="0.25">-0.25 per wrong</option>
+          <option value="0.5">-0.5 per wrong</option>
+          <option value="1">-1 per wrong</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Custom Instructions</label>
+        <textarea id="mt-instructions" class="form-input" rows="2" placeholder="e.g. This test covers Ind AS 1-10 only"></textarea>
+      </div>
+    </div>
+    <p class="text-secondary fs-13 mb-16">Add MCQs to this test after creating it using Import Excel or Add MCQ button.</p>
+    <div class="flex flex-gap-12">
+      <button class="btn btn-primary" onclick="createTest()">Create Test</button>
+      <button class="btn btn-outline" onclick="closeCreateTest()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { auth, db, CLOUDINARY_CONFIG } from '../js/firebase-config.js';
+  import { Modal } from '../js/utils/modal.js';
+  import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import { collection, doc, getDoc, getDocs, addDoc, deleteDoc,
+    setDoc, updateDoc, query, orderBy, serverTimestamp, writeBatch }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  // ── State ──────────────────────────────────────────────────
+  let currentBox   = 'normal';
+  let nmCorrect    = ''; // selected correct for normal
+  let cbCorrect    = ''; // selected correct for casebased
+  let nmQImgUrl    = '';
+  let cbQImgUrl    = '';
+  let cbPassImgUrl = '';
+  let currentMtLevel = '';
+  let allMockTests = [];
+
+  // ── Toast ──────────────────────────────────────────────────
+  function toast(msg,type='info'){
+    const c=document.getElementById('toast-container');
+    const t=document.createElement('div');
+    t.className=`toast toast-${type}`;
+    t.innerHTML=`<span>${{success:'✅',error:'❌',info:'ℹ️'}[type]}</span> ${msg}`;
+    c.appendChild(t);setTimeout(()=>t.remove(),4000);
+  }
+
+  document.getElementById('topbar-date').textContent =
+    new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+
+  // ── Auth Guard ─────────────────────────────────────────────
+  onAuthStateChanged(auth, async(user)=>{
+    if(!user){window.location.href='../index.html';return;}
+    const snap=await getDoc(doc(db,'users',user.uid));
+    if(!snap.exists()){window.location.href='../index.html';return;}
+    const data=snap.data();
+    if(data.role!=='admin'&&data.role!=='superadmin'){window.location.href='../index.html';return;}
+    document.getElementById('sidebar-avatar').textContent=(data.firstName[0]+data.lastName[0]).toUpperCase();
+    document.getElementById('sidebar-name').textContent=data.firstName+' '+data.lastName;
+    document.getElementById('sidebar-role-tag').textContent=data.role==='superadmin'?'👑 Super Admin':'🛡️ Admin';
+    document.getElementById('page-loader').classList.add('hidden');
+  });
+  document.getElementById('btn-logout').addEventListener('click',async()=>{await signOut(auth);window.location.href='../index.html';});
+
+  // ── Switch Box ─────────────────────────────────────────────
+  window.switchBox=function(box){
+    currentBox=box;
+    ['normal','casebased','mocktest'].forEach(b=>{
+      document.getElementById('box-'+b).style.display=b===box?'block':'none';
+    });
+    document.querySelectorAll('.box-tab').forEach((t,i)=>
+      t.classList.toggle('active',['normal','casebased','mocktest'][i]===box));
+  };
+
+  // ── Toggle Add Form ────────────────────────────────────────
+  window.toggleAddForm=function(id){
+    const el=document.getElementById(id);
+    el.style.display=el.style.display==='none'?'block':'none';
+  };
+
+  // ── Select Correct Answer ──────────────────────────────────
+  window.selectCorrect=function(prefix,el,val){
+    document.querySelectorAll(`#${prefix}-correct-opts .correct-opt`).forEach(e=>e.classList.remove('selected'));
+    el.classList.add('selected');
+    if(prefix==='nm') nmCorrect=val;
+    else cbCorrect=val;
+  };
+
+  // ── Insert HTML Table ──────────────────────────────────────
+  window.insertTable=function(targetId){
+    const el=document.getElementById(targetId);
+    const tbl=`\n<table border="1" style="border-collapse:collapse;width:100%;">
+  <tr><th>Column 1</th><th>Column 2</th><th>Column 3</th></tr>
+  <tr><td>Row 1</td><td>Data</td><td>Data</td></tr>
+  <tr><td>Row 2</td><td>Data</td><td>Data</td></tr>
+</table>\n`;
+    el.value+=tbl;
+    el.focus();
+    toast('Table template inserted. Edit the content.','info');
+  };
+
+  // ── Upload Image to Cloudinary ─────────────────────────────
+  window.uploadQImage=async function(event,previewId){
+    const file=event.target.files[0];
+    if(!file)return;
+    if(file.size>5*1024*1024){toast('Max 5MB','error');return;}
+    toast('Uploading image...','info');
+    const fd=new FormData();
+    fd.append('file',file);
+    fd.append('upload_preset',CLOUDINARY_CONFIG.uploadPreset);
+    try{
+      const res=await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CONFIG.cloudName}/image/upload`,{method:'POST',body:fd});
+      const data=await res.json();
+      const url=data.secure_url;
+      const preview=document.getElementById(previewId);
+      preview.src=url; preview.style.display='block';
+      // Store URL based on which image
+      if(previewId==='nm-q-img'){nmQImgUrl=url;document.getElementById('nm-q-img-url').textContent=url;}
+      else if(previewId==='cb-q-img')cbQImgUrl=url;
+      else if(previewId==='cb-pass-img')cbPassImgUrl=url;
+      toast('Image uploaded!','success');
+    }catch(e){toast('Image upload failed.','error');}
+  };
+
+  // ── Load Papers for Normal MCQ ─────────────────────────────
+  window.onNmLevelChange=async function(){
+    const level=document.getElementById('nm-level').value;
+    await loadPapersInto('nm-paper',level);
+    document.getElementById('nm-mcq-list').innerHTML=
+      '<div class="empty-mcq"><div class="icon">📝</div><h3>Select a paper</h3></div>';
+  };
+  window.onCbLevelChange=async function(){
+    const level=document.getElementById('cb-level').value;
+    await loadPapersInto('cb-paper',level);
+    document.getElementById('cb-mcq-list').innerHTML=
+      '<div class="empty-mcq"><div class="icon">📊</div><h3>Select a paper</h3></div>';
+  };
+  window.onMtLevelChange=async function(){
+    currentMtLevel=document.getElementById('mt-level').value;
+    await loadPapersInto('mt-paper-sel',currentMtLevel);
+    loadMockTests();
+  };
+
+  async function loadPapersInto(selId,level){
+    const sel=document.getElementById(selId);
+    sel.innerHTML='<option value="">— Select Paper —</option>';
+    if(!level)return;
+    try{
+      const snap=await getDocs(collection(db,'courseStructure',level,'papers'));
+      const papers=[];snap.forEach(d=>papers.push({id:d.id,...d.data()}));
+      papers.sort((a,b)=>(a.order||0)-(b.order||0));
+      papers.forEach(p=>{const o=document.createElement('option');o.value=p.id;o.textContent=p.name;sel.appendChild(o);});
+    }catch(e){toast('Load papers failed.','error');}
+  }
+
+  // ── Load Normal MCQs ──────────────────────────────────────
+  window.loadNormalMCQs=async function(){
+    const level=document.getElementById('nm-level').value;
+    const paper=document.getElementById('nm-paper').value;
+    if(!level||!paper)return;
+    const list=document.getElementById('nm-mcq-list');
+    list.innerHTML='<div class="empty-mcq"><div class="icon">⏳</div><h3>Loading...</h3></div>';
+    try{
+      const snap=await getDocs(
+        query(collection(db,'mcqs',level,'papers',paper,'questions'),orderBy('createdAt','asc'))
+      );
+      const allQ=[];snap.forEach(d=>allQ.push({id:d.id,...d.data()}));
+
+      // Update chapter datalist
+      const chapters=[...new Set(allQ.map(q=>q.chapterName||'').filter(Boolean))];
+      const dl=document.getElementById('nm-chapter-list');
+      dl.innerHTML=chapters.map(c=>`<option value="${c}"/>`).join('');
+
+      if(!allQ.length){
+        list.innerHTML='<div class="empty-mcq"><div class="icon">📝</div><h3>No MCQs yet</h3><p>Click + Add MCQ or Import Excel</p></div>';
+        return;
+      }
+
+      // Group by chapter
+      const grouped={};
+      allQ.forEach(q=>{
+        const ch=q.chapterName||'Uncategorised';
+        if(!grouped[ch])grouped[ch]=[];
+        grouped[ch].push(q);
+      });
+
+      list.innerHTML=Object.entries(grouped).map(([ch,qs])=>`
+        <div class="chapter-block">
+          <div class="chapter-block-header">
+            <div class="chapter-block-title">
+              📚 ${ch}
+              <span class="mcq-count-badge">${qs.length} MCQ${qs.length!==1?'s':''}</span>
+            </div>
+            <button class="btn btn-sm" style="background:var(--danger-light);color:var(--danger);"
+              onclick="deleteChapter('${level}','${paper}','${ch}','normal')">
+              🗑 Delete Chapter
+            </button>
+          </div>
+          ${qs.map((q,i)=>renderMCQItem(q,i+1,level,paper,'normal')).join('')}
+        </div>`).join('');
+    }catch(e){console.error(e);list.innerHTML='<div class="empty-mcq"><div class="icon">❌</div><h3>Failed to load</h3></div>';}
+  };
+
+  // ── Load Case Based ───────────────────────────────────────
+  window.loadCaseBased=async function(){
+    const level=document.getElementById('cb-level').value;
+    const paper=document.getElementById('cb-paper').value;
+    if(!level||!paper)return;
+    const list=document.getElementById('cb-mcq-list');
+    list.innerHTML='<div class="empty-mcq"><div class="icon">⏳</div><h3>Loading...</h3></div>';
+    try{
+      const snap=await getDocs(
+        query(collection(db,'casebasedMCQs',level,'papers',paper,'questions'),orderBy('createdAt','asc'))
+      );
+      const allQ=[];snap.forEach(d=>allQ.push({id:d.id,...d.data()}));
+
+      const cases=[...new Set(allQ.map(q=>q.caseName||'').filter(Boolean))];
+      const dl=document.getElementById('cb-case-list');
+      dl.innerHTML=cases.map(c=>`<option value="${c}"/>`).join('');
+
+      if(!allQ.length){
+        list.innerHTML='<div class="empty-mcq"><div class="icon">📊</div><h3>No Case Based MCQs yet</h3></div>';
+        return;
+      }
+
+      const grouped={};
+      allQ.forEach(q=>{
+        const cs=q.caseName||'Uncategorised';
+        if(!grouped[cs])grouped[cs]=[];
+        grouped[cs].push(q);
+      });
+
+      list.innerHTML=Object.entries(grouped).map(([cs,qs])=>`
+        <div class="chapter-block">
+          <div class="chapter-block-header">
+            <div class="chapter-block-title">
+              📊 ${cs}
+              <span class="mcq-count-badge">${qs.length} Q${qs.length!==1?'s':''}</span>
+            </div>
+            <button class="btn btn-sm" style="background:var(--danger-light);color:var(--danger);"
+              onclick="deleteChapter('${level}','${paper}','${cs}','casebased')">
+              🗑 Delete Case Study
+            </button>
+          </div>
+          ${qs[0]?.passage?`<div class="mcq-item"><div style="flex:1;"><div class="passage-label">📄 Passage</div><div class="passage-box">${qs[0].passage}</div></div></div>`:''}
+          ${qs.map((q,i)=>renderMCQItem(q,i+1,level,paper,'casebased')).join('')}
+        </div>`).join('');
+    }catch(e){list.innerHTML='<div class="empty-mcq"><div class="icon">❌</div><h3>Failed to load</h3></div>';}
+  };
+
+  // ── Render single MCQ item ─────────────────────────────────
+  function renderMCQItem(q,num,level,paper,type){
+    const opts=['A','B','C','D'];
+    const optVals=[q.optionA,q.optionB,q.optionC,q.optionD];
+    const optsHtml=opts.map((o,i)=>`
+      <div class="${q.correct===o?'mcq-option-correct':''}">
+        ${q.correct===o?'✅':'○'} ${o}. ${optVals[i]||''}
+      </div>`).join('');
+    const qCol=type==='normal'?`collection(db,'mcqs','${level}','papers','${paper}','questions')`
+      :`collection(db,'casebasedMCQs','${level}','papers','${paper}','questions')`;
+    return`
+      <div class="mcq-item">
+        <div class="mcq-num">Q${num}</div>
+        <div class="mcq-body">
+          <div class="mcq-question">${q.question||''}</div>
+          ${q.imageUrl?`<img src="${q.imageUrl}" style="max-height:120px;border-radius:8px;margin-bottom:8px;"/>`:
+            q.question?.includes('<table')?'':''}
+          <div class="mcq-options">${optsHtml}</div>
+          ${q.explanation?`<div class="mcq-meta"><span class="badge badge-info">💡 ${q.explanation}</span></div>`:''}
+          <div class="mcq-meta">
+            <span class="badge badge-neutral">⭐ ${q.marks||1} mark${q.marks>1?'s':''}</span>
+          </div>
+        </div>
+        <button class="mcq-del" onclick="deleteMCQ('${q.id}','${level}','${paper}','${type}')">🗑 Delete</button>
+      </div>`;
+  }
+
+  // ── Save MCQ ───────────────────────────────────────────────
+  window.saveMCQ=async function(type){
+    const isNm=type==='normal';
+    const px=isNm?'nm':'cb';
+    const level=document.getElementById(`${px}-level`).value;
+    const paper=document.getElementById(isNm?'nm-paper':'cb-paper').value;
+    const question=document.getElementById(`${px}-question`).value.trim();
+    const oa=document.getElementById(`${px}-oa`).value.trim();
+    const ob=document.getElementById(`${px}-ob`).value.trim();
+    const oc=document.getElementById(`${px}-oc`).value.trim();
+    const od=document.getElementById(`${px}-od`).value.trim();
+    const correct=isNm?nmCorrect:cbCorrect;
+    const explanation=document.getElementById(`${px}-explanation`).value.trim();
+    const marks=parseInt(document.getElementById(`${px}-marks`).value)||1;
+
+    if(!level||!paper){toast('Select level and paper first.','error');return;}
+    if(!question){toast('Enter a question.','error');return;}
+    if(!oa||!ob||!oc||!od){toast('Fill all 4 options.','error');return;}
+    if(!correct){toast('Select the correct answer.','error');return;}
+
+    const data={
+      question, optionA:oa, optionB:ob, optionC:oc, optionD:od,
+      correct, explanation, marks, createdAt:serverTimestamp()
+    };
+
+    if(isNm){
+      const chapter=document.getElementById('nm-chapter').value.trim();
+      if(!chapter){toast('Enter chapter name.','error');return;}
+      data.chapterName=chapter;
+      if(nmQImgUrl)data.imageUrl=nmQImgUrl;
+      try{
+        await addDoc(collection(db,'mcqs',level,'papers',paper,'questions'),data);
+        toast('MCQ saved! ✅','success');
+        resetForm('nm');
+        loadNormalMCQs();
+      }catch(e){toast('Save failed.','error');console.error(e);}
+    } else {
+      const caseName=document.getElementById('cb-casename').value.trim();
+      const passage=document.getElementById('cb-passage').value.trim();
+      if(!caseName){toast('Enter case study name.','error');return;}
+      data.caseName=caseName;
+      data.passage=passage||'';
+      if(cbQImgUrl)data.imageUrl=cbQImgUrl;
+      if(cbPassImgUrl)data.passageImageUrl=cbPassImgUrl;
+      try{
+        await addDoc(collection(db,'casebasedMCQs',level,'papers',paper,'questions'),data);
+        toast('Case MCQ saved! ✅','success');
+        resetForm('cb');
+        loadCaseBased();
+      }catch(e){toast('Save failed.','error');console.error(e);}
+    }
+  };
+
+  function resetForm(px){
+    ['question','explanation'].forEach(f=>{const el=document.getElementById(`${px}-${f}`);if(el)el.value='';});
+    ['oa','ob','oc','od'].forEach(f=>{const el=document.getElementById(`${px}-${f}`);if(el)el.value='';});
+    document.querySelectorAll(`#${px}-correct-opts .correct-opt`).forEach(e=>e.classList.remove('selected'));
+    if(px==='nm'){nmCorrect='';nmQImgUrl='';const img=document.getElementById('nm-q-img');if(img)img.style.display='none';}
+    if(px==='cb'){cbCorrect='';cbQImgUrl='';cbPassImgUrl='';
+      ['cb-q-img','cb-pass-img'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='none';});}
+  }
+
+  // ── Delete MCQ ─────────────────────────────────────────────
+  window.deleteMCQ=async function(qId,level,paper,type){
+    const yes=await Modal.danger('Delete MCQ?','This question will be permanently deleted.','Delete');
+    if(!yes)return;
+    const col=type==='normal'
+      ?collection(db,'mcqs',level,'papers',paper,'questions')
+      :collection(db,'casebasedMCQs',level,'papers',paper,'questions');
+    try{
+      await deleteDoc(doc(col,qId));
+      toast('MCQ deleted.','info');
+      type==='normal'?loadNormalMCQs():loadCaseBased();
+    }catch(e){toast('Delete failed.','error');}
+  };
+
+  // ── Delete Chapter / Case Study ────────────────────────────
+  window.deleteChapter=async function(level,paper,name,type){
+    const yes=await Modal.danger(
+      `Delete "${name}"?`,
+      'All MCQs in this chapter/case will be permanently deleted.',
+      'Delete All'
+    );
+    if(!yes)return;
+    try{
+      const col=type==='normal'
+        ?collection(db,'mcqs',level,'papers',paper,'questions')
+        :collection(db,'casebasedMCQs',level,'papers',paper,'questions');
+      const snap=await getDocs(col);
+      const batch=writeBatch(db);
+      snap.forEach(d=>{
+        const data=d.data();
+        const key=type==='normal'?data.chapterName:data.caseName;
+        if(key===name)batch.delete(d.ref);
+      });
+      await batch.commit();
+      toast('Chapter deleted.','info');
+      type==='normal'?loadNormalMCQs():loadCaseBased();
+    }catch(e){toast('Delete failed.','error');}
+  };
+
+  // ── Delete All ─────────────────────────────────────────────
+  window.deleteAll=async function(type){
+    const level=document.getElementById(type==='normal'?'nm-level':'cb-level').value;
+    const paper=document.getElementById(type==='normal'?'nm-paper':'cb-paper').value;
+    if(!level||!paper){toast('Select level and paper first.','error');return;}
+    const yes=await Modal.danger('Delete ALL MCQs?','Every MCQ for this paper will be permanently deleted.','Delete All');
+    if(!yes)return;
+    try{
+      const col=type==='normal'
+        ?collection(db,'mcqs',level,'papers',paper,'questions')
+        :collection(db,'casebasedMCQs',level,'papers',paper,'questions');
+      const snap=await getDocs(col);
+      const batch=writeBatch(db);
+      snap.forEach(d=>batch.delete(d.ref));
+      await batch.commit();
+      toast('All MCQs deleted.','info');
+      type==='normal'?loadNormalMCQs():loadCaseBased();
+    }catch(e){toast('Delete failed.','error');}
+  };
+
+  // ── Excel Import ───────────────────────────────────────────
+  window.importExcel=async function(event,type){
+    const file=event.target.files[0];
+    if(!file)return;
+    const level=document.getElementById(type==='normal'?'nm-level':'cb-level').value;
+    const paper=document.getElementById(type==='normal'?'nm-paper':'cb-paper').value;
+    if(!level||!paper){toast('Select level and paper first, then import.','error');event.target.value='';return;}
+
+    const reader=new FileReader();
+    reader.onload=async(e)=>{
+      try{
+        const wb=XLSX.read(e.target.result,{type:'array'});
+        const ws=wb.Sheets[wb.SheetNames[0]];
+        const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+        if(rows.length<2){toast('No data found in Excel.','error');return;}
+
+        const dataRows=rows.slice(1).filter(r=>r[0]?.toString().trim());
+        if(!dataRows.length){toast('No data rows found.','error');return;}
+
+        const col=type==='normal'
+          ?collection(db,'mcqs',level,'papers',paper,'questions')
+          :collection(db,'casebasedMCQs',level,'papers',paper,'questions');
+
+        let saved=0;
+        const batch=writeBatch(db);
+        dataRows.forEach(r=>{
+          const qData={
+            question:   r[0]?.toString().trim()||'',
+            optionA:    r[1]?.toString().trim()||'',
+            optionB:    r[2]?.toString().trim()||'',
+            optionC:    r[3]?.toString().trim()||'',
+            optionD:    r[4]?.toString().trim()||'',
+            correct:    r[5]?.toString().trim().toUpperCase()||'A',
+            explanation:r[6]?.toString().trim()||'',
+            marks:      parseInt(r[7])||1,
+            createdAt:  serverTimestamp()
+          };
+          if(type==='normal'){
+            qData.chapterName=r[8]?.toString().trim()||'Imported';
+          } else {
+            qData.caseName=r[8]?.toString().trim()||'Case Study 1';
+            qData.passage =r[9]?.toString().trim()||'';
+          }
+          if(qData.question&&qData.optionA&&qData.correct){
+            const ref=doc(col);
+            batch.set(ref,qData);
+            saved++;
+          }
+        });
+        await batch.commit();
+        toast(`${saved} MCQs imported! ✅`,'success');
+        type==='normal'?loadNormalMCQs():loadCaseBased();
+      }catch(err){console.error(err);toast('Import failed. Check format.','error');}
+      event.target.value='';
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
+  // ── Excel Export ───────────────────────────────────────────
+  window.exportExcel=async function(type){
+    const level=document.getElementById(type==='normal'?'nm-level':'cb-level').value;
+    const paper=document.getElementById(type==='normal'?'nm-paper':'cb-paper').value;
+    if(!level||!paper){toast('Select level and paper first.','error');return;}
+    try{
+      const col=type==='normal'
+        ?collection(db,'mcqs',level,'papers',paper,'questions')
+        :collection(db,'casebasedMCQs',level,'papers',paper,'questions');
+      const snap=await getDocs(col);
+      const rows=[
+        type==='normal'
+          ?['Question','Option A','Option B','Option C','Option D','Correct (A/B/C/D)','Explanation','Marks','Chapter Name']
+          :['Question','Option A','Option B','Option C','Option D','Correct (A/B/C/D)','Explanation','Marks','Case Study Name','Passage']
+      ];
+      snap.forEach(d=>{
+        const q=d.data();
+        const row=[q.question,q.optionA,q.optionB,q.optionC,q.optionD,q.correct,q.explanation||'',q.marks||1];
+        if(type==='normal')row.push(q.chapterName||'');
+        else{row.push(q.caseName||'');row.push(q.passage||'');}
+        rows.push(row);
+      });
+      const wb=XLSX.utils.book_new();
+      const ws=XLSX.utils.aoa_to_sheet(rows);
+      ws['!cols']=[{wch:50},{wch:30},{wch:30},{wch:30},{wch:30},{wch:10},{wch:40},{wch:8},{wch:20},{wch:60}];
+      XLSX.utils.book_append_sheet(wb,ws,'MCQs');
+      XLSX.writeFile(wb,`StudyBuddy_MCQ_Export_${type}_${level}_${Date.now()}.xlsx`);
+      toast('Exported!','success');
+    }catch(e){toast('Export failed.','error');}
+  };
+
+  // ── Download Template ──────────────────────────────────────
+  window.downloadTemplate=function(type){
+    const isNm=type==='normal';
+    const headers=isNm
+      ?['Question','Option A','Option B','Option C','Option D','Correct (A/B/C/D)','Explanation (Optional)','Marks (1 or 2)','Chapter Name']
+      :['Question','Option A','Option B','Option C','Option D','Correct (A/B/C/D)','Explanation (Optional)','Marks (1 or 2)','Case Study Name','Passage (shared across questions in same case)'];
+    const sample=isNm
+      ?['Which of the following is correct as per Ind AS 2?','FIFO or Weighted Average','LIFO only','FIFO only','Any method','A','As per Ind AS 2, only FIFO or Weighted Average is allowed.','1','Ind AS 2 - Inventories']
+      :['Based on the above case, what is the correct treatment?','Capitalise as PPE','Expense immediately','Defer and amortise','Ignore','A','As per Ind AS 16, initial cost should be capitalised.','1','Case Study 1','XYZ Ltd purchased machinery worth ₹50 lakhs on 1 April 2025 for use in production. The machinery has a useful life of 10 years with no residual value.'];
+    const wb=XLSX.utils.book_new();
+    const ws=XLSX.utils.aoa_to_sheet([headers,sample]);
+    // Style header row
+    ws['!cols']=headers.map((_,i)=>({wch:i===0||i===headers.length-1?50:i===6?40:i===9?60:20}));
+    XLSX.utils.book_append_sheet(wb,ws,'Template');
+    XLSX.writeFile(wb,`StudyBuddy_MCQ_Template_${type}.xlsx`);
+    toast('Template downloaded! ✅','success');
+  };
+
+  // ── Mock Tests ─────────────────────────────────────────────
+  window.openCreateTest=function(){
+    const level=document.getElementById('mt-level').value;
+    if(!level){toast('Select a level first.','error');return;}
+    document.getElementById('mt-title').value='';
+    document.getElementById('mt-instructions').value='';
+    document.getElementById('create-test-modal').classList.remove('hidden');
+  };
+  window.closeCreateTest=function(){
+    document.getElementById('create-test-modal').classList.add('hidden');
+  };
+
+  window.createTest=async function(){
+    const title=document.getElementById('mt-title').value.trim();
+    const paper=document.getElementById('mt-paper-sel').value;
+    const marks=parseInt(document.getElementById('mt-marks').value)||1;
+    const negative=parseFloat(document.getElementById('mt-negative').value)||0;
+    const instructions=document.getElementById('mt-instructions').value.trim();
+    if(!title){toast('Enter test title.','error');return;}
+    if(!paper){toast('Select a paper.','error');return;}
+    try{
+      await addDoc(collection(db,'mockTests',currentMtLevel,'tests'),{
+        title,paperId:paper,marksPerQ:marks,
+        negativeMarking:negative,
+        customInstructions:instructions,
+        status:'hidden',
+        createdAt:serverTimestamp(),
+        questionCount:0
+      });
+      toast('Test created! ✅','success');
+      closeCreateTest();
+      loadMockTests();
+    }catch(e){toast('Failed to create test.','error');console.error(e);}
+  };
+
+  async function loadMockTests(){
+    if(!currentMtLevel){return;}
+    const list=document.getElementById('mt-test-list');
+    list.innerHTML='<div class="empty-mcq"><div class="icon">⏳</div><h3>Loading...</h3></div>';
+    try{
+      const snap=await getDocs(
+        query(collection(db,'mockTests',currentMtLevel,'tests'),orderBy('createdAt','desc'))
+      );
+      allMockTests=[];snap.forEach(d=>allMockTests.push({id:d.id,...d.data()}));
+      if(!allMockTests.length){
+        list.innerHTML='<div class="empty-mcq"><div class="icon">📝</div><h3>No tests yet</h3><p>Click + Create Test to get started</p></div>';
+        return;
+      }
+      list.innerHTML=allMockTests.map(t=>renderTestCard(t)).join('');
+    }catch(e){list.innerHTML='<div class="empty-mcq"><div class="icon">❌</div><h3>Failed to load</h3></div>';}
+  }
+
+  function renderTestCard(t){
+    const statusClass={hidden:'status-hidden',active:'status-active',expired:'status-expired',closed:'status-closed'}[t.status]||'status-hidden';
+    const statusLabel={hidden:'🔒 Hidden',active:'🟢 Active',expired:'⏰ Expired',closed:'⛔ Closed'}[t.status]||'Hidden';
+    const neg=t.negativeMarking>0?`-${t.negativeMarking} per wrong`:'No negative marking';
+    return`
+      <div class="test-card">
+        <div class="test-card-header">
+          <div>
+            <div class="test-card-title">${t.title}</div>
+            <div class="test-card-sub">${t.customInstructions||''}</div>
+          </div>
+          <div class="test-card-actions">
+            <span class="badge ${statusClass}">${statusLabel}</span>
+            ${t.status==='hidden'?`<button class="btn btn-sm" style="background:var(--success-light);color:#006B55;" onclick="toggleActivate('${t.id}')">🟢 Activate</button>`:''}
+            ${t.status==='active'?`<button class="btn btn-sm" style="background:var(--warning-light);color:#8A5F00;" onclick="closeTest('${t.id}')">⛔ Close</button>`:''}
+            <button class="btn btn-outline btn-sm" onclick="openTestMCQs('${t.id}')">✏️ MCQs</button>
+            <button class="btn btn-sm" style="background:var(--danger-light);color:var(--danger);" onclick="deleteTest('${t.id}')">🗑</button>
+          </div>
+        </div>
+        <div class="test-info-grid">
+          <div class="test-info-item"><div class="test-info-val">${t.questionCount||0}</div><div class="test-info-label">Questions</div></div>
+          <div class="test-info-item"><div class="test-info-val">${t.marksPerQ||1}</div><div class="test-info-label">Marks/Q</div></div>
+          <div class="test-info-item"><div class="test-info-val">${neg}</div><div class="test-info-label">Negative Marking</div></div>
+          <div class="test-info-item"><div class="test-info-val">${t.duration?t.duration+' min':'—'}</div><div class="test-info-label">Duration</div></div>
+        </div>
+        ${t.startTime&&t.endTime?`
+          <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">
+            ⏰ ${new Date(t.startTime.seconds*1000).toLocaleString('en-IN')} → ${new Date(t.endTime.seconds*1000).toLocaleString('en-IN')}
+          </div>`:''}
+        <!-- Activate Form -->
+        <div class="activate-form" id="activate-${t.id}">
+          <div class="activate-grid">
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">Start Date & Time</label>
+              <input type="datetime-local" id="at-start-${t.id}" class="form-input"/>
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">End Date & Time</label>
+              <input type="datetime-local" id="at-end-${t.id}" class="form-input"/>
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">Duration (minutes)</label>
+              <input type="number" id="at-dur-${t.id}" class="form-input" placeholder="90" min="5"/>
+            </div>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="activateTest('${t.id}')">🟢 Confirm Activate</button>
+          <button class="btn btn-outline btn-sm" onclick="toggleActivate('${t.id}')">Cancel</button>
+        </div>
+      </div>`;
+  }
+
+  window.toggleActivate=function(testId){
+    const form=document.getElementById('activate-'+testId);
+    form.classList.toggle('open');
+  };
+
+  window.activateTest=async function(testId){
+    const start=document.getElementById('at-start-'+testId).value;
+    const end  =document.getElementById('at-end-'+testId).value;
+    const dur  =parseInt(document.getElementById('at-dur-'+testId).value)||90;
+    if(!start||!end){toast('Set start and end time.','error');return;}
+    if(new Date(start)>=new Date(end)){toast('End must be after start.','error');return;}
+    try{
+      await updateDoc(doc(db,'mockTests',currentMtLevel,'tests',testId),{
+        status:'active',
+        startTime:{seconds:new Date(start).getTime()/1000,nanoseconds:0},
+        endTime:  {seconds:new Date(end).getTime()/1000,nanoseconds:0},
+        duration: dur
+      });
+      toast('Test activated! ✅','success');
+      loadMockTests();
+    }catch(e){toast('Activate failed.','error');}
+  };
+
+  window.closeTest=async function(testId){
+    const yes=await Modal.warning('Close Test?','No new students can start this test.','Close Test');
+    if(!yes)return;
+    try{
+      await updateDoc(doc(db,'mockTests',currentMtLevel,'tests',testId),{status:'closed'});
+      toast('Test closed.','info');loadMockTests();
+    }catch(e){toast('Failed.','error');}
+  };
+
+  window.deleteTest=async function(testId){
+    const yes=await Modal.danger('Delete Test?','This test and all its questions will be deleted permanently.','Delete');
+    if(!yes)return;
+    try{
+      // Delete questions subcollection first
+      const qSnap=await getDocs(collection(db,'mockTests',currentMtLevel,'tests',testId,'questions'));
+      const batch=writeBatch(db);
+      qSnap.forEach(d=>batch.delete(d.ref));
+      batch.delete(doc(db,'mockTests',currentMtLevel,'tests',testId));
+      await batch.commit();
+      toast('Test deleted.','info');loadMockTests();
+    }catch(e){toast('Delete failed.','error');}
+  };
+
+  window.openTestMCQs=function(testId){
+    // Store test ID and navigate to test MCQ editor
+    sessionStorage.setItem('editTestId',testId);
+    sessionStorage.setItem('editTestLevel',currentMtLevel);
+    window.location.href='test-mcq-editor.html';
+  };
+
+</script>
+</body>
+</html>

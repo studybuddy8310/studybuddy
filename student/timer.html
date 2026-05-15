@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>StudyBuddy — Study Timer</title>
+  <link rel="stylesheet" href="../css/global.css"/>
+  <link rel="stylesheet" href="../css/student.css"/>
+  <style>
+    .timer-page { display:grid; grid-template-columns:1fr 360px; gap:24px; align-items:start; }
+
+    /* ── Timer Card ──────────────────────────────────────── */
+    .timer-card {
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:var(--radius-xl); padding:28px 24px; text-align:center;
+    }
+    .timer-ring-wrap {
+      position:relative; width:380px; height:380px; margin:0 auto 4px;
+    }
+    .timer-ring { position:absolute; inset:0; }
+    .ring-track { fill:none; stroke:var(--border); stroke-width:10; }
+    .ring-fill  {
+      fill:none; stroke:var(--primary); stroke-width:10;
+      stroke-linecap:round;
+      transform:rotate(-90deg); transform-origin:50% 50%;
+      transition:stroke-dashoffset 1s linear, stroke 0.3s;
+    }
+    .ring-fill.paused   { stroke:var(--warning); }
+    .ring-fill.finished { stroke:var(--success); }
+    .timer-center {
+      position:absolute; inset:0; display:flex;
+      flex-direction:column; align-items:center; justify-content:center;
+    }
+    .timer-digits {
+      font-family:var(--font-heading); font-size:2.8rem; font-weight:700;
+      color:var(--text-primary); letter-spacing:2px; line-height:1;
+      transition:color 0.3s;
+    }
+    .timer-digits.running  { color:var(--primary); }
+    .timer-digits.paused   { color:var(--warning); }
+    .timer-digits.finished { color:var(--success); }
+    .timer-state-label { font-size:12px; color:var(--text-muted); margin-top:5px; font-weight:500; }
+
+    /* Set time row */
+    .set-time-row {
+      display:flex; align-items:center; justify-content:center;
+      gap:8px; margin:12px 0;
+    }
+    .time-inp-group { display:flex; flex-direction:column; align-items:center; gap:3px; }
+    .time-inp-group label { font-size:10px; color:var(--text-muted); font-weight:700; text-transform:uppercase; }
+    .time-inp-group input {
+      width:68px; text-align:center;
+      font-family:var(--font-heading); font-size:1.5rem; font-weight:700;
+      border:2px solid var(--border); border-radius:var(--radius-md);
+      padding:7px 4px; outline:none; color:var(--text-primary); background:var(--surface);
+    }
+    .time-inp-group input:focus  { border-color:var(--primary); }
+    .time-inp-group input:disabled { background:var(--surface-2); color:var(--text-muted); }
+    .time-colon { font-size:1.8rem; font-weight:700; color:var(--text-muted); margin-top:14px; }
+
+    /* Presets */
+    .presets { display:flex; gap:6px; justify-content:center; flex-wrap:wrap; margin:8px 0 14px; }
+    .preset-btn {
+      padding:5px 13px; border-radius:20px; border:1.5px solid var(--border);
+      background:var(--surface); font-size:12px; font-weight:600;
+      color:var(--text-secondary); cursor:pointer; transition:all 0.2s;
+      font-family:var(--font-body);
+    }
+    .preset-btn:hover { border-color:var(--primary); color:var(--primary); background:var(--primary-light); }
+
+    /* Paper select */
+    .paper-row { text-align:left; margin-bottom:14px; }
+    .paper-row label { display:block; font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:5px; }
+
+    /* Controls */
+    .timer-controls { display:flex; gap:10px; justify-content:center; margin-top:10px; }
+    .btn-ctrl {
+      width:52px; height:52px; border-radius:50%; border:none; cursor:pointer;
+      font-size:20px; transition:all 0.2s; display:flex; align-items:center; justify-content:center;
+    }
+    .btn-play  { background:var(--primary); color:#fff; width:64px; height:64px; font-size:24px; box-shadow:0 4px 16px rgba(45,91,227,0.4); }
+    .btn-play:hover  { background:var(--primary-dark); transform:scale(1.05); }
+    .btn-pause { background:var(--warning-light); color:#8A5F00; }
+    .btn-pause:hover { background:var(--warning); color:#fff; }
+    .btn-stop  { background:var(--danger-light);  color:var(--danger); }
+    .btn-stop:hover  { background:var(--danger);  color:#fff; }
+    .btn-reset { background:var(--surface-2); color:var(--text-muted); }
+    .btn-reset:hover { background:var(--border); }
+
+    /* ── Diary / To-Do Section ───────────────────────────── */
+    .diary-section {
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:var(--radius-lg); padding:20px; margin-top:16px;
+    }
+    .diary-title {
+      font-family:var(--font-heading); font-size:15px; font-weight:600;
+      margin-bottom:4px; display:flex; align-items:center; gap:8px;
+    }
+    .diary-sub { font-size:12px; color:var(--text-muted); margin-bottom:14px; }
+    .todo-add-row { display:flex; gap:8px; margin-bottom:12px; }
+    .todo-add-row input { flex:1; }
+    .todo-list { display:flex; flex-direction:column; gap:6px; min-height:40px; }
+    .todo-item {
+      display:flex; align-items:center; gap:10px;
+      background:var(--surface-2); border:1px solid var(--border);
+      border-radius:var(--radius-md); padding:10px 12px;
+      transition:all 0.2s;
+    }
+    .todo-item.done { background:var(--success-light); border-color:rgba(0,201,167,0.25); }
+    .todo-item.done .todo-text { text-decoration:line-through; color:var(--text-muted); }
+    .todo-check {
+      width:20px; height:20px; cursor:pointer;
+      accent-color:var(--success); flex-shrink:0;
+    }
+    .todo-text { flex:1; font-size:13px; color:var(--text-primary); }
+    .todo-del {
+      background:none; border:none; color:var(--text-muted);
+      cursor:pointer; font-size:15px; padding:2px; line-height:1;
+      transition:color 0.2s; flex-shrink:0;
+    }
+    .todo-del:hover { color:var(--danger); }
+    .todo-empty { text-align:center; padding:16px; color:var(--text-muted); font-size:13px; }
+
+    .todo-completion-bar {
+      display:flex; align-items:center; gap:10px; margin-top:12px;
+      padding:10px 14px; background:var(--primary-light);
+      border-radius:var(--radius-md);
+    }
+    .comp-bar-track { flex:1; height:8px; background:rgba(45,91,227,0.15); border-radius:4px; overflow:hidden; }
+    .comp-bar-fill  { height:100%; background:var(--primary); border-radius:4px; transition:width 0.4s; }
+    .comp-pct { font-size:12px; font-weight:700; color:var(--primary); white-space:nowrap; }
+
+    /* ── Right Panel ──────────────────────────────────────── */
+    .right-panel { display:flex; flex-direction:column; gap:16px; }
+
+    .streak-card {
+      background:linear-gradient(135deg, #FF8C42, #FFB830);
+      border-radius:var(--radius-lg); padding:20px; text-align:center; color:#fff;
+    }
+    .streak-card .fire { font-size:36px; margin-bottom:6px; }
+    .streak-num { font-family:var(--font-heading); font-size:3rem; font-weight:700; line-height:1; }
+    .streak-label { font-size:13px; opacity:0.85; margin-top:3px; }
+    .streak-best  { font-size:11px; opacity:0.65; margin-top:6px; }
+
+    .today-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:18px; }
+    .today-card-title { font-family:var(--font-heading); font-size:14px; font-weight:600; margin-bottom:12px; display:flex; align-items:center; gap:6px; }
+    .sess-item { display:flex; align-items:center; justify-content:space-between; padding:9px 0; border-bottom:1px solid var(--border); }
+    .sess-item:last-child { border-bottom:none; }
+    .sess-paper { font-size:13px; font-weight:600; color:var(--text-primary); }
+    .sess-time  { font-size:11px; color:var(--text-muted); }
+    .sess-dur   { font-family:var(--font-heading); font-size:13px; font-weight:700; color:var(--primary); }
+    .today-total { display:flex; justify-content:space-between; padding-top:10px; margin-top:4px; border-top:2px solid var(--border); }
+    .today-total-label { font-size:13px; font-weight:600; color:var(--text-secondary); }
+    .today-total-val   { font-family:var(--font-heading); font-size:17px; font-weight:700; color:var(--primary); }
+
+    /* Weekly chart */
+    .weekly-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:18px; }
+    .weekly-card-title { font-family:var(--font-heading); font-size:14px; font-weight:600; margin-bottom:14px; }
+    .week-bars { display:flex; align-items:flex-end; gap:6px; height:90px; }
+    .week-bar-col { flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; }
+    .week-bar { width:100%; border-radius:4px 4px 0 0; background:var(--primary-light); transition:height 0.8s ease; min-height:4px; }
+    .week-bar.today { background:var(--primary); }
+    .week-bar-day { font-size:10px; color:var(--text-muted); font-weight:600; }
+    .week-bar-hrs { font-size:9px; color:var(--text-muted); }
+
+    /* Diary history */
+    .diary-history { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:18px; }
+    .diary-history-title { font-family:var(--font-heading); font-size:14px; font-weight:600; margin-bottom:12px; }
+    .diary-day-item { padding:10px 0; border-bottom:1px solid var(--border); cursor:pointer; }
+    .diary-day-item:last-child { border-bottom:none; }
+    .diary-day-header { display:flex; justify-content:space-between; align-items:center; }
+    .diary-day-date { font-size:13px; font-weight:600; color:var(--text-primary); }
+    .diary-day-time { font-size:12px; color:var(--text-muted); }
+    .diary-day-comp { font-size:11px; font-weight:600; }
+    .diary-day-tasks { margin-top:6px; display:none; }
+    .diary-day-tasks.open { display:block; }
+    .diary-task-mini { font-size:12px; color:var(--text-secondary); padding:2px 0; display:flex; align-items:center; gap:6px; }
+
+    @media(max-width:960px){ .timer-page{grid-template-columns:1fr;} }
+  </style>
+</head>
+<body>
+<div id="page-loader"><div class="logo-text">📚 StudyBuddy</div><div class="spinner spinner-primary"></div></div>
+<div id="toast-container"></div>
+
+<div class="student-layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo"><div class="sidebar-logo-icon">📚</div><div class="sidebar-logo-text">Study<span>Buddy</span></div></div>
+    <div class="sidebar-level-badge"><div class="course" id="sb-course">CA</div><div class="level" id="sb-level">CA Final</div></div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Overview</div>
+      <a href="dashboard.html" class="nav-item"><span class="nav-item-icon">🏠</span> Home</a>
+      <a href="progress.html"  class="nav-item"><span class="nav-item-icon">📊</span> Progress Dashboard</a>
+      <div class="nav-section-label">Study</div>
+      <a href="material.html" class="nav-item"><span class="nav-item-icon">📚</span> Study Material</a>
+      <a href="mcq.html"      class="nav-item"><span class="nav-item-icon">✏️</span> Practice MCQ</a>
+      <a href="tests.html"    class="nav-item"><span class="nav-item-icon">📝</span> Mock Tests</a>
+      <div class="nav-section-label">Tools</div>
+      <a href="timer.html"    class="nav-item active"><span class="nav-item-icon">⏱️</span> Study Timer</a>
+      <a href="tips.html"     class="nav-item"><span class="nav-item-icon">💡</span> Tips & Ideas</a>
+      <div class="nav-section-label">Account</div>
+      <a href="profile.html"  class="nav-item"><span class="nav-item-icon">👤</span> My Profile</a>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="sidebar-user">
+        <div class="sidebar-avatar" id="sidebar-avatar">S</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name" id="sidebar-name">Student</div>
+          <div class="sidebar-user-role">Student</div>
+        </div>
+        <button class="btn-logout" id="btn-logout">🚪</button>
+      </div>
+    </div>
+  </aside>
+
+  <main class="student-main">
+    <div class="page-content">
+      <div class="page-hero">
+        <button class="btn-hamburger hero-hamburger" id="btn-hamburger" onclick="toggleSidebar()" aria-label="Menu">
+          <span></span><span></span><span></span>
+        </button>
+        <div class="hero-title-wrap">
+          <h1>⏱️ Study Timer & Diary</h1>
+          <p>Track your study sessions and build your streak</p>
+        </div>
+        <a href="dashboard.html" class="hero-home-btn" title="Home">🏠</a>
+      </div>
+
+      <div class="timer-page">
+        <!-- ── Left: Timer + Diary ──────────────────────── -->
+        <div>
+          <!-- Timer -->
+          <div class="timer-card">
+            <h3 style="font-family:var(--font-heading);margin-bottom:4px;">Study Session</h3>
+            <p class="text-secondary fs-13">Set time, add your tasks, then start!</p>
+
+            <div class="paper-row" style="margin-top:16px;">
+              <label>📚 Studying Which Paper?</label>
+              <select class="form-select" id="paper-select">
+                <option value="General Study">General Study</option>
+              </select>
+            </div>
+
+            <!-- Ring -->
+            <div class="timer-ring-wrap">
+              <svg class="timer-ring" viewBox="0 0 200 200">
+                <circle class="ring-track" cx="100" cy="100" r="88"/>
+                <circle class="ring-fill" id="ring-fill" cx="100" cy="100" r="88"
+                  stroke-dasharray="553" stroke-dashoffset="0"/>
+              </svg>
+              <div class="timer-center">
+                <div class="timer-digits" id="timer-digits">00:00:00</div>
+                <div class="timer-state-label" id="timer-label">Set time below</div>
+              </div>
+            </div>
+
+            <!-- Set time -->
+            <div class="set-time-row" id="time-inputs">
+              <div class="time-inp-group">
+                <label>Hours</label>
+                <input type="number" id="inp-h" min="0" max="12" value="1"/>
+              </div>
+              <span class="time-colon">:</span>
+              <div class="time-inp-group">
+                <label>Mins</label>
+                <input type="number" id="inp-m" min="0" max="59" value="30"/>
+              </div>
+            </div>
+
+            <div class="presets">
+              <button class="preset-btn" onclick="setPreset(0,30)">30m</button>
+              <button class="preset-btn" onclick="setPreset(1,0)">1h</button>
+              <button class="preset-btn" onclick="setPreset(1,30)">1.5h</button>
+              <button class="preset-btn" onclick="setPreset(2,0)">2h</button>
+              <button class="preset-btn" onclick="setPreset(3,0)">3h</button>
+            </div>
+
+            <div class="timer-controls">
+              <button class="btn-ctrl btn-reset" id="btn-reset" onclick="resetTimer()" title="Reset">↺</button>
+              <button class="btn-ctrl btn-play"  id="btn-play"  onclick="togglePlay()" title="Start">▶</button>
+              <button class="btn-ctrl btn-stop"  id="btn-stop"  onclick="stopTimer()" title="Stop & Save" style="display:none;">⏹</button>
+            </div>
+          </div>
+
+          <!-- Diary / To-Do -->
+          <div class="diary-section">
+            <div class="diary-title">📓 Session Diary</div>
+            <div class="diary-sub">Add what you plan to study. Mark done when stopping.</div>
+
+            <div class="todo-add-row">
+              <input type="text" id="todo-input" class="form-input"
+                placeholder="Add a task e.g. Ind AS 2 — Chapter notes"
+                onkeydown="if(event.key==='Enter')addTodo()"/>
+              <button class="btn btn-primary btn-sm" onclick="addTodo()">+ Add</button>
+            </div>
+
+            <div class="todo-list" id="todo-list"></div>
+              <div class="todo-empty" id="todo-empty">
+                📝 No tasks added yet. Add what you plan to study!
+              </div>
+
+            <!-- Completion bar (shown when tasks exist) -->
+            <div class="todo-completion-bar hidden" id="comp-bar">
+              <div class="comp-bar-track">
+                <div class="comp-bar-fill" id="comp-bar-fill" style="width:0%"></div>
+              </div>
+              <div class="comp-pct" id="comp-pct">0% done</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Right Panel ──────────────────────────────── -->
+        <div class="right-panel">
+
+          <!-- Streak -->
+          <div class="streak-card">
+            <div class="fire">🔥</div>
+            <div class="streak-num" id="streak-num">0</div>
+            <div class="streak-label">Day Streak</div>
+            <div class="streak-best" id="streak-best">Best: 0 days</div>
+          </div>
+
+          <!-- Today -->
+          <div class="today-card">
+            <div class="today-card-title">📚 Today's Study</div>
+            <div id="today-list"><div style="text-align:center;padding:14px;color:var(--text-muted);font-size:13px;">No sessions yet today</div></div>
+            <div class="today-total" id="today-total" style="display:none;">
+              <span class="today-total-label">Total</span>
+              <span class="today-total-val" id="today-total-val">0h</span>
+            </div>
+          </div>
+
+          <!-- Weekly -->
+          <div class="weekly-card">
+            <div class="weekly-card-title">📅 This Week</div>
+            <div class="week-bars" id="week-bars"></div>
+          </div>
+
+          <!-- Diary History -->
+          <div class="diary-history">
+            <div class="diary-history-title">📓 Recent Sessions</div>
+            <div id="diary-history-list">
+              <div style="text-align:center;padding:14px;color:var(--text-muted);font-size:13px;">No sessions yet</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script type="module">
+  import { auth, db } from '../js/firebase-config.js';
+  import { Modal } from '../js/utils/modal.js';
+  import { onAuthStateChanged, signOut }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import { doc, getDoc, addDoc, collection,
+    getDocs, setDoc, serverTimestamp, orderBy, query, limit }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  // ── State ─────────────────────────────────────────────────
+  let uid=null, userLevel=null, userGroup=null;
+  let timerInterval=null, startTime=null;
+  let totalSecs=0, elapsedSecs=0;
+  let isRunning=false, isPaused=false;
+  let runStartTimestamp=null;   // Date.now() when last resumed — for background accuracy
+  let elapsedAtLastResume=0;    // elapsedSecs snapshot when last resumed
+  let sessionPaper='General Study';
+  let todos=[]; // [{id, text, done}]
+  const CIRCUM=2*Math.PI*88;
+
+  // ── Helpers ───────────────────────────────────────────────
+  function getStudyDay(d=new Date()){const x=new Date(d);if(x.getHours()<5)x.setDate(x.getDate()-1);return x.toISOString().split('T')[0];}
+  function fmtTime(s){const h=Math.floor(s/3600),m=Math.floor((s%3600)/60);if(h===0)return`${m}m`;if(m===0)return`${h}h`;return`${h}h ${m}m`;}
+  function fmtDisp(s){return[Math.floor(s/3600),Math.floor((s%3600)/60),s%60].map(x=>x.toString().padStart(2,'0')).join(':');}
+  function toast(msg,type='info'){const c=document.getElementById('toast-container');const t=document.createElement('div');t.className=`toast toast-${type}`;t.innerHTML=`<span>${{success:'✅',error:'❌',info:'ℹ️'}[type]}</span> ${msg}`;c.appendChild(t);setTimeout(()=>t.remove(),4000);}
+
+  // ── Auth ──────────────────────────────────────────────────
+  onAuthStateChanged(auth, async(user)=>{
+    if(!user){window.location.href='../index.html';return;}
+    const snap=await getDoc(doc(db,'users',user.uid));
+    if(!snap.exists()){window.location.href='../index.html';return;}
+    const data=snap.data();
+    if(data.role!=='student'||data.status!=='approved'){window.location.href='../index.html';return;}
+    uid=user.uid; userLevel=data.level; userGroup=data.group||null;
+    document.getElementById('sidebar-avatar').textContent=(data.firstName[0]+data.lastName[0]).toUpperCase();
+    document.getElementById('sidebar-name').textContent=data.firstName+' '+data.lastName;
+    document.getElementById('sb-course').textContent=data.course;
+    document.getElementById('sb-level').textContent=data.level;
+    document.getElementById('page-loader').classList.add('hidden');
+    loadPapers(); loadStreak(); loadToday(); loadWeekly(); loadDiaryHistory();
+  });
+  document.getElementById('btn-logout').addEventListener('click',async()=>{await signOut(auth);window.location.href='../index.html';});
+
+  // ── Load Papers ───────────────────────────────────────────
+  async function loadPapers(){
+    try{
+      const snap=await getDocs(collection(db,'courseStructure',userLevel,'papers'));
+      let papers=[];snap.forEach(d=>papers.push({id:d.id,...d.data()}));
+      papers.sort((a,b)=>(a.order||0)-(b.order||0));
+
+      // For CA Final / CA Intermediate: filter by group
+      // Group I → Papers 1,2,3 (order 1-3)  |  Group II → Papers 4,5,6 (order 4-6)
+      const hasGroups=['CA-Final','CA-Intermediate'].includes(userLevel);
+      if(hasGroups && userGroup && userGroup!=='both'){
+        papers=papers.filter(p=>{
+          // Prefer explicit group field; fall back to order-based split
+          if(p.group && p.group!=='both') return p.group===userGroup;
+          const ord=p.order||0;
+          return userGroup==='group1' ? ord<=3 : ord>=4 && ord<=6;
+        });
+      }
+
+      const sel=document.getElementById('paper-select');
+      papers.forEach(p=>{const o=document.createElement('option');o.value=p.name;o.textContent=p.name;sel.appendChild(o);});
+    }catch(e){}
+  }
+
+  // ── Streak ────────────────────────────────────────────────
+  async function loadStreak(){
+    try{
+      const snap=await getDoc(doc(db,'streaks',uid));
+      const data=snap.exists()?snap.data():{};
+      const curr=data.currentStreak||0,best=data.longestStreak||0;
+      document.getElementById('streak-num').textContent=curr;
+      document.getElementById('streak-best').textContent=`Best: ${best} days`;
+    }catch(e){}
+  }
+
+  // ── Today ─────────────────────────────────────────────────
+  async function loadToday(){
+    try{
+      const today=getStudyDay();
+      const snap=await getDocs(collection(db,'timerSessions',uid,'sessions'));
+      const sessions=[];
+      snap.forEach(d=>{const s=d.data();if(s.studyDay===today)sessions.push(s);});
+      if(!sessions.length)return;
+      const map={};let total=0;
+      sessions.forEach(s=>{const p=s.paperName||'General';if(!map[p])map[p]=0;map[p]+=(s.duration||0);total+=(s.duration||0);});
+      const list=document.getElementById('today-list');
+      list.innerHTML=Object.entries(map).map(([p,s])=>`
+        <div class="sess-item">
+          <div><div class="sess-paper">${p}</div></div>
+          <div class="sess-dur">${fmtTime(s)}</div>
+        </div>`).join('');
+      document.getElementById('today-total').style.display='flex';
+      document.getElementById('today-total-val').textContent=fmtTime(total);
+    }catch(e){}
+  }
+
+  // ── Weekly ────────────────────────────────────────────────
+  async function loadWeekly(){
+    try{
+      const days=[];
+      for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);days.push({date:getStudyDay(d),label:d.toLocaleDateString('en-IN',{weekday:'short'}).substring(0,2),secs:0});}
+      const snap=await getDocs(collection(db,'timerSessions',uid,'sessions'));
+      snap.forEach(d=>{const s=d.data();const day=days.find(x=>x.date===s.studyDay);if(day)day.secs+=(s.duration||0);});
+      const maxSecs=Math.max(...days.map(d=>d.secs),1);
+      const todayStr=getStudyDay();
+      document.getElementById('week-bars').innerHTML=days.map(day=>{
+        const h=Math.round(day.secs/3600*10)/10;
+        const pct=Math.round((day.secs/maxSecs)*85);
+        const isToday=day.date===todayStr;
+        return`<div class="week-bar-col">
+          <div class="week-bar ${isToday?'today':''}" style="height:${Math.max(pct,4)}px;" title="${fmtTime(day.secs)}"></div>
+          <div class="week-bar-day" style="${isToday?'color:var(--primary);font-weight:700;':''}">${day.label}</div>
+          <div class="week-bar-hrs">${h>0?h+'h':''}</div>
+        </div>`;}).join('');
+    }catch(e){}
+  }
+
+  // ── Diary History ─────────────────────────────────────────
+  async function loadDiaryHistory(){
+    try{
+      const snap=await getDocs(
+        query(collection(db,'timerSessions',uid,'sessions'),orderBy('savedAt','desc'),limit(10))
+      );
+      const sessions=[];snap.forEach(d=>sessions.push({id:d.id,...d.data()}));
+      const list=document.getElementById('diary-history-list');
+      if(!sessions.length){list.innerHTML='<div style="text-align:center;padding:14px;color:var(--text-muted);font-size:13px;">No sessions yet</div>';return;}
+      list.innerHTML=sessions.map((s,i)=>{
+        const tasks=s.todos||[];
+        const done=tasks.filter(t=>t.done).length;
+        const pct=tasks.length?Math.round((done/tasks.length)*100):null;
+        const compColor=pct===100?'var(--success)':pct>=50?'var(--warning)':'var(--danger)';
+        return`<div class="diary-day-item" onclick="toggleDiaryItem('diary-tasks-${i}')">
+          <div class="diary-day-header">
+            <div>
+              <div class="diary-day-date">${s.paperName||'General Study'}</div>
+              <div class="diary-day-time">${s.studyDay||''} • ${fmtTime(s.duration||0)}</div>
+            </div>
+            ${pct!==null?`<div class="diary-day-comp" style="color:${compColor};">${done}/${tasks.length} tasks ✓</div>`:''}
+          </div>
+          ${tasks.length?`<div class="diary-day-tasks" id="diary-tasks-${i}">
+            ${tasks.map(t=>`<div class="diary-task-mini">
+              <span>${t.done?'✅':'⬜'}</span>
+              <span style="${t.done?'text-decoration:line-through;color:var(--text-muted);':''}">${t.text}</span>
+            </div>`).join('')}
+          </div>`:''}
+        </div>`;}).join('');
+    }catch(e){console.error('Diary history:',e);}
+  }
+  window.toggleDiaryItem=function(id){const el=document.getElementById(id);if(el)el.classList.toggle('open');};
+
+  // ── Todo ──────────────────────────────────────────────────
+  window.addTodo=function(){
+    const inp=document.getElementById('todo-input');
+    const text=inp.value.trim();
+    if(!text)return;
+    todos.push({id:Date.now(),text,done:false});
+    inp.value='';
+    renderTodos();
+  };
+  function renderTodos(){
+    const list=document.getElementById('todo-list');
+    const empty=document.getElementById('todo-empty');
+    const compBar=document.getElementById('comp-bar');
+    if(!todos.length){
+      list.innerHTML='';
+      if(empty) empty.style.display='block';
+      compBar.classList.add('hidden');
+      return;
+    }
+    if(empty) empty.style.display='none';
+    compBar.classList.remove('hidden');
+    // Completion %
+    const done=todos.filter(t=>t.done).length;
+    const pct=Math.round((done/todos.length)*100);
+    document.getElementById('comp-bar-fill').style.width=pct+'%';
+    document.getElementById('comp-pct').textContent=`${pct}% done (${done}/${todos.length})`;
+
+    list.innerHTML=todos.map((todo,i)=>`
+      <div class="todo-item ${todo.done?'done':''}" id="todo-${todo.id}">
+        <input type="checkbox" class="todo-check" ${todo.done?'checked':''}
+          onchange="toggleTodo(${i})"/>
+        <span class="todo-text">${todo.text}</span>
+        <button class="todo-del" onclick="deleteTodo(${i})">✕</button>
+      </div>`).join('');
+  }
+  window.toggleTodo=function(i){todos[i].done=!todos[i].done;renderTodos();};
+  window.deleteTodo=function(i){todos.splice(i,1);renderTodos();};
+
+  // ── Preset + Timer Controls ───────────────────────────────
+  window.setPreset=function(h,m){if(isRunning||isPaused)return;document.getElementById('inp-h').value=h;document.getElementById('inp-m').value=m;};
+
+  window.togglePlay=function(){
+    if(isRunning){pauseTimer();return;}
+    if(isPaused){resumeTimer();return;}
+    startTimer();
+  };
+
+  function startTimer(){
+    const h=parseInt(document.getElementById('inp-h').value)||0;
+    const m=parseInt(document.getElementById('inp-m').value)||0;
+    totalSecs=h*3600+m*60;
+    if(totalSecs===0){toast('Set a time first!','error');return;}
+    elapsedSecs=0; elapsedAtLastResume=0; startTime=new Date();
+    runStartTimestamp=Date.now();
+    sessionPaper=document.getElementById('paper-select').value;
+    document.getElementById('inp-h').disabled=true;
+    document.getElementById('inp-m').disabled=true;
+    document.getElementById('paper-select').disabled=true;
+    document.getElementById('btn-stop').style.display='flex';
+    isRunning=true; isPaused=false;
+    document.getElementById('btn-play').textContent='⏸';
+    document.getElementById('ring-fill').classList.remove('paused','finished');
+    runTick();
+  }
+
+  function pauseTimer(){
+    // Snapshot elapsed before clearing interval
+    elapsedSecs=elapsedAtLastResume+Math.floor((Date.now()-runStartTimestamp)/1000);
+    elapsedAtLastResume=elapsedSecs;
+    isRunning=false; isPaused=true;
+    clearInterval(timerInterval);
+    document.getElementById('btn-play').textContent='▶';
+    document.getElementById('timer-digits').className='timer-digits paused';
+    document.getElementById('ring-fill').classList.add('paused');
+    document.getElementById('timer-label').textContent='Paused ⏸';
+  }
+
+  function resumeTimer(){
+    runStartTimestamp=Date.now();
+    isRunning=true; isPaused=false;
+    document.getElementById('btn-play').textContent='⏸';
+    document.getElementById('timer-digits').className='timer-digits running';
+    document.getElementById('ring-fill').classList.remove('paused');
+    document.getElementById('timer-label').textContent='Keep going! 💪';
+    runTick();
+  }
+
+  function runTick(){
+    clearInterval(timerInterval);
+    timerInterval=setInterval(()=>{
+      // Timestamp-based: accurate even when tab is in background
+      const nowElapsed=elapsedAtLastResume+Math.floor((Date.now()-runStartTimestamp)/1000);
+      elapsedSecs=nowElapsed;
+      const rem=totalSecs-elapsedSecs;
+      const offset=(Math.max(rem,0)/totalSecs)*CIRCUM;
+      document.getElementById('ring-fill').style.strokeDashoffset=offset;
+      document.getElementById('timer-digits').textContent=fmtDisp(Math.max(rem,0));
+      document.getElementById('timer-digits').className='timer-digits running';
+      document.getElementById('timer-label').textContent='Keep going! 💪';
+      if(rem<=0){
+        clearInterval(timerInterval); isRunning=false;
+        elapsedSecs=totalSecs;
+        document.getElementById('timer-digits').className='timer-digits finished';
+        document.getElementById('ring-fill').classList.add('finished');
+        document.getElementById('timer-label').textContent='Session complete! 🎉';
+        onSessionComplete();
+      }
+    },1000);
+  }
+
+  window.stopTimer=async function(){
+    if(elapsedSecs<10){resetTimer();return;}
+    const yes=await Modal.confirm(
+      'Stop Session?',
+      `You've studied for <strong>${fmtTime(elapsedSecs)}</strong>. Stop and save this session?`,
+      'Stop & Save'
+    );
+    if(!yes)return;
+    clearInterval(timerInterval);
+    isRunning=false; isPaused=false;
+    onSessionComplete();
+  };
+
+  async function onSessionComplete(){
+    clearInterval(timerInterval);
+    // Show completion modal — mark todos
+    await showCompletionModal();
+  }
+
+  // ── Completion Modal ──────────────────────────────────────
+  async function showCompletionModal(){
+    if(!todos.length){
+      // No todos — just save directly
+      await saveSession();
+      return;
+    }
+    // Build a custom modal with todo checkboxes
+    const todoHTML=todos.map((t,i)=>`
+      <label style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f1f5f9;cursor:pointer;">
+        <input type="checkbox" id="cm-todo-${i}" ${t.done?'checked':''}
+          style="width:18px;height:18px;accent-color:#00C9A7;cursor:pointer;"/>
+        <span style="font-size:13px;color:#2C2C54;">${t.text}</span>
+      </label>`).join('');
+
+    await Modal.custom({
+      icon:'📓',
+      title:'Session Complete!',
+      body:`
+        <div style="text-align:left;">
+          <p style="font-size:13px;color:#64748B;margin-bottom:12px;">
+            ✅ <strong>${fmtTime(elapsedSecs)}</strong> on <strong>${sessionPaper}</strong><br/>
+            Mark which tasks you completed:
+          </p>
+          <div style="max-height:200px;overflow-y:auto;">${todoHTML}</div>
+        </div>`,
+      buttons:[
+        { label:'Save Session', value:true, style:'background:#00C9A7;color:#fff;width:100%;justify-content:center;' }
+      ]
+    });
+
+    // Read checkbox states from modal
+    todos.forEach((t,i)=>{
+      const cb=document.getElementById('cm-todo-'+i);
+      if(cb) t.done=cb.checked;
+    });
+    renderTodos();
+    await saveSession();
+  }
+
+  // ── Save Session ──────────────────────────────────────────
+  async function saveSession(){
+    if(elapsedSecs<10){resetTimer();return;}
+    try{
+      const studyDay=getStudyDay(startTime);
+      await addDoc(collection(db,'timerSessions',uid,'sessions'),{
+        paperName:  sessionPaper,
+        duration:   elapsedSecs,
+        studyDay:   studyDay,
+        todos:      todos.map(t=>({text:t.text,done:t.done})),
+        savedAt:    serverTimestamp()
+      });
+      toast(`Saved! ${fmtTime(elapsedSecs)} of ${sessionPaper}`,'success');
+      await updateStreak(studyDay);
+      todos=[]; renderTodos();
+      loadToday(); loadWeekly(); loadStreak(); loadDiaryHistory();
+    }catch(e){console.error('Save error:',e);toast('Session could not be saved.','error');}
+    finally{ resetTimer(); }
+  }
+
+  window.resetTimer=function(){
+    clearInterval(timerInterval);
+    isRunning=false; isPaused=false; elapsedSecs=0; totalSecs=0;
+    elapsedAtLastResume=0; runStartTimestamp=null;
+    document.getElementById('ring-fill').style.strokeDashoffset='0';
+    document.getElementById('ring-fill').classList.remove('paused','finished');
+    document.getElementById('timer-digits').textContent='00:00:00';
+    document.getElementById('timer-digits').className='timer-digits';
+    document.getElementById('timer-label').textContent='Set time below';
+    document.getElementById('btn-play').textContent='▶';
+    document.getElementById('btn-stop').style.display='none';
+    document.getElementById('inp-h').disabled=false;
+    document.getElementById('inp-m').disabled=false;
+    document.getElementById('paper-select').disabled=false;
+  };
+
+  // ── Update Streak ─────────────────────────────────────────
+  async function updateStreak(studyDay){
+    try{
+      const snap=await getDoc(doc(db,'streaks',uid));
+      const data=snap.exists()?snap.data():{};
+      const lastDay=data.lastStudyDay||'';
+      const curr=data.currentStreak||0,best=data.longestStreak||0;
+      const yesterday=new Date();yesterday.setDate(yesterday.getDate()-1);
+      const yStr=getStudyDay(yesterday);
+      let newStreak=lastDay===studyDay?curr:lastDay===yStr?curr+1:!lastDay?1:1;
+      await setDoc(doc(db,'streaks',uid),{currentStreak:newStreak,longestStreak:Math.max(newStreak,best),lastStudyDay:studyDay,updatedAt:serverTimestamp()});
+    }catch(e){console.error('Streak error:',e);}
+  }
+
+</script>
+
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+<script>
+  // ── Sidebar Toggle ────────────────────────────────────────
+  window.toggleSidebar = function(){
+    const sb  = document.getElementById('sidebar');
+    const btn = document.getElementById('btn-hamburger');
+    const ov  = document.getElementById('sidebar-overlay');
+    const open = sb.classList.toggle('open');
+    btn.classList.toggle('open', open);
+    ov.classList.toggle('show', open);
+  };
+  window.closeSidebar = function(){
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('btn-hamburger').classList.remove('open');
+    document.getElementById('sidebar-overlay').classList.remove('show');
+  };
+
+  // ── Timer active guard: intercept any link when timer is running ──────
+  function timerIsActive(){ return (typeof isRunning!=='undefined') && (isRunning || isPaused) && elapsedSecs >= 10; }
+
+  function interceptNav(e, dest){
+    if(!timerIsActive()) return; // let it navigate normally
+    e.preventDefault();
+    Modal.confirm(
+      'Leave Study Timer?',
+      `You've studied for <strong>${fmtTime(elapsedSecs)}</strong>. Save this session before leaving?`,
+      'Save & Leave'
+    ).then(function(yes){
+      if(yes){
+        saveSession().then(function(){ window.location.href = dest; });
+      } else {
+        Modal.confirm(
+          'Discard Session?',
+          'Your session progress will be lost. Are you sure you want to leave without saving?',
+          'Leave Without Saving'
+        ).then(function(discard){
+          if(discard){ clearInterval(timerInterval); window.location.href = dest; }
+        });
+      }
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){
+    // Sidebar nav links
+    document.querySelectorAll('.nav-item').forEach(function(a){
+      a.addEventListener('click', function(e){
+        window.closeSidebar();
+        interceptNav(e, a.getAttribute('href'));
+      });
+    });
+
+    // Home button in hero
+    document.querySelectorAll('.hero-home-btn').forEach(function(a){
+      a.addEventListener('click', function(e){
+        interceptNav(e, a.getAttribute('href'));
+      });
+    });
+  });
+
+  // ── Browser back/close guard ──────────────────────────────
+  window.addEventListener('beforeunload', function(e){
+    if(timerIsActive()){
+      e.preventDefault();
+      e.returnValue = ''; // shows browser's default "Leave site?" dialog
+    }
+  });
+
+  // ── Background accuracy: sync elapsed when tab becomes visible again ──
+  document.addEventListener('visibilitychange', function(){
+    if(!document.hidden && (typeof isRunning!=='undefined') && isRunning){
+      // Timer is running in background — re-sync display immediately
+      const nowElapsed = elapsedAtLastResume + Math.floor((Date.now() - runStartTimestamp) / 1000);
+      elapsedSecs = nowElapsed;
+      const rem = totalSecs - elapsedSecs;
+      if(rem > 0){
+        const offset = (rem / totalSecs) * CIRCUM;
+        document.getElementById('ring-fill').style.strokeDashoffset = offset;
+        document.getElementById('timer-digits').textContent = fmtDisp(rem);
+      }
+    }
+  });
+</script>
+</body>
+</html>

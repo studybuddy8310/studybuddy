@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>StudyBuddy — Progress Dashboard</title>
+  <link rel="stylesheet" href="../css/global.css"/>
+  <link rel="stylesheet" href="../css/student.css"/>
+  <style>
+    /* ── Progress Dashboard specific styles ── */
+    .progress-header {
+      margin-bottom: 28px;
+    }
+    .progress-header h2 {
+      font-family: var(--font-heading);
+      font-size: 1.4rem;
+      font-weight: 700;
+    }
+
+    /* Paper Tabs */
+    .paper-tabs-wrap {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 28px;
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      overflow-x: auto;
+    }
+    .paper-tabs {
+      display: flex;
+      gap: 2px;
+      min-width: max-content;
+    }
+    .paper-tab {
+      padding: 14px 20px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      border-bottom: 3px solid transparent;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+      background: none;
+      border-top: none;
+      border-left: none;
+      border-right: none;
+      font-family: var(--font-body);
+    }
+    .paper-tab:hover { color: var(--primary); }
+    .paper-tab.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+    }
+
+    /* ── Dashboard view (circular progress grid) ── */
+    .circular-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      margin-bottom: 28px;
+    }
+    .circular-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 28px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .circular-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-md);
+      border-color: var(--primary);
+    }
+    .circular-card .paper-name {
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--text-primary);
+      margin-top: 14px;
+    }
+    .circular-card .paper-full {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 3px;
+    }
+
+    /* SVG Circular Progress */
+    .circ-svg { width: 110px; height: 110px; }
+    .circ-track { fill: none; stroke: #E8EFF8; stroke-width: 10; }
+    .circ-fill  {
+      fill: none; stroke: var(--primary); stroke-width: 10;
+      stroke-linecap: round;
+      transform: rotate(-90deg);
+      transform-origin: 50% 50%;
+      transition: stroke-dashoffset 1.2s ease;
+    }
+    .circ-fill.complete { stroke: var(--success); }
+    .circ-fill.high     { stroke: #FFB830; }
+    .circ-fill.low      { stroke: var(--danger); }
+    .circ-text {
+      font-family: var(--font-heading);
+      font-size: 18px;
+      font-weight: 700;
+      fill: var(--text-primary);
+      dominant-baseline: middle;
+      text-anchor: middle;
+    }
+
+    /* ── Overall progress bar ── */
+    .overall-bar-wrap {
+      background: linear-gradient(135deg, var(--primary) 0%, #00C9A7 100%);
+      border-radius: var(--radius-lg);
+      padding: 20px 24px;
+      margin-bottom: 20px;
+      color: #fff;
+    }
+    .overall-bar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .overall-bar-label { font-size: 14px; font-weight: 600; }
+    .overall-bar-pct   { font-family: var(--font-heading); font-size: 22px; font-weight: 700; }
+    .overall-bar-track {
+      height: 10px;
+      background: rgba(255,255,255,0.25);
+      border-radius: 5px;
+      overflow: hidden;
+    }
+    .overall-bar-fill {
+      height: 100%;
+      background: #fff;
+      border-radius: 5px;
+      transition: width 1.2s ease;
+    }
+
+    /* ── Chapter Checklist Table ── */
+    .checklist-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+    .checklist-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .checklist-table thead th {
+      background: var(--surface-2);
+      padding: 12px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid var(--border);
+      text-align: center;
+    }
+    .checklist-table thead th:first-child { text-align: left; }
+    .checklist-table tbody td {
+      padding: 13px 16px;
+      border-bottom: 1px solid var(--border);
+      text-align: center;
+      vertical-align: middle;
+    }
+    .checklist-table tbody td:first-child { text-align: left; }
+    .checklist-table tbody tr:last-child td { border-bottom: none; }
+    .checklist-table tbody tr:hover { background: var(--surface-2); }
+
+    .chapter-name { font-size: 14px; font-weight: 500; color: var(--text-primary); }
+
+    /* Checkbox styling */
+    .check-cell input[type="checkbox"] {
+      width: 20px; height: 20px;
+      cursor: pointer;
+      accent-color: var(--primary);
+      border-radius: 4px;
+    }
+
+    /* Progress badge */
+    .prog-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      min-width: 48px;
+      text-align: center;
+    }
+    .prog-100 { background: #D1FAF0; color: #006B55; }
+    .prog-high { background: #FFF0CC; color: #7A4F00; }
+    .prog-mid  { background: #FFE8D6; color: #7A3010; }
+    .prog-low  { background: #FFE0E3; color: #8A0018; }
+    .prog-zero { background: #F1F5F9; color: var(--text-secondary); }
+
+    .saving-indicator {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--primary);
+      color: #fff;
+      padding: 10px 18px;
+      border-radius: var(--radius-md);
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: var(--shadow-md);
+      display: none;
+      align-items: center;
+      gap: 8px;
+      z-index: 999;
+    }
+    .saving-indicator.visible { display: flex; }
+
+    @media(max-width:900px){
+      .circular-grid { grid-template-columns: repeat(2,1fr); }
+    }
+    @media(max-width:600px){
+      .circular-grid { grid-template-columns: repeat(2,1fr); }
+    }
+  </style>
+</head>
+<body>
+
+<div id="page-loader">
+  <div class="logo-text">📚 StudyBuddy</div>
+  <div class="spinner spinner-primary"></div>
+</div>
+<div id="toast-container"></div>
+
+<!-- Saving indicator -->
+<div class="saving-indicator" id="saving-indicator">
+  <span class="spinner" style="width:14px;height:14px;border-width:2px;"></span>
+  Saving...
+</div>
+
+<div class="student-layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon">📚</div>
+      <div class="sidebar-logo-text">Study<span>Buddy</span></div>
+    </div>
+    <div class="sidebar-level-badge">
+      <div class="course" id="sb-course">CA</div>
+      <div class="level"  id="sb-level">CA Final</div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Overview</div>
+      <a href="dashboard.html" class="nav-item"><span class="nav-item-icon">🏠</span> Home</a>
+      <a href="progress.html"  class="nav-item active"><span class="nav-item-icon">📊</span> Progress Dashboard</a>
+      <div class="nav-section-label">Study</div>
+      <a href="material.html" class="nav-item"><span class="nav-item-icon">📚</span> Study Material</a>
+      <a href="mcq.html"      class="nav-item"><span class="nav-item-icon">✏️</span> Practice MCQ</a>
+      <a href="tests.html"    class="nav-item"><span class="nav-item-icon">📝</span> Mock Tests</a>
+      <div class="nav-section-label">Tools</div>
+      <a href="timer.html"    class="nav-item"><span class="nav-item-icon">⏱️</span> Study Timer</a>
+      <a href="tips.html"     class="nav-item"><span class="nav-item-icon">💡</span> Tips & Ideas</a>
+      <div class="nav-section-label">Account</div>
+      <a href="profile.html"  class="nav-item"><span class="nav-item-icon">👤</span> My Profile</a>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="sidebar-user">
+        <div class="sidebar-avatar" id="sidebar-avatar">S</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name" id="sidebar-name">Student</div>
+          <div class="sidebar-user-role">Student</div>
+        </div>
+        <button class="btn-logout" id="btn-logout" title="Logout">🚪</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="student-main">
+
+    <div class="page-hero" style="margin:0 0 0 0;">
+      <button class="btn-hamburger hero-hamburger" id="btn-hamburger" onclick="toggleSidebar()" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="hero-title-wrap">
+        <h1>📊 Progress Dashboard</h1>
+        <p>Track your syllabus chapter by chapter</p>
+      </div>
+      <a href="dashboard.html" class="hero-home-btn" title="Home">🏠</a>
+    </div>
+
+    <!-- Paper Tabs (sticky below hero) -->
+    <div class="paper-tabs-wrap">
+      <div class="paper-tabs" id="paper-tabs">
+        <button class="paper-tab active" onclick="showDashboard()">📊 Dashboard</button>
+        <!-- Paper tabs injected by JS -->
+      </div>
+    </div>
+
+    <!-- Page Content -->
+    <div class="page-content" id="page-content">
+
+      <!-- ── Dashboard View (default) ──────────────────────── -->
+      <div id="view-dashboard">
+
+        <div class="progress-header">
+          <h2 id="dash-title">Progress Dashboard</h2>
+          <p class="text-secondary fs-14" style="margin-top:4px;">
+            Click any paper card to view chapter-wise checklist
+          </p>
+        </div>
+
+        <!-- ── Study Timeline Card ──────────────────────────── -->
+        <div id="timeline-card" style="display:none; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-xl); padding:24px; margin-bottom:28px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:10px;">
+            <div>
+              <div style="font-family:var(--font-heading); font-size:16px; font-weight:700; color:var(--text-primary);">🗓️ Study Timeline</div>
+              <div id="timeline-sub" style="font-size:13px; color:var(--text-muted); margin-top:3px;">Target Attempt: —</div>
+            </div>
+            <div id="timeline-pace-badge" style="padding:6px 16px; border-radius:20px; font-size:13px; font-weight:700;"></div>
+          </div>
+          <div style="margin-bottom:20px;">
+            <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--text-muted); margin-bottom:6px;">
+              <span id="tl-start-label">Start</span>
+              <span id="tl-days-left" style="font-weight:700; color:var(--primary);"></span>
+              <span id="tl-end-label">Exam</span>
+            </div>
+            <div style="height:8px; background:var(--border); border-radius:4px; overflow:hidden;">
+              <div id="tl-time-bar" style="height:100%; border-radius:4px; background:linear-gradient(90deg,var(--primary),var(--accent)); transition:width 1s ease; width:0%;"></div>
+            </div>
+          </div>
+          <div id="timeline-stages" style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px;"></div>
+          <div style="margin-top:16px; padding:14px; background:var(--bg); border-radius:var(--radius-md); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+            <span style="font-size:13px; font-weight:600; color:var(--text-secondary);">📊 Overall Syllabus Coverage</span>
+            <div style="display:flex; align-items:center; gap:12px;">
+              <div style="width:160px; height:8px; background:var(--border); border-radius:4px; overflow:hidden;">
+                <div id="tl-avg-bar" style="height:100%; border-radius:4px; background:var(--primary); transition:width 1s; width:0%;"></div>
+              </div>
+              <span id="tl-avg-pct" style="font-family:var(--font-heading); font-size:18px; font-weight:700; color:var(--primary);">0%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Circular Cards Grid -->
+        <div class="circular-grid" id="circular-grid">
+          <!-- Injected by JS -->
+        </div>
+
+      </div>
+
+      <!-- ── Paper Checklist View ───────────────────────────── -->
+      <div id="view-paper" style="display:none;">
+
+        <!-- Overall Progress Bar -->
+        <div class="overall-bar-wrap">
+          <div class="overall-bar-header">
+            <span class="overall-bar-label" id="paper-title-bar">Paper 1</span>
+            <span class="overall-bar-pct"   id="paper-pct-bar">0%</span>
+          </div>
+          <div class="overall-bar-track">
+            <div class="overall-bar-fill" id="overall-bar-fill" style="width:0%"></div>
+          </div>
+        </div>
+
+        <!-- Checklist Table -->
+        <div class="checklist-wrap">
+          <table class="checklist-table">
+            <thead>
+              <tr>
+                <th style="width:220px;">Chapter</th>
+                <th>Lectures</th>
+                <th>Question Bank</th>
+                <th>Revision 1</th>
+                <th>Revision 2</th>
+                <th>Test</th>
+                <th>Progress</th>
+              </tr>
+            </thead>
+            <tbody id="checklist-tbody">
+              <!-- Injected by JS -->
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+
+    </div><!-- /.page-content -->
+  </main>
+</div>
+
+<script type="module">
+  import { auth, db } from '../js/firebase-config.js';
+  import { onAuthStateChanged, signOut }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import { doc, getDoc, setDoc, collection,
+    getDocs, serverTimestamp }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  // ── State ─────────────────────────────────────────────────
+  let currentUid    = null;
+  let currentLevel  = null;
+  let currentGroup  = null;
+  let currentAttempt = null; // 'YYYY-MM' e.g. '2027-05'
+  let papers        = [];  // [{id, name, chapters:[{id,name}]}]
+  let progressData  = {};  // { paperId: { chapterId: {lectures,qb,rev1,rev2,test} } }
+  let currentPaper  = null;
+  let saveTimeout   = null;
+
+  const COLS = ['lectures','questionBank','revision1','revision2','test'];
+  const COL_LABELS = ['Lectures','Question Bank','Revision 1','Revision 2','Test'];
+
+  function showToast(msg,type='info'){
+    const c=document.getElementById('toast-container');
+    const t=document.createElement('div');
+    t.className=`toast toast-${type}`;
+    t.innerHTML=`<span>${{success:'✅',error:'❌',info:'ℹ️'}[type]}</span> ${msg}`;
+    c.appendChild(t);setTimeout(()=>t.remove(),4000);
+  }
+
+  // ── Auth Guard ────────────────────────────────────────────
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) { window.location.href = '../index.html'; return; }
+    const snap = await getDoc(doc(db, 'users', user.uid));
+    if (!snap.exists()) { window.location.href = '../index.html'; return; }
+    const data = snap.data();
+    if (data.role !== 'student' || data.status !== 'approved') {
+      window.location.href = '../index.html'; return;
+    }
+
+    currentUid    = user.uid;
+    currentLevel  = data.level;
+    currentGroup  = data.group || null;
+    currentAttempt = data.examAttempt || null;
+
+    // Fill sidebar
+    document.getElementById('sidebar-avatar').textContent =
+      (data.firstName[0]+data.lastName[0]).toUpperCase();
+    document.getElementById('sidebar-name').textContent =
+      data.firstName+' '+data.lastName;
+    document.getElementById('sb-course').textContent = data.course;
+    document.getElementById('sb-level').textContent  = data.level;
+    document.getElementById('dash-title').textContent =
+      data.level + ' Progress Dashboard';
+    // Show group badge if applicable
+    const hasGroups = ['CA-Intermediate','CA-Final'].includes(data.level);
+    if(hasGroups && data.group && data.group !== 'both'){
+      const badge = document.createElement('span');
+      badge.style.cssText='margin-left:10px;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700;background:var(--primary-light);color:var(--primary);font-family:var(--font-body);';
+      badge.textContent = data.group === 'group1' ? '🔵 Group I' : '🟢 Group II';
+      document.getElementById('dash-title').appendChild(badge);
+    }
+
+    // Load streak
+
+
+    // Fill sidebar done — hide loader immediately, data loads in background
+    document.getElementById('page-loader').classList.add('hidden');
+
+    // Load structure + progress in background
+    loadStructure();
+  });
+
+  document.getElementById('btn-logout').addEventListener('click', async () => {
+    await signOut(auth); window.location.href = '../index.html';
+  });
+
+  // ── Load Course Structure ─────────────────────────────────
+  async function loadStructure() {
+    try {
+      const papersSnap = await getDocs(
+        collection(db, 'courseStructure', currentLevel, 'papers')
+      );
+      const paperDocs = papersSnap.docs;
+
+      // Fetch ALL chapters in parallel instead of one paper at a time
+      const chapSnapshots = await Promise.all(
+        paperDocs.map(pd => getDocs(
+          collection(db,'courseStructure',currentLevel,'papers',pd.id,'chapters')
+        ))
+      );
+
+      papers = paperDocs.map((pd, i) => {
+        const chapters = [];
+        chapSnapshots[i].forEach(cd => chapters.push({id:cd.id,...cd.data()}));
+        chapters.sort((a,b)=>(a.order||0)-(b.order||0));
+        return { id:pd.id, ...pd.data(), chapters };
+      });
+      papers.sort((a,b)=>(a.order||0)-(b.order||0));
+
+      // Filter by student's group (only for levels that have groups)
+      // Group I → Papers 1,2,3 (order 1-3)  |  Group II → Papers 4,5,6 (order 4-6)
+      const hasGroups = ['CA-Intermediate','CA-Final'].includes(currentLevel);
+      if(hasGroups && currentGroup && currentGroup !== 'both'){
+        papers = papers.filter(p => {
+          // Prefer explicit group field on the paper; fall back to order-based split
+          if(p.group && p.group !== 'both') return p.group === currentGroup;
+          const ord = p.order || 0;
+          return currentGroup === 'group1' ? ord <= 3 : ord >= 4 && ord <= 6;
+        });
+      }
+
+      // Load all progress in parallel
+      await loadAllProgress();
+
+      // Build tabs + dashboard
+      buildTabs();
+      buildDashboard();
+      buildTimeline();
+    } catch(e) {
+      console.error('Structure error:', e);
+      showToast('Failed to load course structure. Contact admin.', 'error');
+    }
+  }
+
+  // ── Load All Progress from Firestore ──────────────────────
+  async function loadAllProgress() {
+    progressData = {};
+
+    // Flatten all (paperId, chapId) pairs
+    const pairs = [];
+    for (const paper of papers) {
+      progressData[paper.id] = {};
+      for (const chap of paper.chapters) {
+        pairs.push({ paperId: paper.id, chapId: chap.id });
+      }
+    }
+
+    // Fetch ALL progress docs in parallel instead of one by one
+    const snaps = await Promise.all(
+      pairs.map(({ paperId, chapId }) =>
+        getDoc(doc(db,'progress',currentUid,'papers',paperId,'chapters',chapId))
+          .catch(() => null)
+      )
+    );
+
+    const empty = { lectures:false, questionBank:false, revision1:false, revision2:false, test:false };
+    pairs.forEach(({ paperId, chapId }, i) => {
+      const snap = snaps[i];
+      progressData[paperId][chapId] = (snap && snap.exists()) ? snap.data() : { ...empty };
+    });
+  }
+
+  // ── Calculate Paper % ─────────────────────────────────────
+  function calcPaperPct(paperId) {
+    const paper   = papers.find(p => p.id === paperId);
+    if (!paper) return 0;
+    let total = 0, done = 0;
+    paper.chapters.forEach(chap => {
+      const prog = progressData[paperId]?.[chap.id] || {};
+      COLS.forEach(k => {
+        total++;
+        if (prog[k]) done++;
+      });
+    });
+    return total > 0 ? Math.round((done/total)*100) : 0;
+  }
+
+  // ── Build Paper Tabs ──────────────────────────────────────
+  function buildTabs() {
+    const tabsEl = document.getElementById('paper-tabs');
+    // Keep first "Dashboard" button, add paper tabs
+    papers.forEach(p => {
+      const btn = document.createElement('button');
+      btn.className   = 'paper-tab';
+      btn.textContent = p.name.length > 20 ? p.name.substring(0,20)+'…' : p.name;
+      btn.title       = p.name;
+      btn.onclick     = () => showPaper(p.id);
+      tabsEl.appendChild(btn);
+    });
+  }
+
+  // ── Build Dashboard (circular cards) ─────────────────────
+  function buildDashboard() {
+    const grid = document.getElementById('circular-grid');
+    grid.innerHTML = '';
+    const CIRCUM = 2 * Math.PI * 46; // r=46
+
+    papers.forEach(paper => {
+      const pct    = calcPaperPct(paper.id);
+      const offset = CIRCUM - (pct / 100) * CIRCUM;
+      const fillClass = pct === 100 ? 'complete' : pct >= 50 ? '' : pct > 0 ? 'high' : 'low';
+
+      // Short name: "Paper 1: FR" → "P1: FR"
+      const shortName = paper.name.replace(/Paper\s+(\d+)/i, 'P$1');
+
+      const card = document.createElement('div');
+      card.className = 'circular-card';
+      card.onclick   = () => showPaper(paper.id);
+      card.innerHTML = `
+        <svg class="circ-svg" viewBox="0 0 100 100">
+          <circle class="circ-track" cx="50" cy="50" r="46"/>
+          <circle class="circ-fill ${fillClass}" cx="50" cy="50" r="46"
+            stroke-dasharray="${CIRCUM}"
+            stroke-dashoffset="${offset}"/>
+          <text class="circ-text" x="50" y="50">${pct}%</text>
+        </svg>
+        <div class="paper-name">${shortName}</div>
+        <div class="paper-full">${paper.name.split(':')[1]?.trim() || paper.name}</div>`;
+      grid.appendChild(card);
+    });
+  }
+
+  // ── Show Dashboard view ───────────────────────────────────
+  window.showDashboard = function() {
+    document.getElementById('view-dashboard').style.display = 'block';
+    document.getElementById('view-paper').style.display    = 'none';
+    currentPaper = null;
+    document.querySelectorAll('.paper-tab').forEach((t,i) =>
+      t.classList.toggle('active', i === 0));
+  };
+
+  // ── Show Paper Checklist ──────────────────────────────────
+  window.showPaper = function(paperId) {
+    currentPaper = paperId;
+    document.getElementById('view-dashboard').style.display = 'none';
+    document.getElementById('view-paper').style.display    = 'block';
+
+    // Activate correct tab
+    const tabBtns = document.querySelectorAll('.paper-tab');
+    tabBtns.forEach((t,i) => {
+      const isFirst = i === 0;
+      const pid     = papers[i-1]?.id;
+      t.classList.toggle('active', !isFirst && pid === paperId);
+    });
+
+    renderChecklist(paperId);
+  };
+
+  // ── Render Checklist ──────────────────────────────────────
+  function renderChecklist(paperId) {
+    const paper  = papers.find(p => p.id === paperId);
+    if (!paper) return;
+
+    // Overall %
+    const pct = calcPaperPct(paperId);
+    document.getElementById('paper-title-bar').textContent = paper.name;
+    document.getElementById('paper-pct-bar').textContent   = pct + '%';
+    document.getElementById('overall-bar-fill').style.width= pct + '%';
+
+    const tbody = document.getElementById('checklist-tbody');
+    tbody.innerHTML = '';
+
+    paper.chapters.forEach(chap => {
+      const prog = progressData[paperId]?.[chap.id] ||
+        { lectures:false, questionBank:false, revision1:false, revision2:false, test:false };
+
+      // Chapter %
+      const done  = COLS.filter(k => prog[k]).length;
+      const cpct  = Math.round((done/COLS.length)*100);
+      const badge = cpct===100 ? 'prog-100' : cpct>=75 ? 'prog-high' : cpct>=25 ? 'prog-mid' : cpct>0 ? 'prog-low' : 'prog-zero';
+
+      const checkboxes = COLS.map(col => `
+        <td class="check-cell">
+          <input type="checkbox"
+            data-paper="${paperId}"
+            data-chapter="${chap.id}"
+            data-col="${col}"
+            ${prog[col] ? 'checked' : ''}
+            onchange="onCheckChange(this)"/>
+        </td>`).join('');
+
+      tbody.innerHTML += `
+        <tr id="row-${chap.id}">
+          <td><div class="chapter-name">${chap.name}</div></td>
+          ${checkboxes}
+          <td>
+            <span class="prog-badge ${badge}" id="badge-${chap.id}">${cpct}%</span>
+          </td>
+        </tr>`;
+    });
+  }
+
+  // ── Handle Checkbox Change ────────────────────────────────
+  window.onCheckChange = async function(checkbox) {
+    const paperId  = checkbox.dataset.paper;
+    const chapId   = checkbox.dataset.chapter;
+    const col      = checkbox.dataset.col;
+    const checked  = checkbox.checked;
+
+    // Update local state immediately
+    if (!progressData[paperId]) progressData[paperId] = {};
+    if (!progressData[paperId][chapId]) {
+      progressData[paperId][chapId] = { lectures:false, questionBank:false, revision1:false, revision2:false, test:false };
+    }
+    progressData[paperId][chapId][col] = checked;
+
+    // Update chapter badge instantly
+    const prog = progressData[paperId][chapId];
+    const done = COLS.filter(k => prog[k]).length;
+    const cpct = Math.round((done/COLS.length)*100);
+    const badge = document.getElementById('badge-'+chapId);
+    if (badge) {
+      badge.textContent = cpct+'%';
+      badge.className   = 'prog-badge ' +
+        (cpct===100 ? 'prog-100' : cpct>=75 ? 'prog-high' : cpct>=25 ? 'prog-mid' : cpct>0 ? 'prog-low' : 'prog-zero');
+    }
+
+    // Update overall bar
+    const pct = calcPaperPct(paperId);
+    document.getElementById('paper-pct-bar').textContent   = pct+'%';
+    document.getElementById('overall-bar-fill').style.width= pct+'%';
+
+    // Debounce save to Firestore (wait 800ms after last change)
+    showSaving(true);
+    clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(() => saveProgress(paperId, chapId), 800);
+  };
+
+  // ── Save Progress to Firestore ────────────────────────────
+  async function saveProgress(paperId, chapId) {
+    try {
+      await setDoc(
+        doc(db,'progress',currentUid,'papers',paperId,'chapters',chapId),
+        {
+          ...progressData[paperId][chapId],
+          updatedAt: serverTimestamp()
+        },
+        { merge: true }
+      );
+      showSaving(false);
+      // Rebuild dashboard circles silently
+      buildDashboard();
+      // Write aggregated summary so dashboard.html can read overallPct cheaply
+      writeSummary();
+    } catch(e) {
+      console.error('Save error:', e);
+      showToast('Failed to save. Check connection.', 'error');
+      showSaving(false);
+    }
+  }
+
+  // ── Write progress summary (used by dashboard for fast read) ─
+  async function writeSummary() {
+    try {
+      const COLS = ['lectures','questionBank','revision1','revision2','test'];
+      let totalCells = 0, doneCells = 0;
+      papers.forEach(p => {
+        (p.chapters || []).forEach(ch => {
+          const prog = progressData[p.id]?.[ch.id] || {};
+          COLS.forEach(k => { totalCells++; if(prog[k]) doneCells++; });
+        });
+      });
+      const overallPct = totalCells > 0 ? Math.round((doneCells / totalCells) * 100) : 0;
+      await setDoc(doc(db,'progressSummary',currentUid), { overallPct, updatedAt: serverTimestamp() }, { merge: true });
+    } catch(e) { /* non-critical */ }
+  }
+
+  function showSaving(visible) {
+    const el = document.getElementById('saving-indicator');
+    el.classList.toggle('visible', visible);
+  }
+
+  // ── Study Timeline ─────────────────────────────────────────
+  function buildTimeline() {
+    if (!currentAttempt) {
+      document.getElementById('timeline-card').style.display = 'none';
+      return;
+    }
+
+    const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const [ey, em] = currentAttempt.split('-').map(Number);
+    // Exam is the 1st of the exam month
+    const examDate = new Date(ey, em - 1, 1);
+    const today    = new Date();
+    today.setHours(0,0,0,0);
+
+    if (today >= examDate) {
+      document.getElementById('timeline-card').style.display = 'none';
+      return;
+    }
+
+    // ── Stage deadlines ────────────────────────────────────
+    // Rule: 0-25% by date1, 25-50% by date2, 50-75% by date3, 75-100% by date4
+    // Group I/II: gap = 25 days before exam. Otherwise: 35 days before exam.
+    // Work backwards from exam date:
+    // Stage 4 deadline (75-100% done) = exam - gapDays
+    // Stage 3 deadline (50-75%)       = stage4 - 35 days
+    // Stage 2 deadline (25-50%)       = stage3 - 33 days
+    // Stage 1 deadline (0-25%)        = stage2 - 35 days
+
+    const isGroupOnly = currentGroup && currentGroup !== 'both';
+    const finalGap = isGroupOnly ? 25 : 30; // days before exam
+
+    const s4 = new Date(examDate); s4.setDate(s4.getDate() - finalGap);
+    const s3 = new Date(s4);       s3.setDate(s3.getDate() - 35);
+    const s2 = new Date(s3);       s2.setDate(s2.getDate() - 33);
+    const s1 = new Date(s2);       s1.setDate(s1.getDate() - 35);
+
+    // ── Overall progress ────────────────────────────────────
+    let totalCells = 0, doneCells = 0;
+    papers.forEach(p => {
+      p.chapters.forEach(ch => {
+        const prog = progressData[p.id]?.[ch.id] || {};
+        COLS.forEach(k => { totalCells++; if(prog[k]) doneCells++; });
+      });
+    });
+    const overallPct = totalCells > 0 ? Math.round((doneCells / totalCells) * 100) : 0;
+
+    // ── Which stage should be done by now? ──────────────────
+    const stages = [
+      { label:'Stage 1', range:'0–25%',  target:25,  deadline:s1, icon:'🌱' },
+      { label:'Stage 2', range:'25–50%', target:50,  deadline:s2, icon:'📖' },
+      { label:'Stage 3', range:'50–75%', target:75,  deadline:s3, icon:'🔥' },
+      { label:'Stage 4', range:'75–100%',target:100, deadline:s4, icon:'🏆' },
+    ];
+
+    // Current expected target based on today
+    let expectedPct = 0;
+    for (const s of stages) {
+      if (today >= s.deadline) expectedPct = s.target;
+    }
+
+    // ── Pace badge ──────────────────────────────────────────
+    const badge = document.getElementById('timeline-pace-badge');
+    if (overallPct >= expectedPct) {
+      badge.style.cssText = 'padding:6px 16px;border-radius:20px;font-size:13px;font-weight:700;background:var(--success-light);color:#006B55;';
+      badge.textContent = overallPct >= expectedPct + 10 ? '🚀 Ahead of Schedule' : '✅ On Track,You are Awesome!';
+    } else {
+      badge.style.cssText = 'padding:6px 16px;border-radius:20px;font-size:13px;font-weight:700;background:var(--danger-light);color:#8A0018;';
+      badge.textContent = `⚠️ Falling Behind by ${expectedPct - overallPct}%`;
+    }
+
+    // ── Subtitle ───────────────────────────────────────────
+    document.getElementById('timeline-sub').textContent =
+      `Target: ${MONTH_NAMES[em-1]} ${ey} Attempt`;
+
+    // ── Time progress bar ──────────────────────────────────
+    // Start = 6 months before exam for rough reference
+    const startRef = new Date(examDate); startRef.setMonth(startRef.getMonth() - 6);
+    const totalSpan = examDate - startRef;
+    const elapsed   = Math.max(0, today - startRef);
+    const timePct   = Math.min(100, Math.round((elapsed / totalSpan) * 100));
+    document.getElementById('tl-time-bar').style.width = timePct + '%';
+    const daysLeft = Math.ceil((examDate - today) / (1000 * 60 * 60 * 24));
+    document.getElementById('tl-days-left').textContent = `${daysLeft} days to exam`;
+    document.getElementById('tl-start-label').textContent = `${MONTH_NAMES[startRef.getMonth()]} ${startRef.getFullYear()}`;
+    document.getElementById('tl-end-label').textContent   = `${MONTH_NAMES[em-1]} ${ey}`;
+
+    // ── Stage cards ────────────────────────────────────────
+    const stagesEl = document.getElementById('timeline-stages');
+    stagesEl.innerHTML = stages.map(s => {
+      const isPast   = today > s.deadline;
+      const isActive = !isPast && (stages.indexOf(s) === 0 || today > stages[stages.indexOf(s)-1].deadline);
+      const met      = overallPct >= s.target;
+      const dl = s.deadline;
+      const dlStr = `${dl.getDate()} ${MONTH_NAMES[dl.getMonth()]}`;
+
+      let bg, border, titleColor;
+      if (met)          { bg='var(--success-light)'; border='rgba(0,201,167,0.3)'; titleColor='#006B55'; }
+      else if (isPast)  { bg='var(--danger-light)';  border='rgba(255,71,87,0.3)'; titleColor='#8A0018'; }
+      else if (isActive){ bg='var(--warning-light)'; border='rgba(255,184,48,0.3)';titleColor='#7A4F00'; }
+      else              { bg='var(--bg)';             border='var(--border)';       titleColor='var(--text-muted)'; }
+
+      const statusIcon = met ? '✅' : isPast ? '❌' : isActive ? '⏳' : '⬜';
+
+      return `<div style="background:${bg};border:1px solid ${border};border-radius:var(--radius-md);padding:14px;text-align:center;">
+        <div style="font-size:22px;margin-bottom:4px;">${s.icon}</div>
+        <div style="font-size:12px;font-weight:700;color:${titleColor};">${s.label}</div>
+        <div style="font-size:11px;color:var(--text-muted);margin:2px 0;">${s.range}</div>
+        <div style="font-size:13px;font-weight:700;color:var(--text-primary);margin:6px 0;">${statusIcon}</div>
+      </div>`;
+    }).join('');
+
+    // ── Overall avg bar ────────────────────────────────────
+    document.getElementById('tl-avg-bar').style.width = overallPct + '%';
+    document.getElementById('tl-avg-pct').textContent = overallPct + '%';
+
+    document.getElementById('timeline-card').style.display = 'block';
+  }
+
+</script>
+
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+<script>
+  // ── Sidebar Toggle ────────────────────────────────────────
+  window.toggleSidebar = function(){
+    const sb  = document.getElementById('sidebar');
+    const btn = document.getElementById('btn-hamburger');
+    const ov  = document.getElementById('sidebar-overlay');
+    const open = sb.classList.toggle('open');
+    btn.classList.toggle('open', open);
+    ov.classList.toggle('show', open);
+  };
+  window.closeSidebar = function(){
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('btn-hamburger').classList.remove('open');
+    document.getElementById('sidebar-overlay').classList.remove('show');
+  };
+  document.addEventListener('DOMContentLoaded', function(){
+    document.querySelectorAll('.nav-item').forEach(function(a){
+      a.addEventListener('click', window.closeSidebar);
+    });
+  });
+</script>
+</body>
+</html>

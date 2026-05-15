@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>StudyBuddy — Study Material</title>
+  <link rel="stylesheet" href="../css/global.css"/>
+  <link rel="stylesheet" href="../css/student.css"/>
+  <style>
+    .page-hero {
+      background:linear-gradient(135deg,#1A1A2E 0%,#2D5BE3 100%);
+      padding:28px 40px; color:#fff; margin:-28px -28px 28px;
+    }
+    .page-hero h1 { font-family:var(--font-heading); font-size:1.6rem; font-weight:700; }
+    .page-hero p  { font-size:13px; opacity:0.7; margin-top:4px; }
+
+    /* Paper tabs */
+    .paper-tabs-bar {
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:var(--radius-lg); padding:6px;
+      display:flex; gap:4px; flex-wrap:wrap; margin-bottom:24px;
+    }
+    .paper-tab-btn {
+      padding:8px 18px; border-radius:var(--radius-md);
+      border:none; background:none; font-size:13px; font-weight:600;
+      color:var(--text-secondary); cursor:pointer; font-family:var(--font-body);
+      transition:all 0.2s; white-space:nowrap;
+    }
+    .paper-tab-btn:hover { background:var(--surface-2); color:var(--text-primary); }
+    .paper-tab-btn.active { background:var(--primary); color:#fff; box-shadow:0 2px 6px rgba(45,91,227,0.3); }
+
+    /* Material type tabs */
+    .mat-type-tabs {
+      display:flex; gap:6px; flex-wrap:wrap; margin-bottom:20px;
+    }
+    .mat-type-btn {
+      padding:7px 16px; border-radius:20px;
+      border:1.5px solid var(--border); background:var(--surface);
+      font-size:13px; font-weight:600; color:var(--text-secondary);
+      cursor:pointer; font-family:var(--font-body); transition:all 0.2s;
+    }
+    .mat-type-btn:hover  { border-color:var(--primary); color:var(--primary); }
+    .mat-type-btn.active { background:var(--primary); border-color:var(--primary); color:#fff; }
+
+    /* PDF List */
+    .pdf-grid { display:flex; flex-direction:column; gap:10px; }
+    .pdf-item {
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:var(--radius-lg); padding:16px 20px;
+      display:flex; align-items:center; gap:14px;
+      transition:box-shadow 0.2s;
+    }
+    .pdf-item:hover { box-shadow:var(--shadow-sm); }
+    .pdf-icon { width:44px; height:44px; background:#FFF0F0; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0; }
+    .pdf-info { flex:1; }
+    .pdf-name { font-weight:600; font-size:14px; color:var(--text-primary); }
+    .pdf-sub  { font-size:12px; color:var(--text-muted); margin-top:2px; }
+    .pdf-actions { display:flex; gap:8px; }
+
+    /* PDF Viewer Modal */
+    .pdf-modal {
+      position:fixed; inset:0; background:rgba(26,26,46,0.7);
+      backdrop-filter:blur(6px); z-index:9999;
+      display:none; flex-direction:column;
+    }
+    .pdf-modal.open { display:flex; }
+    .pdf-modal-topbar {
+      background:var(--secondary); padding:12px 20px;
+      display:flex; align-items:center; justify-content:space-between; flex-shrink:0;
+    }
+    .pdf-modal-title { font-family:var(--font-heading); font-size:15px; font-weight:600; color:#fff; }
+    .pdf-modal-actions { display:flex; gap:10px; align-items:center; }
+    .btn-pdf-close {
+      background:rgba(255,255,255,0.1); color:#fff; border:none;
+      padding:7px 16px; border-radius:var(--radius-md); font-size:13px;
+      font-weight:600; cursor:pointer; font-family:var(--font-body); transition:all 0.2s;
+    }
+    .btn-pdf-close:hover { background:var(--danger); }
+    .btn-pdf-new-tab {
+      background:var(--primary); color:#fff; border:none;
+      padding:7px 16px; border-radius:var(--radius-md); font-size:13px;
+      font-weight:600; cursor:pointer; font-family:var(--font-body); transition:all 0.2s;
+    }
+    .btn-pdf-new-tab:hover { background:var(--primary-dark); }
+    .pdf-frame-wrap { flex:1; background:#525659; }
+    .pdf-frame-wrap iframe { width:100%; height:100%; border:none; }
+
+    .empty-mat { text-align:center; padding:60px 20px; color:var(--text-muted); }
+    .empty-mat .icon { font-size:56px; margin-bottom:12px; }
+    .empty-mat h3 { color:var(--text-secondary); }
+    .empty-mat p  { font-size:13px; margin-top:6px; }
+
+    .loading-state { text-align:center; padding:40px; color:var(--text-muted); font-size:14px; }
+  </style>
+</head>
+<body>
+<div id="page-loader"><div class="logo-text">📚 StudyBuddy</div><div class="spinner spinner-primary"></div></div>
+<div id="toast-container"></div>
+
+<!-- PDF Viewer Modal -->
+<div class="pdf-modal" id="pdf-modal">
+  <div class="pdf-modal-topbar">
+    <div class="pdf-modal-title" id="pdf-modal-title">Document</div>
+    <div class="pdf-modal-actions">
+      <a id="pdf-new-tab-btn" href="#" target="_blank" class="btn-pdf-new-tab">↗ Open in New Tab</a>
+      <button class="btn-pdf-close" onclick="closePDF()">✕ Close</button>
+    </div>
+  </div>
+  <div class="pdf-frame-wrap">
+    <iframe id="pdf-iframe" src="" allowfullscreen></iframe>
+  </div>
+</div>
+
+<div class="student-layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo"><div class="sidebar-logo-icon">📚</div><div class="sidebar-logo-text">Study<span>Buddy</span></div></div>
+    <div class="sidebar-level-badge"><div class="course" id="sb-course">CA</div><div class="level" id="sb-level">CA Final</div></div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Overview</div>
+      <a href="dashboard.html" class="nav-item"><span class="nav-item-icon">🏠</span> Home</a>
+      <a href="progress.html"  class="nav-item"><span class="nav-item-icon">📊</span> Progress Dashboard</a>
+      <div class="nav-section-label">Study</div>
+      <a href="material.html" class="nav-item active"><span class="nav-item-icon">📚</span> Study Material</a>
+      <a href="mcq.html"      class="nav-item"><span class="nav-item-icon">✏️</span> Practice MCQ</a>
+      <a href="tests.html"    class="nav-item"><span class="nav-item-icon">📝</span> Mock Tests</a>
+      <div class="nav-section-label">Tools</div>
+      <a href="timer.html"    class="nav-item"><span class="nav-item-icon">⏱️</span> Study Timer</a>
+      <a href="tips.html"     class="nav-item"><span class="nav-item-icon">💡</span> Tips & Ideas</a>
+      <div class="nav-section-label">Account</div>
+      <a href="profile.html"  class="nav-item"><span class="nav-item-icon">👤</span> My Profile</a>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="sidebar-user">
+        <div class="sidebar-avatar" id="sidebar-avatar">S</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name" id="sidebar-name">Student</div>
+          <div class="sidebar-user-role">Student</div>
+        </div>
+        <button class="btn-logout" id="btn-logout">🚪</button>
+      </div>
+    </div>
+  </aside>
+
+  <main class="student-main">
+    <div class="page-content">
+      <div class="page-hero">
+        <button class="btn-hamburger hero-hamburger" id="btn-hamburger" onclick="toggleSidebar()" aria-label="Menu">
+          <span></span><span></span><span></span>
+        </button>
+        <div class="hero-title-wrap">
+          <h1>📚 Study Material</h1>
+          <p>Notes, Question Banks, MTPs, and Suggested Answers — all in one place</p>
+        </div>
+        <a href="dashboard.html" class="hero-home-btn" title="Home">🏠</a>
+      </div>
+
+      <!-- Paper Tabs -->
+      <div class="paper-tabs-bar" id="paper-tabs-bar">
+        <div class="loading-state">Loading papers...</div>
+      </div>
+
+      <!-- Material Type Tabs -->
+      <div class="mat-type-tabs">
+        <button class="mat-type-btn active" onclick="switchMatType('notes',this)">📒 Notes</button>
+        <button class="mat-type-btn" onclick="switchMatType('questionBank',this)">❓ Question Bank</button>
+        <button class="mat-type-btn" onclick="switchMatType('studyMaterial',this)">📚 Study Material</button>
+        <button class="mat-type-btn" onclick="switchMatType('mtp',this)">📋 MTP</button>
+        <button class="mat-type-btn" onclick="switchMatType('suggested',this)">✅ Suggested Answers</button>
+      </div>
+
+      <!-- PDF List -->
+      <div id="pdf-list-area">
+        <div class="empty-mat">
+          <div class="icon">📚</div>
+          <h3>Select a paper above</h3>
+          <p>Choose a paper to view available study materials</p>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script type="module">
+  import { auth, db } from '../js/firebase-config.js';
+  import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import { collection, doc, getDoc, getDocs }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  let uid=null, userLevel=null;
+  let allPapers=[];
+  let currentPaperId='';
+  let currentMatType='notes';
+
+  const MAT_LABELS = {
+    notes:'Notes', questionBank:'Question Bank',
+    studyMaterial:'Study Material', mtp:'MTP', suggested:'Suggested Answers'
+  };
+
+  function toast(msg,type='info'){
+    const c=document.getElementById('toast-container');
+    const t=document.createElement('div');
+    t.className=`toast toast-${type}`;
+    t.innerHTML=`<span>${{success:'✅',error:'❌',info:'ℹ️'}[type]}</span> ${msg}`;
+    c.appendChild(t);setTimeout(()=>t.remove(),4000);
+  }
+
+  onAuthStateChanged(auth,async(user)=>{
+    if(!user){window.location.href='../index.html';return;}
+    const snap=await getDoc(doc(db,'users',user.uid));
+    if(!snap.exists()){window.location.href='../index.html';return;}
+    const data=snap.data();
+    if(data.role!=='student'||data.status!=='approved'){window.location.href='../index.html';return;}
+    uid=user.uid; userLevel=data.level;
+    document.getElementById('sidebar-avatar').textContent=(data.firstName[0]+data.lastName[0]).toUpperCase();
+    document.getElementById('sidebar-name').textContent=data.firstName+' '+data.lastName;
+    document.getElementById('sb-course').textContent=data.course;
+    document.getElementById('sb-level').textContent=data.level;
+    document.getElementById('page-loader').classList.add('hidden');
+    loadPapers();
+  });
+  document.getElementById('btn-logout').addEventListener('click',async()=>{await signOut(auth);window.location.href='../index.html';});
+
+  async function loadPapers(){
+    try{
+      const snap=await getDocs(collection(db,'courseStructure',userLevel,'papers'));
+      allPapers=[];snap.forEach(d=>allPapers.push({id:d.id,...d.data()}));
+      allPapers.sort((a,b)=>(a.order||0)-(b.order||0));
+      const bar=document.getElementById('paper-tabs-bar');
+      if(!allPapers.length){
+        bar.innerHTML='<div style="padding:8px;color:var(--text-muted);font-size:13px;">No papers set up yet. Ask your admin.</div>';
+        return;
+      }
+      bar.innerHTML=allPapers.map((p,i)=>`
+        <button class="paper-tab-btn ${i===0?'active':''}"
+          id="ptab-${p.id}"
+          onclick="selectPaper('${p.id}',this)">
+          ${p.name.split(':')[0]||p.name}
+        </button>`).join('');
+      // Auto-select first paper
+      selectPaper(allPapers[0].id, document.getElementById('ptab-'+allPapers[0].id));
+    }catch(e){
+      document.getElementById('paper-tabs-bar').innerHTML=
+        '<div style="color:var(--danger);padding:8px;font-size:13px;">Failed to load papers.</div>';
+    }
+  }
+
+  window.selectPaper=function(paperId, btn){
+    currentPaperId=paperId;
+    document.querySelectorAll('.paper-tab-btn').forEach(b=>b.classList.remove('active'));
+    if(btn)btn.classList.add('active');
+    loadMaterials();
+  };
+
+  window.switchMatType=function(type, btn){
+    currentMatType=type;
+    document.querySelectorAll('.mat-type-btn').forEach(b=>b.classList.remove('active'));
+    if(btn)btn.classList.add('active');
+    loadMaterials();
+  };
+
+  async function loadMaterials(){
+    if(!currentPaperId)return;
+    const area=document.getElementById('pdf-list-area');
+    area.innerHTML='<div class="loading-state">⏳ Loading...</div>';
+    try{
+      const snap=await getDoc(doc(db,'materials',userLevel,'papers',currentPaperId));
+      const data=snap.exists()?snap.data():{};
+      const pdfs=data[currentMatType]||[];
+      if(!pdfs.length){
+        const paper=allPapers.find(p=>p.id===currentPaperId);
+        area.innerHTML=`
+          <div class="empty-mat">
+            <div class="icon">📭</div>
+            <h3>No ${MAT_LABELS[currentMatType]} uploaded yet</h3>
+            <p>Your admin hasn't uploaded ${MAT_LABELS[currentMatType].toLowerCase()} for ${paper?.name||'this paper'} yet.<br/>Check back later!</p>
+          </div>`;
+        return;
+      }
+      area.innerHTML=`<div class="pdf-grid">${pdfs.map((pdf,i)=>`
+        <div class="pdf-item">
+          <div class="pdf-icon">📄</div>
+          <div class="pdf-info">
+            <div class="pdf-name">${pdf.name}</div>
+            <div class="pdf-sub">${MAT_LABELS[currentMatType]} • ${allPapers.find(p=>p.id===currentPaperId)?.name||''}</div>
+          </div>
+          <div class="pdf-actions">
+            <button class="btn btn-primary btn-sm" onclick="openPDF('${encodeURIComponent(pdf.url)}','${encodeURIComponent(pdf.name)}')">
+              👁 View
+            </button>
+            <a href="${pdf.url}" target="_blank" class="btn btn-outline btn-sm">↗ New Tab</a>
+          </div>
+        </div>`).join('')}</div>`;
+    }catch(e){
+      area.innerHTML='<div class="empty-mat"><div class="icon">❌</div><h3>Failed to load</h3><p>Please try again.</p></div>';
+      console.error(e);
+    }
+  }
+
+  window.openPDF=function(encodedUrl, encodedName){
+    const url=decodeURIComponent(encodedUrl);
+    const name=decodeURIComponent(encodedName);
+    document.getElementById('pdf-modal-title').textContent=name;
+    // Use Google Docs viewer for GitHub/raw URLs — prevents download in both modal and new tab
+    const viewerUrl=url.includes('github')||url.includes('raw.')
+      ?`https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`
+      :url;
+    document.getElementById('pdf-new-tab-btn').href=viewerUrl;
+    document.getElementById('pdf-iframe').src=viewerUrl;
+    document.getElementById('pdf-modal').classList.add('open');
+    document.body.style.overflow='hidden';
+  };
+
+  window.closePDF=function(){
+    document.getElementById('pdf-modal').classList.remove('open');
+    document.getElementById('pdf-iframe').src='';
+    document.body.style.overflow='';
+  };
+
+  // Close on Escape key
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')closePDF();});
+</script>
+
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+<script>
+  // ── Sidebar Toggle ────────────────────────────────────────
+  window.toggleSidebar = function(){
+    const sb  = document.getElementById('sidebar');
+    const btn = document.getElementById('btn-hamburger');
+    const ov  = document.getElementById('sidebar-overlay');
+    const open = sb.classList.toggle('open');
+    btn.classList.toggle('open', open);
+    ov.classList.toggle('show', open);
+  };
+  window.closeSidebar = function(){
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('btn-hamburger').classList.remove('open');
+    document.getElementById('sidebar-overlay').classList.remove('show');
+  };
+  document.addEventListener('DOMContentLoaded', function(){
+    document.querySelectorAll('.nav-item').forEach(function(a){
+      a.addEventListener('click', window.closeSidebar);
+    });
+  });
+</script>
+</body>
+</html>

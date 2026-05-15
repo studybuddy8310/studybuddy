@@ -732,7 +732,7 @@
         rows.innerHTML='<div style="padding:20px;color:var(--text-muted);text-align:center;">No MCQs available for this paper yet.</div>';
         return;
       }
-      const entries=Object.entries(chaptersData);
+      const entries=Object.entries(chaptersData).sort((a,b)=>a[0].localeCompare(b[0],undefined,{numeric:true,sensitivity:'base'}));
       rows.innerHTML=entries.map(([ch,qs],i)=>`
         <div class="chapter-row" id="chrow-${i}" onclick="toggleChapter('${ch}',${i})">
           <div class="chapter-row-num">${i+1}</div>
@@ -972,16 +972,15 @@
 
   function submitPractice(){
     let correct=0,wrong=0,skip=0;
-    const marks=questions[0]?.marks||1;
     questions.forEach((q,i)=>{
       if(!answers[i])skip++;
       else if(answers[i]===q.correct)correct++;
       else wrong++;
     });
     const total=questions.length;
-    const score=correct*marks;
-    const totalMarks=total*marks;
-    const pct=Math.round((score/totalMarks)*100);
+    const score=correct;          // 1 mark per question
+    const totalMarks=total;       // total = number of questions
+    const pct=total>0?Math.round((score/totalMarks)*100):0;
     saveScore(correct,wrong,total,pct);
     showResultScreen(score,totalMarks,correct,wrong,skip,pct);
   }

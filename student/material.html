@@ -103,6 +103,7 @@
     <div class="pdf-modal-title" id="pdf-modal-title">Document</div>
     <div class="pdf-modal-actions">
       <a id="pdf-new-tab-btn" href="#" target="_blank" class="btn-pdf-new-tab">↗ Open in New Tab</a>
+      <a id="pdf-download-btn" href="#" target="_blank" class="btn-pdf-new-tab" style="background:var(--success,#16a34a);">⬇ Download</a>
       <button class="btn-pdf-close" onclick="closePDF()">✕ Close</button>
     </div>
   </div>
@@ -301,11 +302,25 @@
     const url=decodeURIComponent(encodedUrl);
     const name=decodeURIComponent(encodedName);
     document.getElementById('pdf-modal-title').textContent=name;
-    // Use Google Docs viewer for GitHub/raw URLs — prevents download in both modal and new tab
-    const viewerUrl=url.includes('github')||url.includes('raw.')
-      ?`https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`
-      :url;
+
+    let viewerUrl=url;
+    let downloadUrl=url;
+
+    // ── Google Drive URL handling ─────────────────────────────
+    const driveMatch=url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+    if(driveMatch){
+      const fileId=driveMatch[1];
+      viewerUrl=`https://drive.google.com/file/d/${fileId}/preview`;
+      downloadUrl=`https://drive.google.com/uc?export=download&id=${fileId}`;
+    }
+    // ── GitHub / raw URL handling ─────────────────────────────
+    else if(url.includes('github')||url.includes('raw.')){
+      viewerUrl=`https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
+      downloadUrl=url; // direct raw URL triggers download
+    }
+
     document.getElementById('pdf-new-tab-btn').href=viewerUrl;
+    document.getElementById('pdf-download-btn').href=downloadUrl;
     document.getElementById('pdf-iframe').src=viewerUrl;
     document.getElementById('pdf-modal').classList.add('open');
     document.body.style.overflow='hidden';

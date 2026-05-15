@@ -1,7 +1,7 @@
 {
   "name": "StudyBuddy",
   "short_name": "StudyBuddy",
-  "description": "Your CA exam study companion — track progress, practice MCQs, and build streaks.",
+  "description": "Your CA exam study companion — track progress, practice MCQs, and build Habit & Consistency.",
   "start_url": "/index.html",
   "display": "fullscreen",
   "background_color": "#1a1a4e",

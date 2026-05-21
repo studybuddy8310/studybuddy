@@ -101,6 +101,9 @@
         <button class="page-tab" onclick="switchTab('courserequests')">
           🎓 Course Change Requests <span id="tab-course-req-count"></span>
         </button>
+        <button class="page-tab" onclick="switchTab('invitelinks')">
+          🔗 Invite Links
+        </button>
       </div>
 
       <!-- Filter Bar -->
@@ -171,6 +174,62 @@
         </div>
       </div>
 
+      <!-- Invite Links Panel -->
+      <div id="invite-links-panel" style="display:none;">
+        <div style="margin-bottom:20px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+            <select id="invite-role" class="form-select" style="width:auto; min-width:140px;">
+              <option value="student">Student</option>
+              <option value="admin">Admin</option>
+            </select>
+            <select id="invite-expiry" class="form-select" style="width:auto; min-width:160px;">
+              <option value="1">Expires in 1 day</option>
+              <option value="3">Expires in 3 days</option>
+              <option value="7" selected>Expires in 7 days</option>
+              <option value="30">Expires in 30 days</option>
+              <option value="0">Never expires</option>
+            </select>
+            <select id="invite-uses" class="form-select" style="width:auto; min-width:160px;">
+              <option value="1">1 use</option>
+              <option value="5">5 uses</option>
+              <option value="10">10 uses</option>
+              <option value="0">Unlimited uses</option>
+            </select>
+            <button class="btn btn-primary" onclick="generateInviteLink()">🔗 Generate Invite Link</button>
+          </div>
+        </div>
+
+        <div id="invite-generated-box" style="display:none; margin-bottom:20px; padding:16px; background:var(--success-light,#e6f4ea); border-radius:10px; border:1px solid var(--success,#28a745);">
+          <div style="font-weight:600; margin-bottom:8px; color:var(--success,#28a745);">✅ Invite link generated!</div>
+          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+            <input id="invite-link-input" type="text" class="form-input" readonly
+              style="flex:1; min-width:200px; font-size:13px; background:#fff;"/>
+            <button class="btn btn-outline" onclick="copyInviteLink()">📋 Copy</button>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <div class="empty-state hidden" id="invite-empty">
+            <div class="icon">🔗</div>
+            <h3>No invite links yet</h3>
+            <p>Generate your first invite link above.</p>
+          </div>
+          <table id="invite-table">
+            <thead>
+              <tr>
+                <th>Role</th>
+                <th>Created</th>
+                <th>Expires</th>
+                <th>Uses</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="invite-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
     </div>
   </main>
 </div>
@@ -216,7 +275,7 @@
   import { Modal } from '../js/utils/modal.js';
   import { collection, query, where, orderBy,
     getDocs, doc, updateDoc, serverTimestamp, getDoc,
-    deleteDoc, writeBatch, setDoc }
+    deleteDoc, writeBatch, setDoc, addDoc, Timestamp }
     from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
   // ── State ──────────────────────────────────────────────────
@@ -302,21 +361,111 @@
     currentTab = tab;
     document.querySelectorAll('.page-tab').forEach((t, i) => {
       t.classList.toggle('active',
-        ['pending','approved','all','admins','clearrequests','courserequests'][i] === tab);
+        ['pending','approved','all','admins','clearrequests','courserequests','invitelinks'][i] === tab);
     });
     document.getElementById('search-input').value = '';
     const isClear  = tab === 'clearrequests';
     const isCourse = tab === 'courserequests';
-    const isSpecial = isClear || isCourse;
+    const isInvite = tab === 'invitelinks';
+    const isSpecial = isClear || isCourse || isInvite;
     document.getElementById('clear-requests-panel').style.display  = isClear  ? 'block' : 'none';
     document.getElementById('course-requests-panel').style.display = isCourse ? 'block' : 'none';
+    document.getElementById('invite-links-panel').style.display    = isInvite ? 'block' : 'none';
     document.querySelector('.table-wrap').style.display = isSpecial ? 'none' : '';
     const filterBar = document.querySelector('.filter-bar');
     if(filterBar) filterBar.style.display = isSpecial ? 'none' : '';
     if(isClear)  loadClearRequests();
     else if(isCourse) loadCourseChangeRequests();
+    else if(isInvite) loadInviteLinks();
     else renderTable();
   };
+
+  // ── Invite Links ───────────────────────────────────────────
+  window.generateInviteLink = async function() {
+    const role    = document.getElementById('invite-role').value;
+    const expDays = parseInt(document.getElementById('invite-expiry').value);
+    const maxUses = parseInt(document.getElementById('invite-uses').value);
+
+    const token = crypto.randomUUID().replace(/-/g,'').substring(0,24);
+    const now   = Date.now();
+    const expiresAt = expDays > 0 ? new Date(now + expDays * 86400000) : null;
+
+    await setDoc(doc(db, 'invites', token), {
+      role,
+      createdAt:  serverTimestamp(),
+      expiresAt:  expiresAt ? Timestamp.fromDate(expiresAt) : null,
+      maxUses:    maxUses, // 0 = unlimited
+      usedCount:  0,
+      active:     true,
+    });
+
+    const base = window.location.origin + window.location.pathname.replace('admin/users.html','');
+    const link = `${base}index.html?invite=${token}`;
+    document.getElementById('invite-link-input').value = link;
+    document.getElementById('invite-generated-box').style.display = 'block';
+    loadInviteLinks();
+  };
+
+  window.copyInviteLink = function() {
+    const input = document.getElementById('invite-link-input');
+    navigator.clipboard.writeText(input.value).then(() => {
+      showToast('Invite link copied!', 'success');
+    });
+  };
+
+  window.revokeInvite = async function(token) {
+    await updateDoc(doc(db, 'invites', token), { active: false });
+    showToast('Invite link revoked.', 'success');
+    loadInviteLinks();
+  };
+
+  async function loadInviteLinks() {
+    const snap = await getDocs(
+      query(collection(db, 'invites'), orderBy('createdAt', 'desc'))
+    );
+    const tbody = document.getElementById('invite-tbody');
+    const emptyEl = document.getElementById('invite-empty');
+    tbody.innerHTML = '';
+
+    if (snap.empty) {
+      emptyEl.classList.remove('hidden');
+      return;
+    }
+    emptyEl.classList.add('hidden');
+
+    snap.forEach(d => {
+      const inv  = d.data();
+      const token = d.id;
+      const created = inv.createdAt ? inv.createdAt.toDate().toLocaleDateString() : '—';
+      const expires = inv.expiresAt ? inv.expiresAt.toDate().toLocaleDateString() : 'Never';
+      const uses    = inv.maxUses === 0 ? `${inv.usedCount} / ∞` : `${inv.usedCount} / ${inv.maxUses}`;
+
+      const now = Date.now();
+      const expired = inv.expiresAt && inv.expiresAt.toDate() < new Date();
+      const maxed   = inv.maxUses > 0 && inv.usedCount >= inv.maxUses;
+      const status  = !inv.active ? '🔴 Revoked' : expired ? '🟡 Expired' : maxed ? '🟡 Maxed' : '🟢 Active';
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td style="text-transform:capitalize;">${inv.role}</td>
+        <td>${created}</td>
+        <td>${expires}</td>
+        <td>${uses}</td>
+        <td>${status}</td>
+        <td>
+          ${inv.active && !expired && !maxed
+            ? `<button class="btn btn-outline" style="padding:4px 10px; font-size:12px;"
+                onclick="navigator.clipboard.writeText('${window.location.origin}${window.location.pathname.replace('admin/users.html','')}index.html?invite=${token}').then(()=>showToast('Copied!','success'))">
+                📋 Copy
+               </button>
+               <button class="btn btn-danger" style="padding:4px 10px; font-size:12px; margin-left:6px;"
+                onclick="revokeInvite('${token}')">Revoke</button>`
+            : '<span class="text-secondary" style="font-size:12px;">—</span>'
+          }
+        </td>`;
+      tbody.appendChild(tr);
+    });
+  }
 
   // ── Filter ─────────────────────────────────────────────────
   window.filterTable = renderTable;

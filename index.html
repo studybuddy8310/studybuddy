@@ -313,11 +313,48 @@
       onAuthStateChanged
     } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
     import {
-      doc, setDoc, getDoc, serverTimestamp
+      doc, setDoc, getDoc, serverTimestamp, updateDoc, Timestamp
     } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
     // Make auth available globally for the pending screen logout button
     window.auth = auth;
+
+    // ── Invite Token Detection ───────────────────────────────
+    const _inviteToken = new URLSearchParams(window.location.search).get('invite');
+    let   _inviteValid = false;
+    let   _inviteRole  = null; // if set, pre-select role
+
+    async function validateInviteToken() {
+      if (!_inviteToken) return;
+      try {
+        const invSnap = await getDoc(doc(db, 'invites', _inviteToken));
+        if (!invSnap.exists()) return;
+        const inv = invSnap.data();
+        if (!inv.active) return;
+        if (inv.expiresAt && inv.expiresAt.toDate() < new Date()) return;
+        if (inv.maxUses > 0 && inv.usedCount >= inv.maxUses) return;
+        // Token is valid
+        _inviteValid = true;
+        _inviteRole  = inv.role || null;
+        // Show a banner on the signup tab
+        switchTab('signup');
+        const banner = document.createElement('div');
+        banner.id = 'invite-banner';
+        banner.style.cssText = 'background:var(--success-light,#e6f4ea);border:1px solid var(--success,#28a745);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:14px;color:var(--success,#28a745);font-weight:600;';
+        banner.textContent = '🎉 You have been invited! Your account will be approved instantly.';
+        const signupForm = document.getElementById('signup-form');
+        signupForm.parentNode.insertBefore(banner, signupForm);
+        // Pre-select role if specified
+        if (_inviteRole) {
+          const roleSelect = document.getElementById('sig-role');
+          if (roleSelect) roleSelect.value = _inviteRole;
+          roleSelect.dispatchEvent(new Event('change'));
+        }
+      } catch(e) {
+        console.warn('Invite token validation error', e);
+      }
+    }
+    validateInviteToken();
 
     // ── Page Loader ─────────────────────────────────────────
     window.addEventListener('load', () => {
@@ -626,16 +663,36 @@
           course,
           level,
           role,
-          status:    role === 'admin' ? 'pending' : 'pending', // both need approval
+          status:    _inviteValid ? 'approved' : (role === 'admin' ? 'pending' : 'pending'), // invite bypasses approval
           createdAt: serverTimestamp()
         });
 
-        // Show pending screen
-        document.getElementById('tab-signup').style.display  = 'none';
-        document.getElementById('tab-pending').style.display = 'block';
-        document.querySelectorAll('#auth-tabs .auth-tab').forEach(t => t.classList.remove('active'));
+        // If joining via invite, mark token used
+        if (_inviteValid && _inviteToken) {
+          const invRef  = doc(db, 'invites', _inviteToken);
+          const invSnap = await getDoc(invRef);
+          if (invSnap.exists()) {
+            const newCount = (invSnap.data().usedCount || 0) + 1;
+            const maxUses  = invSnap.data().maxUses || 0;
+            await updateDoc(invRef, {
+              usedCount: newCount,
+              active: maxUses > 0 && newCount >= maxUses ? false : invSnap.data().active
+            });
+          }
+        }
 
-        showToast('Account created! Waiting for admin approval.', 'success');
+        // Show pending screen (or redirect if via invite)
+        if (_inviteValid) {
+          showToast('Account created! Redirecting...', 'success');
+          setTimeout(() => {
+            window.location.href = role === 'admin' ? 'admin/dashboard.html' : 'student/dashboard.html';
+          }, 1200);
+        } else {
+          document.getElementById('tab-signup').style.display  = 'none';
+          document.getElementById('tab-pending').style.display = 'block';
+          document.querySelectorAll('#auth-tabs .auth-tab').forEach(t => t.classList.remove('active'));
+          showToast('Account created! Waiting for admin approval.', 'success');
+        }
 
       } catch (err) {
         let msg = 'Signup failed. Please try again.';

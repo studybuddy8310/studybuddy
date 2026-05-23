@@ -626,8 +626,6 @@
       sel.value = swPaper; sel.disabled = true;
       document.getElementById('sw-digits').textContent = fmtDisp(swElapsed);
       document.getElementById('sw-btn-stop').style.display = 'flex';
-      swRenderBadge();
-
       if (draft.isPaused) {
         swPaused = true; swRunning = false;
         document.getElementById('sw-btn-play').textContent = '▶';
@@ -728,8 +726,6 @@
   document.getElementById('sw-btn-play').addEventListener('click',  swTogglePlay);
   document.getElementById('sw-btn-stop').addEventListener('click',  swStop);
   document.getElementById('sw-btn-reset').addEventListener('click', swReset);
-  document.getElementById('sw-target-badge').addEventListener('click', swSetTarget);
-
   // Todo
   document.getElementById('btn-add-todo').addEventListener('click', addTodo);
   document.getElementById('todo-input').addEventListener('keydown', e=>{ if(e.key==='Enter') addTodo(); });
@@ -1037,35 +1033,6 @@
   // ─────────────────────────────────────────
   //  STOPWATCH
   // ─────────────────────────────────────────
-  function swSetTarget() {
-    if (swRunning||swPaused) { toast('Cannot change target while running.','error'); return; }
-    const cur=swTargetSecs>0?`Current: ${fmtTime(swTargetSecs)}. `:'';
-    const raw=window.prompt(`${cur}Set a target (e.g. "1h 30m", "90m"). Leave blank to clear:`,'');
-    if (raw===null) return;
-    if (!raw.trim()) { swTargetSecs=0; swTargetHit=false; swRenderBadge(); return; }
-    const parsed=parseTarget(raw.trim());
-    if (!parsed) { toast('Try "1h 30m" or "45m"','error'); return; }
-    swTargetSecs=parsed; swTargetHit=false; swRenderBadge();
-    toast(`Target set: ${fmtTime(swTargetSecs)}`,'success');
-  }
-
-  function parseTarget(s) {
-    let t=0;
-    const hm=s.match(/(\d+(\.\d+)?)\s*h/i); const mm=s.match(/(\d+)\s*m/i);
-    if(hm) t+=parseFloat(hm[1])*3600; if(mm) t+=parseInt(mm[1])*60;
-    if(!hm&&!mm){const n=parseInt(s);if(!isNaN(n))t=n*60;}
-    return t>0?Math.round(t):0;
-  }
-
-  function swRenderBadge() {
-    const b=document.getElementById('sw-target-badge');
-    if (!swTargetSecs) { b.className='sw-target-badge no-target'; b.textContent='🎯 No target set — tap to set one'; return; }
-    if (swTargetHit)   { b.className='sw-target-badge hit'; b.textContent=`🎉 Target hit! ${fmtTime(swTargetSecs)}`; return; }
-    const rem=Math.max(swTargetSecs-swElapsed,0);
-    b.className='sw-target-badge';
-    b.textContent=`🎯 Target: ${fmtTime(swTargetSecs)} — ${fmtTime(rem)} remaining`;
-  }
-
   function swTogglePlay() {
     if (swRunning) { swPause(); return; }
     if (swPaused)  { swResume(); return; }
@@ -1089,7 +1056,7 @@
     clearInterval(swInterval);
     document.getElementById('sw-btn-play').textContent='▶';
     setSwStatus('paused','Paused ⏸');
-    swRenderBadge(); saveDraftLS();
+    saveDraftLS();
   }
 
   function swResume() {
@@ -1105,12 +1072,6 @@
       swElapsed=swElapsedAtResume+Math.floor((Date.now()-swRunTs)/1000);
       document.getElementById('sw-digits').textContent=fmtDisp(swElapsed);
       setSwStatus('running','Keep going! 💪');
-      if (swTargetSecs>0) {
-        if (!swTargetHit && swElapsed>=swTargetSecs) {
-          swTargetHit=true; swRenderBadge();
-          toast(`🎉 Target reached! ${fmtTime(swTargetSecs)} studied!`,'success');
-        } else if (!swTargetHit) swRenderBadge();
-      }
     },1000);
   }
 
@@ -1126,22 +1087,10 @@
       </label>`).join('')
       :'<p style="font-size:13px;color:#64748B;margin:0;">No tasks were added.</p>';
 
-    const targetRow=swTargetSecs>0?`
-      <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;
-        background:${swTargetHit?'rgba(0,201,167,0.1)':'rgba(45,91,227,0.08)'};
-        border-radius:8px;margin-bottom:12px;">
-        <span style="font-size:18px;">${swTargetHit?'🎯✅':'🎯'}</span>
-        <div>
-          <div style="font-size:12px;font-weight:700;color:${swTargetHit?'#00C9A7':'#2D5BE3'};">Target: ${fmtTime(swTargetSecs)}</div>
-          <div style="font-size:11px;color:#64748B;">${swTargetHit?'Target achieved! 🎉':`Studied ${fmtTime(final)} of ${fmtTime(swTargetSecs)}`}</div>
-        </div>
-      </div>`:'';
-
     const choice=await Modal.custom({
       icon:'⏱️', title:'Stop Stopwatch',
       body:`<div style="text-align:left;">
         <p style="font-size:13px;color:#64748B;margin-bottom:12px;">⏱️ <strong>${fmtDisp(final)}</strong> on <strong>${swPaper}</strong></p>
-        ${targetRow}
         ${todos.length?'<p style="font-size:12px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Mark completed tasks:</p>':''}
         <div style="max-height:200px;overflow-y:auto;">${todoHTML}</div>
       </div>`,
@@ -1168,7 +1117,6 @@
     document.getElementById('sw-btn-stop').style.display='none';
     document.getElementById('sw-paper-select').disabled=false;
     setSwStatus('idle','Press ▶ to begin');
-    swRenderBadge();
   }
 
   // ─────────────────────────────────────────

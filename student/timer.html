@@ -30,42 +30,19 @@
       border-radius:var(--radius-xl); padding:28px 24px; text-align:center;
     }
 
-    /* ── Timer Ring (countdown) ── */
-    .timer-ring-wrap { position:relative; width:380px; height:380px; margin:0 auto 4px; }
-    .timer-ring { position:absolute; inset:0; }
-    .ring-track { fill:none; stroke:var(--border); stroke-width:10; }
-    .ring-fill {
-      fill:none; stroke:var(--primary); stroke-width:10; stroke-linecap:round;
-      transform:rotate(-90deg); transform-origin:50% 50%;
-      transition:stroke-dashoffset 1s linear, stroke 0.3s;
-    }
-    .ring-fill.paused   { stroke:var(--warning); }
-    .ring-fill.finished { stroke:var(--success); }
-    .timer-center {
-      position:absolute; inset:0; display:flex;
-      flex-direction:column; align-items:center; justify-content:center;
-    }
-
-    /* ── Stopwatch Clock Display (no ring) ── */
+    /* ── Clock Display (no ring) ── */
     .clock-display {
       margin:24px auto 20px;
       display:flex; flex-direction:column; align-items:center; gap:10px;
     }
-
-    /* Shared digit styles */
     .timer-digits {
-      font-family:var(--font-heading); font-size:2.8rem; font-weight:700;
-      color:var(--text-primary); letter-spacing:2px; line-height:1;
+      font-family:var(--font-heading); font-size:4rem; font-weight:800;
+      color:var(--text-primary); letter-spacing:4px; line-height:1;
       transition:color 0.3s;
-    }
-    /* Stopwatch digits slightly larger since no ring around them */
-    .clock-display .timer-digits {
-      font-size:4rem; font-weight:800; letter-spacing:4px;
     }
     .timer-digits.running  { color:var(--primary); }
     .timer-digits.paused   { color:var(--warning); }
     .timer-digits.finished { color:var(--success); }
-    .timer-state-label { font-size:12px; color:var(--text-muted); margin-top:5px; font-weight:500; }
     .status-pill {
       display:inline-flex; align-items:center; gap:6px;
       padding:5px 14px; border-radius:20px;
@@ -84,6 +61,20 @@
     .status-pill.finished .status-dot { background:var(--success); }
     .status-pill.idle     .status-dot { background:var(--text-muted); }
     @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.25} }
+
+    /* Timer progress bar (replaces ring) */
+    .timer-progress-wrap { width:100%; margin:0 auto 6px; }
+    .timer-progress-track {
+      width:100%; height:6px; background:var(--border);
+      border-radius:3px; overflow:hidden;
+    }
+    .timer-progress-fill {
+      height:100%; background:var(--primary); border-radius:3px;
+      transition:width 1s linear, background 0.3s;
+      width:0%;
+    }
+    .timer-progress-fill.paused   { background:var(--warning); }
+    .timer-progress-fill.finished { background:var(--success); }
 
     /* Set time row */
     .set-time-row { display:flex; align-items:center; justify-content:center; gap:8px; margin:12px 0; }
@@ -124,17 +115,6 @@
     .btn-reset { background:var(--surface-2); color:var(--text-muted); }
     .btn-reset:hover { background:var(--border); }
 
-    /* Target badge */
-    .sw-target-badge {
-      display:inline-flex; align-items:center; gap:6px;
-      background:var(--primary-light); border:1.5px solid rgba(45,91,227,0.2);
-      border-radius:20px; padding:4px 12px; font-size:12px; font-weight:600;
-      color:var(--primary); margin-bottom:14px; cursor:pointer; transition:all 0.2s;
-    }
-    .sw-target-badge:hover { background:rgba(45,91,227,0.15); }
-    .sw-target-badge.no-target { background:var(--surface-2); border-color:var(--border); color:var(--text-muted); }
-    .sw-target-badge.hit { background:rgba(0,201,167,0.12); border-color:rgba(0,201,167,0.3); color:var(--success); animation:badge-pulse 1s ease; }
-    @keyframes badge-pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.06)} }
 
     /* ── Resume Banner ── */
     .resume-banner {
@@ -315,16 +295,19 @@
                 <select class="form-select" id="paper-select"><option value="General Study">General Study</option></select>
               </div>
 
-              <!-- Ring (countdown) -->
-              <div class="timer-ring-wrap">
-                <svg class="timer-ring" viewBox="0 0 200 200">
-                  <circle class="ring-track" cx="100" cy="100" r="88"/>
-                  <circle class="ring-fill" id="ring-fill" cx="100" cy="100" r="88"
-                    stroke-dasharray="553" stroke-dashoffset="0"/>
-                </svg>
-                <div class="timer-center">
-                  <div class="timer-digits" id="timer-digits">00:00:00</div>
-                  <div class="timer-state-label" id="timer-label">Set time below</div>
+              <!-- Clean clock display -->
+              <div class="clock-display">
+                <div class="timer-digits" id="timer-digits">00:00:00</div>
+                <div class="status-pill idle" id="timer-status-pill">
+                  <div class="status-dot"></div>
+                  <span id="timer-status-text">Set time below</span>
+                </div>
+              </div>
+
+              <!-- Thin progress bar -->
+              <div class="timer-progress-wrap">
+                <div class="timer-progress-track">
+                  <div class="timer-progress-fill" id="timer-progress"></div>
                 </div>
               </div>
 
@@ -358,8 +341,6 @@
                 <label>📚 Studying Which Paper?</label>
                 <select class="form-select" id="sw-paper-select"><option value="General Study">General Study</option></select>
               </div>
-
-              <div id="sw-target-badge" class="sw-target-badge no-target">🎯 No target set — tap to set one</div>
 
               <!-- Clean clock display -->
               <div class="clock-display">
@@ -614,17 +595,19 @@
       inp_h.value = h; inp_h.disabled = true;
       inp_m.value = m; inp_m.disabled = true;
       const rem = Math.max(totalSecs - elapsedSecs, 0);
+      document.getElementById('timer-digits').textContent = fmtDisp(rem);
+      document.getElementById('timer-progress').style.width = (elapsedSecs/totalSecs*100).toFixed(1)+'%';
       document.getElementById('btn-stop').style.display = 'flex';
 
       if (draft.isPaused) {
         isPaused = true; isRunning = false;
-        setTimerRing(elapsedSecs, totalSecs, 'paused', 'Paused ⏸ — tap ▶ to resume');
+        setTimerStatus('paused','Paused ⏸ — tap ▶ to resume');
         document.getElementById('btn-play').textContent = '▶';
       } else {
         runTs = Date.now();
         isRunning = true; isPaused = false;
         document.getElementById('btn-play').textContent = '⏸';
-        setTimerRing(elapsedSecs, totalSecs, 'running', 'Keep going! 💪');
+        setTimerStatus('running','Keep going! 💪');
         runTick();
       }
       startDraftLoop();
@@ -643,7 +626,6 @@
       sel.value = swPaper; sel.disabled = true;
       document.getElementById('sw-digits').textContent = fmtDisp(swElapsed);
       document.getElementById('sw-btn-stop').style.display = 'flex';
-      swRenderBadge();
 
       if (draft.isPaused) {
         swPaused = true; swRunning = false;
@@ -685,23 +667,14 @@
   }
 
   // ─────────────────────────────────────────
-  //  STATUS HELPERS
+  //  STATUS PILL HELPERS
   // ─────────────────────────────────────────
-  const CIRCUM = 2 * Math.PI * 88; // ≈553
-
-  // Timer uses ring + label
-  function setTimerRing(elapsed, total, state, label) {
-    const rem    = Math.max(total - elapsed, 0);
-    const offset = total > 0 ? (rem / total) * CIRCUM : 0;
-    const ring   = document.getElementById('ring-fill');
-    ring.style.strokeDashoffset = offset.toFixed(1);
-    ring.className = 'ring-fill' + (state==='paused'?' paused':state==='finished'?' finished':'');
-    document.getElementById('timer-digits').textContent  = fmtDisp(state==='finished' ? 0 : rem);
-    document.getElementById('timer-digits').className    = `timer-digits ${state}`;
-    document.getElementById('timer-label').textContent   = label;
+  function setTimerStatus(state, text) {
+    const pill = document.getElementById('timer-status-pill');
+    pill.className = `status-pill ${state}`;
+    document.getElementById('timer-status-text').textContent = text;
+    document.getElementById('timer-digits').className = `timer-digits ${state}`;
   }
-
-  // Stopwatch uses status pill (no ring)
   function setSwStatus(state, text) {
     const pill = document.getElementById('sw-status-pill');
     pill.className = `status-pill ${state}`;
@@ -754,7 +727,6 @@
   document.getElementById('sw-btn-play').addEventListener('click',  swTogglePlay);
   document.getElementById('sw-btn-stop').addEventListener('click',  swStop);
   document.getElementById('sw-btn-reset').addEventListener('click', swReset);
-  document.getElementById('sw-target-badge').addEventListener('click', swSetTarget);
 
   // Todo
   document.getElementById('btn-add-todo').addEventListener('click', addTodo);
@@ -987,7 +959,8 @@
     document.getElementById('btn-stop').style.display='flex';
     isRunning=true; isPaused=false;
     document.getElementById('btn-play').textContent='⏸';
-    setTimerRing(0, totalSecs, 'running', 'Keep going! 💪');
+    document.getElementById('timer-progress').classList.remove('paused','finished');
+    setTimerStatus('running','Keep going! 💪');
     startDraftLoop();
     runTick();
   }
@@ -998,14 +971,16 @@
     isRunning=false; isPaused=true;
     clearInterval(timerInterval);
     document.getElementById('btn-play').textContent='▶';
-    setTimerRing(elapsedSecs, totalSecs, 'paused', 'Paused ⏸');
+    document.getElementById('timer-progress').classList.add('paused');
+    setTimerStatus('paused','Paused ⏸');
     saveDraftLS(); // immediate save on pause
   }
 
   function timerResume() {
     runTs=Date.now(); isRunning=true; isPaused=false;
     document.getElementById('btn-play').textContent='⏸';
-    setTimerRing(elapsedSecs, totalSecs, 'running', 'Keep going! 💪');
+    document.getElementById('timer-progress').classList.remove('paused');
+    setTimerStatus('running','Keep going! 💪');
     runTick();
   }
 
@@ -1014,10 +989,15 @@
     timerInterval=setInterval(()=>{
       elapsedSecs=elapsedAtResume+Math.floor((Date.now()-runTs)/1000);
       const rem=Math.max(totalSecs-elapsedSecs,0);
-      setTimerRing(elapsedSecs, totalSecs, 'running', 'Keep going! 💪');
+      document.getElementById('timer-digits').textContent=fmtDisp(rem);
+      document.getElementById('timer-progress').style.width=(elapsedSecs/totalSecs*100).toFixed(1)+'%';
+      setTimerStatus('running','Keep going! 💪');
       if (rem<=0) {
         clearInterval(timerInterval); isRunning=false; elapsedSecs=totalSecs;
-        setTimerRing(totalSecs, totalSecs, 'finished', 'Session complete! 🎉');
+        document.getElementById('timer-progress').style.width='100%';
+        document.getElementById('timer-progress').classList.add('finished');
+        document.getElementById('timer-digits').textContent=fmtDisp(0);
+        setTimerStatus('finished','Session complete! 🎉');
         stopDraftLoop();
         onTimerComplete();
       }
@@ -1041,49 +1021,20 @@
   function timerReset() {
     clearInterval(timerInterval); stopDraftLoop();
     isRunning=false; isPaused=false; elapsedSecs=0; totalSecs=0; elapsedAtResume=0; runTs=null;
-    const ring=document.getElementById('ring-fill');
-    ring.style.strokeDashoffset='0'; ring.className='ring-fill';
+    document.getElementById('timer-progress').style.width='0%';
+    document.getElementById('timer-progress').classList.remove('paused','finished');
     document.getElementById('timer-digits').textContent='00:00:00';
-    document.getElementById('timer-digits').className='timer-digits';
-    document.getElementById('timer-label').textContent='Set time below';
     document.getElementById('btn-play').textContent='▶';
     document.getElementById('btn-stop').style.display='none';
     document.getElementById('inp-h').disabled=false;
     document.getElementById('inp-m').disabled=false;
     document.getElementById('paper-select').disabled=false;
+    setTimerStatus('idle','Set time below');
   }
 
   // ─────────────────────────────────────────
   //  STOPWATCH
   // ─────────────────────────────────────────
-  function swSetTarget() {
-    if (swRunning||swPaused) { toast('Cannot change target while running.','error'); return; }
-    const cur=swTargetSecs>0?`Current: ${fmtTime(swTargetSecs)}. `:'';
-    const raw=window.prompt(`${cur}Set a target (e.g. "1h 30m", "90m"). Leave blank to clear:`,'');
-    if (raw===null) return;
-    if (!raw.trim()) { swTargetSecs=0; swTargetHit=false; swRenderBadge(); return; }
-    const parsed=parseTarget(raw.trim());
-    if (!parsed) { toast('Try "1h 30m" or "45m"','error'); return; }
-    swTargetSecs=parsed; swTargetHit=false; swRenderBadge();
-    toast(`Target set: ${fmtTime(swTargetSecs)}`,'success');
-  }
-
-  function parseTarget(s) {
-    let t=0;
-    const hm=s.match(/(\d+(\.\d+)?)\s*h/i); const mm=s.match(/(\d+)\s*m/i);
-    if(hm) t+=parseFloat(hm[1])*3600; if(mm) t+=parseInt(mm[1])*60;
-    if(!hm&&!mm){const n=parseInt(s);if(!isNaN(n))t=n*60;}
-    return t>0?Math.round(t):0;
-  }
-
-  function swRenderBadge() {
-    const b=document.getElementById('sw-target-badge');
-    if (!swTargetSecs) { b.className='sw-target-badge no-target'; b.textContent='🎯 No target set — tap to set one'; return; }
-    if (swTargetHit)   { b.className='sw-target-badge hit'; b.textContent=`🎉 Target hit! ${fmtTime(swTargetSecs)}`; return; }
-    const rem=Math.max(swTargetSecs-swElapsed,0);
-    b.className='sw-target-badge';
-    b.textContent=`🎯 Target: ${fmtTime(swTargetSecs)} — ${fmtTime(rem)} remaining`;
-  }
 
   function swTogglePlay() {
     if (swRunning) { swPause(); return; }
@@ -1108,7 +1059,7 @@
     clearInterval(swInterval);
     document.getElementById('sw-btn-play').textContent='▶';
     setSwStatus('paused','Paused ⏸');
-    swRenderBadge(); saveDraftLS();
+    saveDraftLS();
   }
 
   function swResume() {
@@ -1126,9 +1077,9 @@
       setSwStatus('running','Keep going! 💪');
       if (swTargetSecs>0) {
         if (!swTargetHit && swElapsed>=swTargetSecs) {
-          swTargetHit=true; swRenderBadge();
+          swTargetHit=true;
           toast(`🎉 Target reached! ${fmtTime(swTargetSecs)} studied!`,'success');
-        } else if (!swTargetHit) swRenderBadge();
+        }
       }
     },1000);
   }
@@ -1187,7 +1138,6 @@
     document.getElementById('sw-btn-stop').style.display='none';
     document.getElementById('sw-paper-select').disabled=false;
     setSwStatus('idle','Press ▶ to begin');
-    swRenderBadge();
   }
 
   // ─────────────────────────────────────────

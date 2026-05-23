@@ -9,6 +9,24 @@
   <style>
     .timer-page { display:grid; grid-template-columns:1fr 360px; gap:24px; align-items:start; }
 
+    /* ── Mode Tabs ───────────────────────────────────────────── */
+    .mode-tabs {
+      display:flex; gap:0; margin-bottom:20px;
+      background:var(--surface-2); border-radius:var(--radius-lg);
+      padding:4px; border:1px solid var(--border);
+    }
+    .mode-tab {
+      flex:1; padding:10px 0; border:none; border-radius:calc(var(--radius-lg) - 2px);
+      background:transparent; font-family:var(--font-heading); font-size:14px;
+      font-weight:600; color:var(--text-muted); cursor:pointer;
+      transition:all 0.22s; display:flex; align-items:center; justify-content:center; gap:7px;
+    }
+    .mode-tab.active {
+      background:var(--surface); color:var(--primary);
+      box-shadow:0 2px 8px rgba(0,0,0,0.08);
+    }
+    .mode-tab:hover:not(.active){ color:var(--text-primary); }
+
     /* ── Timer Card ──────────────────────────────────────── */
     .timer-card {
       background:var(--surface); border:1px solid var(--border);
@@ -27,6 +45,17 @@
     }
     .ring-fill.paused   { stroke:var(--warning); }
     .ring-fill.finished { stroke:var(--success); }
+
+    /* Stopwatch ring — counts up, rotates fill infinitely when running */
+    .sw-ring-fill {
+      fill:none; stroke:var(--primary); stroke-width:10;
+      stroke-linecap:round;
+      transform:rotate(-90deg); transform-origin:50% 50%;
+      transition:stroke-dashoffset 0.25s linear, stroke 0.3s;
+    }
+    .sw-ring-fill.paused  { stroke:var(--warning); }
+    .sw-ring-fill.stopped { stroke:var(--success); }
+
     .timer-center {
       position:absolute; inset:0; display:flex;
       flex-direction:column; align-items:center; justify-content:center;
@@ -86,6 +115,24 @@
     .btn-stop:hover  { background:var(--danger);  color:#fff; }
     .btn-reset { background:var(--surface-2); color:var(--text-muted); }
     .btn-reset:hover { background:var(--border); }
+
+    /* ── Stopwatch Target Badge ──────────────────────────── */
+    .sw-target-badge {
+      display:inline-flex; align-items:center; gap:6px;
+      background:var(--primary-light); border:1.5px solid rgba(45,91,227,0.2);
+      border-radius:20px; padding:4px 12px; font-size:12px;
+      font-weight:600; color:var(--primary); margin-bottom:10px;
+      cursor:pointer; transition:all 0.2s;
+    }
+    .sw-target-badge:hover { background:rgba(45,91,227,0.15); }
+    .sw-target-badge.no-target {
+      background:var(--surface-2); border-color:var(--border); color:var(--text-muted);
+    }
+    .sw-target-badge.hit {
+      background:rgba(0,201,167,0.12); border-color:rgba(0,201,167,0.3); color:var(--success);
+      animation:badge-pulse 1s ease;
+    }
+    @keyframes badge-pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.06)} }
 
     /* ── Diary / To-Do Section ───────────────────────────── */
     .diary-section {
@@ -166,6 +213,7 @@
     /* Diary history */
     .diary-history { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:18px; }
     .diary-history-title { font-family:var(--font-heading); font-size:14px; font-weight:600; margin-bottom:12px; }
+
     .diary-day-item { padding:10px 0; border-bottom:1px solid var(--border); cursor:pointer; }
     .diary-day-item:last-child { border-bottom:none; }
     .diary-day-header { display:flex; justify-content:space-between; align-items:center; }
@@ -175,6 +223,14 @@
     .diary-day-tasks { margin-top:6px; display:none; }
     .diary-day-tasks.open { display:block; }
     .diary-task-mini { font-size:12px; color:var(--text-secondary); padding:2px 0; display:flex; align-items:center; gap:6px; }
+
+    /* Session type badge in history */
+    .sess-type-badge {
+      font-size:10px; font-weight:700; padding:2px 7px; border-radius:10px;
+      display:inline-block; margin-left:6px;
+    }
+    .sess-type-badge.timer    { background:var(--primary-light);  color:var(--primary); }
+    .sess-type-badge.stopwatch{ background:rgba(0,201,167,0.12);  color:var(--success); }
 
     @media(max-width:960px){ .timer-page{grid-template-columns:1fr;} }
   </style>
@@ -227,62 +283,116 @@
       </div>
 
       <div class="timer-page">
-        <!-- ── Left: Timer + Diary ──────────────────────── -->
+        <!-- ── Left: Timer/Stopwatch + Diary ──────────────── -->
         <div>
-          <!-- Timer -->
-          <div class="timer-card">
-            <h3 style="font-family:var(--font-heading);margin-bottom:4px;">Study Session</h3>
-            <p class="text-secondary fs-13">Set time, add your tasks, then start!</p>
 
-            <div class="paper-row" style="margin-top:16px;">
-              <label>📚 Studying Which Paper?</label>
-              <select class="form-select" id="paper-select">
-                <option value="General Study">General Study</option>
-              </select>
-            </div>
-
-            <!-- Ring -->
-            <div class="timer-ring-wrap">
-              <svg class="timer-ring" viewBox="0 0 200 200">
-                <circle class="ring-track" cx="100" cy="100" r="88"/>
-                <circle class="ring-fill" id="ring-fill" cx="100" cy="100" r="88"
-                  stroke-dasharray="553" stroke-dashoffset="0"/>
-              </svg>
-              <div class="timer-center">
-                <div class="timer-digits" id="timer-digits">00:00:00</div>
-                <div class="timer-state-label" id="timer-label">Set time below</div>
-              </div>
-            </div>
-
-            <!-- Set time -->
-            <div class="set-time-row" id="time-inputs">
-              <div class="time-inp-group">
-                <label>Hours</label>
-                <input type="number" id="inp-h" min="0" max="12" value="1"/>
-              </div>
-              <span class="time-colon">:</span>
-              <div class="time-inp-group">
-                <label>Mins</label>
-                <input type="number" id="inp-m" min="0" max="59" value="30"/>
-              </div>
-            </div>
-
-            <div class="presets">
-              <button class="preset-btn" onclick="setPreset(0,30)">30m</button>
-              <button class="preset-btn" onclick="setPreset(1,0)">1h</button>
-              <button class="preset-btn" onclick="setPreset(1,30)">1.5h</button>
-              <button class="preset-btn" onclick="setPreset(2,0)">2h</button>
-              <button class="preset-btn" onclick="setPreset(3,0)">3h</button>
-            </div>
-
-            <div class="timer-controls">
-              <button class="btn-ctrl btn-reset" id="btn-reset" onclick="resetTimer()" title="Reset">↺</button>
-              <button class="btn-ctrl btn-play"  id="btn-play"  onclick="togglePlay()" title="Start">▶</button>
-              <button class="btn-ctrl btn-stop"  id="btn-stop"  onclick="stopTimer()" title="Stop & Save" style="display:none;">⏹</button>
-            </div>
+          <!-- Mode Tabs -->
+          <div class="mode-tabs">
+            <button class="mode-tab active" id="tab-timer-btn"     onclick="switchMode('timer')">⏳ Timer</button>
+            <button class="mode-tab"        id="tab-stopwatch-btn" onclick="switchMode('stopwatch')">⏱️ Stopwatch</button>
           </div>
 
-          <!-- Diary / To-Do -->
+          <!-- ══════════ TIMER PANEL ══════════ -->
+          <div id="panel-timer">
+            <div class="timer-card">
+              <h3 style="font-family:var(--font-heading);margin-bottom:4px;">Study Session</h3>
+              <p class="text-secondary fs-13">Set time, add your tasks, then start!</p>
+
+              <div class="paper-row" style="margin-top:16px;">
+                <label>📚 Studying Which Paper?</label>
+                <select class="form-select" id="paper-select">
+                  <option value="General Study">General Study</option>
+                </select>
+              </div>
+
+              <!-- Ring -->
+              <div class="timer-ring-wrap">
+                <svg class="timer-ring" viewBox="0 0 200 200">
+                  <circle class="ring-track" cx="100" cy="100" r="88"/>
+                  <circle class="ring-fill" id="ring-fill" cx="100" cy="100" r="88"
+                    stroke-dasharray="553" stroke-dashoffset="0"/>
+                </svg>
+                <div class="timer-center">
+                  <div class="timer-digits" id="timer-digits">00:00:00</div>
+                  <div class="timer-state-label" id="timer-label">Set time below</div>
+                </div>
+              </div>
+
+              <!-- Set time -->
+              <div class="set-time-row" id="time-inputs">
+                <div class="time-inp-group">
+                  <label>Hours</label>
+                  <input type="number" id="inp-h" min="0" max="12" value="1"/>
+                </div>
+                <span class="time-colon">:</span>
+                <div class="time-inp-group">
+                  <label>Mins</label>
+                  <input type="number" id="inp-m" min="0" max="59" value="30"/>
+                </div>
+              </div>
+
+              <div class="presets">
+                <button class="preset-btn" onclick="setPreset(0,30)">30m</button>
+                <button class="preset-btn" onclick="setPreset(1,0)">1h</button>
+                <button class="preset-btn" onclick="setPreset(1,30)">1.5h</button>
+                <button class="preset-btn" onclick="setPreset(2,0)">2h</button>
+                <button class="preset-btn" onclick="setPreset(3,0)">3h</button>
+              </div>
+
+              <div class="timer-controls">
+                <button class="btn-ctrl btn-reset" id="btn-reset" onclick="resetTimer()" title="Reset">↺</button>
+                <button class="btn-ctrl btn-play"  id="btn-play"  onclick="togglePlay()" title="Start">▶</button>
+                <button class="btn-ctrl btn-stop"  id="btn-stop"  onclick="stopTimer()" title="Stop & Save" style="display:none;">⏹</button>
+              </div>
+            </div>
+          </div><!-- /panel-timer -->
+
+          <!-- ══════════ STOPWATCH PANEL ══════════ -->
+          <div id="panel-stopwatch" style="display:none;">
+            <div class="timer-card">
+              <h3 style="font-family:var(--font-heading);margin-bottom:4px;">Stopwatch Session</h3>
+              <p class="text-secondary fs-13">Start studying — stop when you're done!</p>
+
+              <div class="paper-row" style="margin-top:16px;">
+                <label>📚 Studying Which Paper?</label>
+                <select class="form-select" id="sw-paper-select">
+                  <option value="General Study">General Study</option>
+                </select>
+              </div>
+
+              <!-- Target badge (click to set/clear target) -->
+              <div id="sw-target-badge" class="sw-target-badge no-target" onclick="swSetTarget()">
+                🎯 No target set — tap to set one
+              </div>
+
+              <!-- Ring -->
+              <div class="timer-ring-wrap">
+                <svg class="timer-ring" viewBox="0 0 200 200">
+                  <circle class="ring-track" cx="100" cy="100" r="88"/>
+                  <!-- target arc (faint, shows goal) -->
+                  <circle id="sw-ring-target" cx="100" cy="100" r="88"
+                    fill="none" stroke="rgba(45,91,227,0.12)" stroke-width="10"
+                    stroke-dasharray="553" stroke-dashoffset="0"
+                    transform="rotate(-90 100 100)" style="display:none;"/>
+                  <!-- progress arc -->
+                  <circle class="sw-ring-fill" id="sw-ring-fill" cx="100" cy="100" r="88"
+                    stroke-dasharray="553" stroke-dashoffset="553"/>
+                </svg>
+                <div class="timer-center">
+                  <div class="timer-digits" id="sw-digits">00:00:00</div>
+                  <div class="timer-state-label" id="sw-label">Press ▶ to begin</div>
+                </div>
+              </div>
+
+              <div class="timer-controls">
+                <button class="btn-ctrl btn-reset" id="sw-btn-reset" onclick="swReset()" title="Reset">↺</button>
+                <button class="btn-ctrl btn-play"  id="sw-btn-play"  onclick="swTogglePlay()" title="Start">▶</button>
+                <button class="btn-ctrl btn-stop"  id="sw-btn-stop"  onclick="swStop()" title="Stop & Save" style="display:none;">⏹</button>
+              </div>
+            </div>
+          </div><!-- /panel-stopwatch -->
+
+          <!-- ── Diary / To-Do (shared) ──────────────────── -->
           <div class="diary-section">
             <div class="diary-title">📓 Session Diary</div>
             <div class="diary-sub">Add what you plan to study. Mark done when stopping.</div>
@@ -359,22 +469,52 @@
     getDocs, setDoc, serverTimestamp, orderBy, query, limit }
     from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-  // ── State ─────────────────────────────────────────────────
+  // ── Shared State ──────────────────────────────────────────
   let uid=null, userLevel=null, userGroup=null;
+  let todos=[];
+  let currentMode='timer'; // 'timer' | 'stopwatch'
+
+  // ── Timer State ───────────────────────────────────────────
   let timerInterval=null, startTime=null;
   let totalSecs=0, elapsedSecs=0;
   let isRunning=false, isPaused=false;
-  let runStartTimestamp=null;   // Date.now() when last resumed — for background accuracy
-  let elapsedAtLastResume=0;    // elapsedSecs snapshot when last resumed
+  let runStartTimestamp=null;
+  let elapsedAtLastResume=0;
   let sessionPaper='General Study';
-  let todos=[]; // [{id, text, done}]
-  const CIRCUM=2*Math.PI*88;
+  const CIRCUM=2*Math.PI*88; // 553
+
+  // ── Stopwatch State ───────────────────────────────────────
+  let swInterval=null, swStartTime=null;
+  let swElapsed=0;           // total elapsed seconds counted so far
+  let swRunning=false, swPaused=false;
+  let swRunTimestamp=null;   // Date.now() when last resumed
+  let swElapsedAtResume=0;   // snapshot of swElapsed when last resumed
+  let swPaper='General Study';
+  let swTargetSecs=0;        // 0 = no target
+  let swTargetHit=false;
 
   // ── Helpers ───────────────────────────────────────────────
   function getStudyDay(d=new Date()){const x=new Date(d);if(x.getHours()<5)x.setDate(x.getDate()-1);return x.toISOString().split('T')[0];}
   function fmtTime(s){const h=Math.floor(s/3600),m=Math.floor((s%3600)/60);if(h===0)return`${m}m`;if(m===0)return`${h}h`;return`${h}h ${m}m`;}
   function fmtDisp(s){return[Math.floor(s/3600),Math.floor((s%3600)/60),s%60].map(x=>x.toString().padStart(2,'0')).join(':');}
   function toast(msg,type='info'){const c=document.getElementById('toast-container');const t=document.createElement('div');t.className=`toast toast-${type}`;t.innerHTML=`<span>${{success:'✅',error:'❌',info:'ℹ️'}[type]}</span> ${msg}`;c.appendChild(t);setTimeout(()=>t.remove(),4000);}
+
+  // ── Mode Switch ───────────────────────────────────────────
+  window.switchMode=function(mode){
+    if(mode===currentMode)return;
+    // Guard: don't switch while a session is active
+    if(currentMode==='timer'&&(isRunning||isPaused)&&elapsedSecs>=10){
+      toast('Stop or save your Timer session before switching.','error'); return;
+    }
+    if(currentMode==='stopwatch'&&(swRunning||swPaused)&&swElapsed>=10){
+      toast('Stop or save your Stopwatch session before switching.','error'); return;
+    }
+    currentMode=mode;
+    document.getElementById('panel-timer').style.display      = mode==='timer'      ?'block':'none';
+    document.getElementById('panel-stopwatch').style.display  = mode==='stopwatch'  ?'block':'none';
+    document.getElementById('tab-timer-btn').classList.toggle('active',    mode==='timer');
+    document.getElementById('tab-stopwatch-btn').classList.toggle('active', mode==='stopwatch');
+  };
 
   // ── Auth ──────────────────────────────────────────────────
   onAuthStateChanged(auth, async(user)=>{
@@ -399,21 +539,17 @@
       const snap=await getDocs(collection(db,'courseStructure',userLevel,'papers'));
       let papers=[];snap.forEach(d=>papers.push({id:d.id,...d.data()}));
       papers.sort((a,b)=>(a.order||0)-(b.order||0));
-
-      // For CA Final / CA Intermediate: filter by group
-      // Group I → Papers 1,2,3 (order 1-3)  |  Group II → Papers 4,5,6 (order 4-6)
       const hasGroups=['CA-Final','CA-Intermediate'].includes(userLevel);
       if(hasGroups && userGroup && userGroup!=='both'){
         papers=papers.filter(p=>{
-          // Prefer explicit group field; fall back to order-based split
           if(p.group && p.group!=='both') return p.group===userGroup;
           const ord=p.order||0;
           return userGroup==='group1' ? ord<=3 : ord>=4 && ord<=6;
         });
       }
-
-      const sel=document.getElementById('paper-select');
-      papers.forEach(p=>{const o=document.createElement('option');o.value=p.name;o.textContent=p.name;sel.appendChild(o);});
+      [document.getElementById('paper-select'), document.getElementById('sw-paper-select')].forEach(sel=>{
+        papers.forEach(p=>{const o=document.createElement('option');o.value=p.name;o.textContent=p.name;sel.appendChild(o);});
+      });
     }catch(e){}
   }
 
@@ -422,9 +558,8 @@
     try{
       const snap=await getDoc(doc(db,'streaks',uid));
       const data=snap.exists()?snap.data():{};
-      const curr=data.currentStreak||0,best=data.longestStreak||0;
-      document.getElementById('streak-num').textContent=curr;
-      document.getElementById('streak-best').textContent=`Best: ${best} days`;
+      document.getElementById('streak-num').textContent=data.currentStreak||0;
+      document.getElementById('streak-best').textContent=`Best: ${data.longestStreak||0} days`;
     }catch(e){}
   }
 
@@ -484,10 +619,13 @@
         const done=tasks.filter(t=>t.done).length;
         const pct=tasks.length?Math.round((done/tasks.length)*100):null;
         const compColor=pct===100?'var(--success)':pct>=50?'var(--warning)':'var(--danger)';
+        const typeLabel=s.sessionType==='stopwatch'
+          ?'<span class="sess-type-badge stopwatch">⏱ Stopwatch</span>'
+          :'<span class="sess-type-badge timer">⏳ Timer</span>';
         return`<div class="diary-day-item" onclick="toggleDiaryItem('diary-tasks-${i}')">
           <div class="diary-day-header">
             <div>
-              <div class="diary-day-date">${s.paperName||'General Study'}</div>
+              <div class="diary-day-date">${s.paperName||'General Study'} ${typeLabel}</div>
               <div class="diary-day-time">${s.studyDay||''} • ${fmtTime(s.duration||0)}</div>
             </div>
             ${pct!==null?`<div class="diary-day-comp" style="color:${compColor};">${done}/${tasks.length} tasks ✓</div>`:''}
@@ -503,7 +641,7 @@
   }
   window.toggleDiaryItem=function(id){const el=document.getElementById(id);if(el)el.classList.toggle('open');};
 
-  // ── Todo ──────────────────────────────────────────────────
+  // ── Todo (shared) ─────────────────────────────────────────
   window.addTodo=function(){
     const inp=document.getElementById('todo-input');
     const text=inp.value.trim();
@@ -524,12 +662,10 @@
     }
     if(empty) empty.style.display='none';
     compBar.classList.remove('hidden');
-    // Completion %
     const done=todos.filter(t=>t.done).length;
     const pct=Math.round((done/todos.length)*100);
     document.getElementById('comp-bar-fill').style.width=pct+'%';
     document.getElementById('comp-pct').textContent=`${pct}% done (${done}/${todos.length})`;
-
     list.innerHTML=todos.map((todo,i)=>`
       <div class="todo-item ${todo.done?'done':''}" id="todo-${todo.id}">
         <input type="checkbox" class="todo-check" ${todo.done?'checked':''}
@@ -541,7 +677,68 @@
   window.toggleTodo=function(i){todos[i].done=!todos[i].done;renderTodos();};
   window.deleteTodo=function(i){todos.splice(i,1);renderTodos();};
 
-  // ── Preset + Timer Controls ───────────────────────────────
+  // ── Shared: Completion Modal + Save ──────────────────────
+  async function showCompletionModal(elapsedSeconds, paper, mode){
+    if(!todos.length){ await saveSession(elapsedSeconds, paper, mode); return; }
+    const todoHTML=todos.map((t,i)=>`
+      <label style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f1f5f9;cursor:pointer;">
+        <input type="checkbox" id="cm-todo-${i}" ${t.done?'checked':''}
+          style="width:18px;height:18px;accent-color:#00C9A7;cursor:pointer;"/>
+        <span style="font-size:13px;color:#2C2C54;">${t.text}</span>
+      </label>`).join('');
+    await Modal.custom({
+      icon: mode==='stopwatch'?'⏱️':'📓',
+      title:'Session Complete!',
+      body:`
+        <div style="text-align:left;">
+          <p style="font-size:13px;color:#64748B;margin-bottom:12px;">
+            ✅ <strong>${fmtTime(elapsedSeconds)}</strong> on <strong>${paper}</strong><br/>
+            Mark which tasks you completed:
+          </p>
+          <div style="max-height:200px;overflow-y:auto;">${todoHTML}</div>
+        </div>`,
+      buttons:[{ label:'Save Session', value:true, style:'background:#00C9A7;color:#fff;width:100%;justify-content:center;' }]
+    });
+    todos.forEach((t,i)=>{ const cb=document.getElementById('cm-todo-'+i); if(cb)t.done=cb.checked; });
+    renderTodos();
+    await saveSession(elapsedSeconds, paper, mode);
+  }
+
+  async function saveSession(elapsedSeconds, paper, mode){
+    if(elapsedSeconds<10){ return; }
+    try{
+      const studyDay=getStudyDay(mode==='stopwatch'?(swStartTime||new Date()):(startTime||new Date()));
+      await addDoc(collection(db,'timerSessions',uid,'sessions'),{
+        paperName:   paper,
+        duration:    elapsedSeconds,
+        studyDay:    studyDay,
+        todos:       todos.map(t=>({text:t.text,done:t.done})),
+        sessionType: mode,           // 'timer' | 'stopwatch'
+        savedAt:     serverTimestamp()
+      });
+      toast(`Saved! ${fmtTime(elapsedSeconds)} of ${paper}`,'success');
+      await updateStreak(studyDay);
+      todos=[]; renderTodos();
+      loadToday(); loadWeekly(); loadStreak(); loadDiaryHistory();
+    }catch(e){console.error('Save error:',e);toast('Session could not be saved.','error');}
+  }
+
+  async function updateStreak(studyDay){
+    try{
+      const snap=await getDoc(doc(db,'streaks',uid));
+      const data=snap.exists()?snap.data():{};
+      const lastDay=data.lastStudyDay||'';
+      const curr=data.currentStreak||0,best=data.longestStreak||0;
+      const yesterday=new Date();yesterday.setDate(yesterday.getDate()-1);
+      const yStr=getStudyDay(yesterday);
+      let newStreak=lastDay===studyDay?curr:lastDay===yStr?curr+1:!lastDay?1:1;
+      await setDoc(doc(db,'streaks',uid),{currentStreak:newStreak,longestStreak:Math.max(newStreak,best),lastStudyDay:studyDay,updatedAt:serverTimestamp()});
+    }catch(e){console.error('Streak error:',e);}
+  }
+
+  // ════════════════════════════════════════════════════════
+  //  TIMER LOGIC
+  // ════════════════════════════════════════════════════════
   window.setPreset=function(h,m){if(isRunning||isPaused)return;document.getElementById('inp-h').value=h;document.getElementById('inp-m').value=m;};
 
   window.togglePlay=function(){
@@ -569,7 +766,6 @@
   }
 
   function pauseTimer(){
-    // Snapshot elapsed before clearing interval
     elapsedSecs=elapsedAtLastResume+Math.floor((Date.now()-runStartTimestamp)/1000);
     elapsedAtLastResume=elapsedSecs;
     isRunning=false; isPaused=true;
@@ -593,7 +789,6 @@
   function runTick(){
     clearInterval(timerInterval);
     timerInterval=setInterval(()=>{
-      // Timestamp-based: accurate even when tab is in background
       const nowElapsed=elapsedAtLastResume+Math.floor((Date.now()-runStartTimestamp)/1000);
       elapsedSecs=nowElapsed;
       const rem=totalSecs-elapsedSecs;
@@ -608,9 +803,15 @@
         document.getElementById('timer-digits').className='timer-digits finished';
         document.getElementById('ring-fill').classList.add('finished');
         document.getElementById('timer-label').textContent='Session complete! 🎉';
-        onSessionComplete();
+        onTimerComplete();
       }
     },1000);
+  }
+
+  async function onTimerComplete(){
+    clearInterval(timerInterval);
+    await showCompletionModal(elapsedSecs, sessionPaper, 'timer');
+    resetTimer();
   }
 
   window.stopTimer=async function(){
@@ -623,74 +824,9 @@
     if(!yes)return;
     clearInterval(timerInterval);
     isRunning=false; isPaused=false;
-    onSessionComplete();
+    await showCompletionModal(elapsedSecs, sessionPaper, 'timer');
+    resetTimer();
   };
-
-  async function onSessionComplete(){
-    clearInterval(timerInterval);
-    // Show completion modal — mark todos
-    await showCompletionModal();
-  }
-
-  // ── Completion Modal ──────────────────────────────────────
-  async function showCompletionModal(){
-    if(!todos.length){
-      // No todos — just save directly
-      await saveSession();
-      return;
-    }
-    // Build a custom modal with todo checkboxes
-    const todoHTML=todos.map((t,i)=>`
-      <label style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f1f5f9;cursor:pointer;">
-        <input type="checkbox" id="cm-todo-${i}" ${t.done?'checked':''}
-          style="width:18px;height:18px;accent-color:#00C9A7;cursor:pointer;"/>
-        <span style="font-size:13px;color:#2C2C54;">${t.text}</span>
-      </label>`).join('');
-
-    await Modal.custom({
-      icon:'📓',
-      title:'Session Complete!',
-      body:`
-        <div style="text-align:left;">
-          <p style="font-size:13px;color:#64748B;margin-bottom:12px;">
-            ✅ <strong>${fmtTime(elapsedSecs)}</strong> on <strong>${sessionPaper}</strong><br/>
-            Mark which tasks you completed:
-          </p>
-          <div style="max-height:200px;overflow-y:auto;">${todoHTML}</div>
-        </div>`,
-      buttons:[
-        { label:'Save Session', value:true, style:'background:#00C9A7;color:#fff;width:100%;justify-content:center;' }
-      ]
-    });
-
-    // Read checkbox states from modal
-    todos.forEach((t,i)=>{
-      const cb=document.getElementById('cm-todo-'+i);
-      if(cb) t.done=cb.checked;
-    });
-    renderTodos();
-    await saveSession();
-  }
-
-  // ── Save Session ──────────────────────────────────────────
-  async function saveSession(){
-    if(elapsedSecs<10){resetTimer();return;}
-    try{
-      const studyDay=getStudyDay(startTime);
-      await addDoc(collection(db,'timerSessions',uid,'sessions'),{
-        paperName:  sessionPaper,
-        duration:   elapsedSecs,
-        studyDay:   studyDay,
-        todos:      todos.map(t=>({text:t.text,done:t.done})),
-        savedAt:    serverTimestamp()
-      });
-      toast(`Saved! ${fmtTime(elapsedSecs)} of ${sessionPaper}`,'success');
-      await updateStreak(studyDay);
-      todos=[]; renderTodos();
-      loadToday(); loadWeekly(); loadStreak(); loadDiaryHistory();
-    }catch(e){console.error('Save error:',e);toast('Session could not be saved.','error');}
-    finally{ resetTimer(); }
-  }
 
   window.resetTimer=function(){
     clearInterval(timerInterval);
@@ -708,24 +844,287 @@
     document.getElementById('paper-select').disabled=false;
   };
 
-  // ── Update Streak ─────────────────────────────────────────
-  async function updateStreak(studyDay){
-    try{
-      const snap=await getDoc(doc(db,'streaks',uid));
-      const data=snap.exists()?snap.data():{};
-      const lastDay=data.lastStudyDay||'';
-      const curr=data.currentStreak||0,best=data.longestStreak||0;
-      const yesterday=new Date();yesterday.setDate(yesterday.getDate()-1);
-      const yStr=getStudyDay(yesterday);
-      let newStreak=lastDay===studyDay?curr:lastDay===yStr?curr+1:!lastDay?1:1;
-      await setDoc(doc(db,'streaks',uid),{currentStreak:newStreak,longestStreak:Math.max(newStreak,best),lastStudyDay:studyDay,updatedAt:serverTimestamp()});
-    }catch(e){console.error('Streak error:',e);}
+  // ════════════════════════════════════════════════════════
+  //  STOPWATCH LOGIC
+  // ════════════════════════════════════════════════════════
+
+  // Target setter
+  window.swSetTarget=function(){
+    if(swRunning||swPaused){ toast('Cannot change target while running.','error'); return; }
+    // Quick input via prompt-style modal
+    const cur = swTargetSecs > 0
+      ? `Current target: ${fmtTime(swTargetSecs)}. `
+      : '';
+    const raw = window.prompt(`${cur}Set a study target (e.g. "1h 30m", "90m", "2h"). Leave blank to clear:`,'');
+    if(raw===null)return; // cancelled
+    if(raw.trim()===''){
+      swTargetSecs=0; swTargetHit=false;
+      swRenderTargetBadge();
+      document.getElementById('sw-ring-target').style.display='none';
+      return;
+    }
+    const parsed=parseTargetStr(raw.trim());
+    if(!parsed){ toast('Could not parse. Try "1h 30m" or "90m".','error'); return; }
+    swTargetSecs=parsed; swTargetHit=false;
+    swRenderTargetBadge();
+    // Show target arc (full circle = target boundary)
+    document.getElementById('sw-ring-target').style.display='block';
+    toast(`Target set: ${fmtTime(swTargetSecs)}`,'success');
+  };
+
+  function parseTargetStr(s){
+    // "1h 30m" | "1.5h" | "90m" | "90" (minutes assumed)
+    let total=0;
+    const hMatch=s.match(/(\d+(\.\d+)?)\s*h/i);
+    const mMatch=s.match(/(\d+)\s*m/i);
+    if(hMatch) total+=parseFloat(hMatch[1])*3600;
+    if(mMatch) total+=parseInt(mMatch[1])*60;
+    if(!hMatch&&!mMatch){const n=parseInt(s);if(!isNaN(n))total=n*60;}
+    return total>0?Math.round(total):0;
   }
 
-</script>
+  function swRenderTargetBadge(){
+    const badge=document.getElementById('sw-target-badge');
+    if(!swTargetSecs){
+      badge.className='sw-target-badge no-target';
+      badge.textContent='🎯 No target set — tap to set one';
+      return;
+    }
+    if(swTargetHit){
+      badge.className='sw-target-badge hit';
+      badge.textContent=`🎉 Target hit! ${fmtTime(swTargetSecs)}`;
+      return;
+    }
+    badge.className='sw-target-badge';
+    const rem=Math.max(swTargetSecs-swElapsed,0);
+    badge.textContent=`🎯 Target: ${fmtTime(swTargetSecs)} — ${fmtTime(rem)} remaining`;
+  }
 
-<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
-<script>
+  window.swTogglePlay=function(){
+    if(swRunning){ swPause(); return; }
+    if(swPaused){ swResume(); return; }
+    swStart();
+  };
+
+  function swStart(){
+    swStartTime=new Date();
+    swElapsed=0; swElapsedAtResume=0;
+    swRunTimestamp=Date.now();
+    swPaper=document.getElementById('sw-paper-select').value;
+    document.getElementById('sw-paper-select').disabled=true;
+    document.getElementById('sw-btn-stop').style.display='flex';
+    swRunning=true; swPaused=false; swTargetHit=false;
+    document.getElementById('sw-btn-play').textContent='⏸';
+    document.getElementById('sw-ring-fill').classList.remove('paused','stopped');
+    swTick();
+  }
+
+  function swPause(){
+    swElapsed=swElapsedAtResume+Math.floor((Date.now()-swRunTimestamp)/1000);
+    swElapsedAtResume=swElapsed;
+    swRunning=false; swPaused=true;
+    clearInterval(swInterval);
+    document.getElementById('sw-btn-play').textContent='▶';
+    document.getElementById('sw-digits').className='timer-digits paused';
+    document.getElementById('sw-ring-fill').classList.add('paused');
+    document.getElementById('sw-label').textContent='Paused ⏸';
+    swRenderTargetBadge();
+  }
+
+  function swResume(){
+    swRunTimestamp=Date.now();
+    swRunning=true; swPaused=false;
+    document.getElementById('sw-btn-play').textContent='⏸';
+    document.getElementById('sw-digits').className='timer-digits running';
+    document.getElementById('sw-ring-fill').classList.remove('paused');
+    document.getElementById('sw-label').textContent='Keep going! 💪';
+    swTick();
+  }
+
+  function swTick(){
+    clearInterval(swInterval);
+    swInterval=setInterval(()=>{
+      const now=swElapsedAtResume+Math.floor((Date.now()-swRunTimestamp)/1000);
+      swElapsed=now;
+
+      // Update digits
+      document.getElementById('sw-digits').textContent=fmtDisp(swElapsed);
+      document.getElementById('sw-digits').className='timer-digits running';
+      document.getElementById('sw-label').textContent='Keep going! 💪';
+
+      // Animate ring: one full revolution per 60 seconds (like a real stopwatch)
+      const angle=((swElapsed%60)/60)*CIRCUM;
+      document.getElementById('sw-ring-fill').style.strokeDashoffset=(CIRCUM-angle).toFixed(1);
+
+      // Target tracking
+      if(swTargetSecs>0){
+        if(!swTargetHit && swElapsed>=swTargetSecs){
+          swTargetHit=true;
+          swRenderTargetBadge();
+          document.getElementById('sw-ring-fill').classList.add('stopped'); // green flash
+          setTimeout(()=>document.getElementById('sw-ring-fill').classList.remove('stopped'),1200);
+          toast(`🎉 Target reached! ${fmtTime(swTargetSecs)} studied!`,'success');
+        } else if(!swTargetHit){
+          swRenderTargetBadge(); // update "X remaining"
+        }
+      }
+    },1000);
+  }
+
+  window.swStop=async function(){
+    if(swElapsed<10){ swReset(); return; }
+    // Show the stop modal with task tick-off
+    clearInterval(swInterval);
+    swRunning=false; swPaused=false;
+    // Snapshot elapsed (precise)
+    const finalElapsed=swElapsed;
+
+    // Build custom stop modal
+    const todoHTML = todos.length ? todos.map((t,i)=>`
+      <label style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f1f5f9;cursor:pointer;">
+        <input type="checkbox" id="sw-todo-${i}" ${t.done?'checked':''}
+          style="width:18px;height:18px;accent-color:#00C9A7;cursor:pointer;"/>
+        <span style="font-size:13px;color:#2C2C54;">${t.text}</span>
+      </label>`).join('') : '<p style="font-size:13px;color:#64748B;margin:0;">No tasks added for this session.</p>';
+
+    const targetRow = swTargetSecs>0 ? `
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;
+        background:${swTargetHit?'rgba(0,201,167,0.1)':'rgba(45,91,227,0.08)'};
+        border-radius:8px;margin-bottom:12px;">
+        <span style="font-size:18px;">${swTargetHit?'🎯✅':'🎯'}</span>
+        <div>
+          <div style="font-size:12px;font-weight:700;color:${swTargetHit?'#00C9A7':'#2D5BE3'};">
+            Target: ${fmtTime(swTargetSecs)}
+          </div>
+          <div style="font-size:11px;color:#64748B;">
+            ${swTargetHit?'Target achieved! 🎉':`Studied ${fmtTime(finalElapsed)} of ${fmtTime(swTargetSecs)}`}
+          </div>
+        </div>
+      </div>` : '';
+
+    await Modal.custom({
+      icon:'⏱️',
+      title:'Stop Stopwatch',
+      body:`
+        <div style="text-align:left;">
+          <p style="font-size:13px;color:#64748B;margin-bottom:12px;">
+            ⏱️ <strong>${fmtDisp(finalElapsed)}</strong> on <strong>${swPaper}</strong>
+          </p>
+          ${targetRow}
+          ${todos.length?'<p style="font-size:12px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Mark completed tasks:</p>':''}
+          <div style="max-height:200px;overflow-y:auto;">${todoHTML}</div>
+        </div>`,
+      buttons:[
+        { label:'Save & Close', value:true,  style:'background:#00C9A7;color:#fff;flex:1;justify-content:center;' },
+        { label:'Discard',      value:false, style:'background:#FEE2E2;color:#DC2626;flex:1;justify-content:center;' }
+      ]
+    });
+
+    // Read checkbox states
+    if(todos.length){
+      todos.forEach((t,i)=>{ const cb=document.getElementById('sw-todo-'+i); if(cb)t.done=cb.checked; });
+      renderTodos();
+    }
+
+    // We always save (modal confirm handled internally); if user picked Discard the modal library
+    // returns false — check via a flag approach using the button value
+    // Since Modal.custom resolves with the button value:
+    const modalResult = await _swStopModalResult;
+    if(modalResult!==false){
+      await saveSession(finalElapsed, swPaper, 'stopwatch');
+    } else {
+      toast('Session discarded.','info');
+    }
+    swReset();
+  };
+
+  // Patch: re-implement swStop cleanly using the resolved value
+  window.swStop=async function(){
+    if(swElapsed<10){ swReset(); return; }
+    clearInterval(swInterval);
+    swRunning=false; swPaused=false;
+    const finalElapsed=swElapsed;
+
+    const todoHTML = todos.length ? todos.map((t,i)=>`
+      <label style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f1f5f9;cursor:pointer;">
+        <input type="checkbox" id="sw-todo-${i}" ${t.done?'checked':''}
+          style="width:18px;height:18px;accent-color:#00C9A7;cursor:pointer;"/>
+        <span style="font-size:13px;color:#2C2C54;">${t.text}</span>
+      </label>`).join('') : '<p style="font-size:13px;color:#64748B;margin:0;">No tasks were added.</p>';
+
+    const targetRow = swTargetSecs>0 ? `
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;
+        background:${swTargetHit?'rgba(0,201,167,0.1)':'rgba(45,91,227,0.08)'};
+        border-radius:8px;margin-bottom:12px;">
+        <span style="font-size:18px;">${swTargetHit?'🎯✅':'🎯'}</span>
+        <div>
+          <div style="font-size:12px;font-weight:700;color:${swTargetHit?'#00C9A7':'#2D5BE3'};">
+            Target: ${fmtTime(swTargetSecs)}
+          </div>
+          <div style="font-size:11px;color:#64748B;">
+            ${swTargetHit?'Target achieved! 🎉':`Studied ${fmtTime(finalElapsed)} of ${fmtTime(swTargetSecs)}`}
+          </div>
+        </div>
+      </div>` : '';
+
+    const choice = await Modal.custom({
+      icon:'⏱️',
+      title:'Stop Stopwatch',
+      body:`
+        <div style="text-align:left;">
+          <p style="font-size:13px;color:#64748B;margin-bottom:12px;">
+            ⏱️ <strong>${fmtDisp(finalElapsed)}</strong> on <strong>${swPaper}</strong>
+          </p>
+          ${targetRow}
+          ${todos.length?'<p style="font-size:12px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Mark completed tasks:</p>':''}
+          <div style="max-height:200px;overflow-y:auto;">${todoHTML}</div>
+        </div>`,
+      buttons:[
+        { label:'💾 Save Session', value:'save',    style:'background:#00C9A7;color:#fff;flex:1;justify-content:center;' },
+        { label:'🗑 Discard',      value:'discard', style:'background:#FEE2E2;color:#DC2626;flex:1;justify-content:center;' }
+      ]
+    });
+
+    if(todos.length){
+      todos.forEach((t,i)=>{ const cb=document.getElementById('sw-todo-'+i); if(cb)t.done=cb.checked; });
+      renderTodos();
+    }
+
+    if(choice==='save'){
+      await saveSession(finalElapsed, swPaper, 'stopwatch');
+    } else {
+      todos=[]; renderTodos();
+      toast('Session discarded.','info');
+    }
+    swReset();
+  };
+
+  window.swReset=function(){
+    clearInterval(swInterval);
+    swRunning=false; swPaused=false;
+    swElapsed=0; swElapsedAtResume=0; swRunTimestamp=null; swStartTime=null;
+    swTargetHit=false;
+    document.getElementById('sw-digits').textContent='00:00:00';
+    document.getElementById('sw-digits').className='timer-digits';
+    document.getElementById('sw-label').textContent='Press ▶ to begin';
+    document.getElementById('sw-btn-play').textContent='▶';
+    document.getElementById('sw-btn-stop').style.display='none';
+    document.getElementById('sw-ring-fill').style.strokeDashoffset=CIRCUM;
+    document.getElementById('sw-ring-fill').classList.remove('paused','stopped');
+    document.getElementById('sw-paper-select').disabled=false;
+    // Keep target & badge — user might want to reuse same target
+    swRenderTargetBadge();
+  };
+
+  // ── Active session check (both modes) ────────────────────
+  function anySessionActive(){
+    return (isRunning||isPaused)&&elapsedSecs>=10 || (swRunning||swPaused)&&swElapsed>=10;
+  }
+  function activeElapsed(){ return currentMode==='timer'?elapsedSecs:swElapsed; }
+
+  // Expose for nav guard
+  window.isRunning=isRunning; // kept as live reference via closure below
+
   // ── Sidebar Toggle ────────────────────────────────────────
   window.toggleSidebar = function(){
     const sb  = document.getElementById('sidebar');
@@ -741,70 +1140,64 @@
     document.getElementById('sidebar-overlay').classList.remove('show');
   };
 
-  // ── Timer active guard: intercept any link when timer is running ──────
-  function timerIsActive(){ return (typeof isRunning!=='undefined') && (isRunning || isPaused) && elapsedSecs >= 10; }
+  // ── Nav guard ─────────────────────────────────────────────
+  function timerIsActive(){ return anySessionActive(); }
 
-  function interceptNav(e, dest){
-    if(!timerIsActive()) return; // let it navigate normally
+  async function interceptNav(e, dest){
+    if(!timerIsActive()) return;
     e.preventDefault();
-    Modal.confirm(
+    const yes = await Modal.confirm(
       'Leave Study Timer?',
-      `You've studied for <strong>${fmtTime(elapsedSecs)}</strong>. Save this session before leaving?`,
+      `You've studied for <strong>${fmtTime(activeElapsed())}</strong>. Save this session before leaving?`,
       'Save & Leave'
-    ).then(function(yes){
-      if(yes){
-        saveSession().then(function(){ window.location.href = dest; });
-      } else {
-        Modal.confirm(
-          'Discard Session?',
-          'Your session progress will be lost. Are you sure you want to leave without saving?',
-          'Leave Without Saving'
-        ).then(function(discard){
-          if(discard){ clearInterval(timerInterval); window.location.href = dest; }
-        });
+    );
+    if(yes){
+      if(currentMode==='timer')  { await stopTimer();  }
+      else                       { await swStop(); }
+      window.location.href=dest;
+    } else {
+      const discard=await Modal.confirm('Discard Session?','Your session progress will be lost. Are you sure?','Leave Without Saving');
+      if(discard){
+        clearInterval(timerInterval); clearInterval(swInterval);
+        window.location.href=dest;
       }
-    });
+    }
   }
 
   document.addEventListener('DOMContentLoaded', function(){
-    // Sidebar nav links
     document.querySelectorAll('.nav-item').forEach(function(a){
-      a.addEventListener('click', function(e){
-        window.closeSidebar();
-        interceptNav(e, a.getAttribute('href'));
-      });
+      a.addEventListener('click', function(e){ window.closeSidebar(); interceptNav(e, a.getAttribute('href')); });
     });
-
-    // Home button in hero
     document.querySelectorAll('.hero-home-btn').forEach(function(a){
-      a.addEventListener('click', function(e){
-        interceptNav(e, a.getAttribute('href'));
-      });
+      a.addEventListener('click', function(e){ interceptNav(e, a.getAttribute('href')); });
     });
   });
 
-  // ── Browser back/close guard ──────────────────────────────
   window.addEventListener('beforeunload', function(e){
-    if(timerIsActive()){
-      e.preventDefault();
-      e.returnValue = ''; // shows browser's default "Leave site?" dialog
-    }
+    if(timerIsActive()){ e.preventDefault(); e.returnValue=''; }
   });
 
-  // ── Background accuracy: sync elapsed when tab becomes visible again ──
+  // ── Background accuracy: re-sync on tab focus ─────────────
   document.addEventListener('visibilitychange', function(){
-    if(!document.hidden && (typeof isRunning!=='undefined') && isRunning){
-      // Timer is running in background — re-sync display immediately
-      const nowElapsed = elapsedAtLastResume + Math.floor((Date.now() - runStartTimestamp) / 1000);
-      elapsedSecs = nowElapsed;
-      const rem = totalSecs - elapsedSecs;
-      if(rem > 0){
-        const offset = (rem / totalSecs) * CIRCUM;
-        document.getElementById('ring-fill').style.strokeDashoffset = offset;
-        document.getElementById('timer-digits').textContent = fmtDisp(rem);
+    if(document.hidden) return;
+    if(isRunning){
+      elapsedSecs=elapsedAtLastResume+Math.floor((Date.now()-runStartTimestamp)/1000);
+      const rem=totalSecs-elapsedSecs;
+      if(rem>0){
+        document.getElementById('ring-fill').style.strokeDashoffset=((rem/totalSecs)*CIRCUM).toFixed(1);
+        document.getElementById('timer-digits').textContent=fmtDisp(rem);
       }
     }
+    if(swRunning){
+      swElapsed=swElapsedAtResume+Math.floor((Date.now()-swRunTimestamp)/1000);
+      document.getElementById('sw-digits').textContent=fmtDisp(swElapsed);
+      const angle=((swElapsed%60)/60)*CIRCUM;
+      document.getElementById('sw-ring-fill').style.strokeDashoffset=(CIRCUM-angle).toFixed(1);
+    }
   });
+
 </script>
+
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
 </body>
 </html>

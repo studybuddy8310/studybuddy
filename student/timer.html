@@ -30,19 +30,42 @@
       border-radius:var(--radius-xl); padding:28px 24px; text-align:center;
     }
 
-    /* ── Clock Display (no ring) ── */
+    /* ── Timer Ring (countdown) ── */
+    .timer-ring-wrap { position:relative; width:380px; height:380px; margin:0 auto 4px; }
+    .timer-ring { position:absolute; inset:0; }
+    .ring-track { fill:none; stroke:var(--border); stroke-width:10; }
+    .ring-fill {
+      fill:none; stroke:var(--primary); stroke-width:10; stroke-linecap:round;
+      transform:rotate(-90deg); transform-origin:50% 50%;
+      transition:stroke-dashoffset 1s linear, stroke 0.3s;
+    }
+    .ring-fill.paused   { stroke:var(--warning); }
+    .ring-fill.finished { stroke:var(--success); }
+    .timer-center {
+      position:absolute; inset:0; display:flex;
+      flex-direction:column; align-items:center; justify-content:center;
+    }
+
+    /* ── Stopwatch Clock Display (no ring) ── */
     .clock-display {
       margin:24px auto 20px;
       display:flex; flex-direction:column; align-items:center; gap:10px;
     }
+
+    /* Shared digit styles */
     .timer-digits {
-      font-family:var(--font-heading); font-size:4rem; font-weight:800;
-      color:var(--text-primary); letter-spacing:4px; line-height:1;
+      font-family:var(--font-heading); font-size:2.8rem; font-weight:700;
+      color:var(--text-primary); letter-spacing:2px; line-height:1;
       transition:color 0.3s;
+    }
+    /* Stopwatch digits slightly larger since no ring around them */
+    .clock-display .timer-digits {
+      font-size:4rem; font-weight:800; letter-spacing:4px;
     }
     .timer-digits.running  { color:var(--primary); }
     .timer-digits.paused   { color:var(--warning); }
     .timer-digits.finished { color:var(--success); }
+    .timer-state-label { font-size:12px; color:var(--text-muted); margin-top:5px; font-weight:500; }
     .status-pill {
       display:inline-flex; align-items:center; gap:6px;
       padding:5px 14px; border-radius:20px;
@@ -61,20 +84,6 @@
     .status-pill.finished .status-dot { background:var(--success); }
     .status-pill.idle     .status-dot { background:var(--text-muted); }
     @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.25} }
-
-    /* Timer progress bar (replaces ring) */
-    .timer-progress-wrap { width:100%; margin:0 auto 6px; }
-    .timer-progress-track {
-      width:100%; height:6px; background:var(--border);
-      border-radius:3px; overflow:hidden;
-    }
-    .timer-progress-fill {
-      height:100%; background:var(--primary); border-radius:3px;
-      transition:width 1s linear, background 0.3s;
-      width:0%;
-    }
-    .timer-progress-fill.paused   { background:var(--warning); }
-    .timer-progress-fill.finished { background:var(--success); }
 
     /* Set time row */
     .set-time-row { display:flex; align-items:center; justify-content:center; gap:8px; margin:12px 0; }
@@ -306,19 +315,16 @@
                 <select class="form-select" id="paper-select"><option value="General Study">General Study</option></select>
               </div>
 
-              <!-- Clean clock display -->
-              <div class="clock-display">
-                <div class="timer-digits" id="timer-digits">00:00:00</div>
-                <div class="status-pill idle" id="timer-status-pill">
-                  <div class="status-dot"></div>
-                  <span id="timer-status-text">Set time below</span>
-                </div>
-              </div>
-
-              <!-- Thin progress bar -->
-              <div class="timer-progress-wrap">
-                <div class="timer-progress-track">
-                  <div class="timer-progress-fill" id="timer-progress"></div>
+              <!-- Ring (countdown) -->
+              <div class="timer-ring-wrap">
+                <svg class="timer-ring" viewBox="0 0 200 200">
+                  <circle class="ring-track" cx="100" cy="100" r="88"/>
+                  <circle class="ring-fill" id="ring-fill" cx="100" cy="100" r="88"
+                    stroke-dasharray="553" stroke-dashoffset="0"/>
+                </svg>
+                <div class="timer-center">
+                  <div class="timer-digits" id="timer-digits">00:00:00</div>
+                  <div class="timer-state-label" id="timer-label">Set time below</div>
                 </div>
               </div>
 
@@ -608,19 +614,17 @@
       inp_h.value = h; inp_h.disabled = true;
       inp_m.value = m; inp_m.disabled = true;
       const rem = Math.max(totalSecs - elapsedSecs, 0);
-      document.getElementById('timer-digits').textContent = fmtDisp(rem);
-      document.getElementById('timer-progress').style.width = (elapsedSecs/totalSecs*100).toFixed(1)+'%';
       document.getElementById('btn-stop').style.display = 'flex';
 
       if (draft.isPaused) {
         isPaused = true; isRunning = false;
-        setTimerStatus('paused','Paused ⏸ — tap ▶ to resume');
+        setTimerRing(elapsedSecs, totalSecs, 'paused', 'Paused ⏸ — tap ▶ to resume');
         document.getElementById('btn-play').textContent = '▶';
       } else {
         runTs = Date.now();
         isRunning = true; isPaused = false;
         document.getElementById('btn-play').textContent = '⏸';
-        setTimerStatus('running','Keep going! 💪');
+        setTimerRing(elapsedSecs, totalSecs, 'running', 'Keep going! 💪');
         runTick();
       }
       startDraftLoop();
@@ -681,14 +685,23 @@
   }
 
   // ─────────────────────────────────────────
-  //  STATUS PILL HELPERS
+  //  STATUS HELPERS
   // ─────────────────────────────────────────
-  function setTimerStatus(state, text) {
-    const pill = document.getElementById('timer-status-pill');
-    pill.className = `status-pill ${state}`;
-    document.getElementById('timer-status-text').textContent = text;
-    document.getElementById('timer-digits').className = `timer-digits ${state}`;
+  const CIRCUM = 2 * Math.PI * 88; // ≈553
+
+  // Timer uses ring + label
+  function setTimerRing(elapsed, total, state, label) {
+    const rem    = Math.max(total - elapsed, 0);
+    const offset = total > 0 ? (rem / total) * CIRCUM : 0;
+    const ring   = document.getElementById('ring-fill');
+    ring.style.strokeDashoffset = offset.toFixed(1);
+    ring.className = 'ring-fill' + (state==='paused'?' paused':state==='finished'?' finished':'');
+    document.getElementById('timer-digits').textContent  = fmtDisp(state==='finished' ? 0 : rem);
+    document.getElementById('timer-digits').className    = `timer-digits ${state}`;
+    document.getElementById('timer-label').textContent   = label;
   }
+
+  // Stopwatch uses status pill (no ring)
   function setSwStatus(state, text) {
     const pill = document.getElementById('sw-status-pill');
     pill.className = `status-pill ${state}`;
@@ -974,8 +987,7 @@
     document.getElementById('btn-stop').style.display='flex';
     isRunning=true; isPaused=false;
     document.getElementById('btn-play').textContent='⏸';
-    document.getElementById('timer-progress').classList.remove('paused','finished');
-    setTimerStatus('running','Keep going! 💪');
+    setTimerRing(0, totalSecs, 'running', 'Keep going! 💪');
     startDraftLoop();
     runTick();
   }
@@ -986,16 +998,14 @@
     isRunning=false; isPaused=true;
     clearInterval(timerInterval);
     document.getElementById('btn-play').textContent='▶';
-    document.getElementById('timer-progress').classList.add('paused');
-    setTimerStatus('paused','Paused ⏸');
+    setTimerRing(elapsedSecs, totalSecs, 'paused', 'Paused ⏸');
     saveDraftLS(); // immediate save on pause
   }
 
   function timerResume() {
     runTs=Date.now(); isRunning=true; isPaused=false;
     document.getElementById('btn-play').textContent='⏸';
-    document.getElementById('timer-progress').classList.remove('paused');
-    setTimerStatus('running','Keep going! 💪');
+    setTimerRing(elapsedSecs, totalSecs, 'running', 'Keep going! 💪');
     runTick();
   }
 
@@ -1004,15 +1014,10 @@
     timerInterval=setInterval(()=>{
       elapsedSecs=elapsedAtResume+Math.floor((Date.now()-runTs)/1000);
       const rem=Math.max(totalSecs-elapsedSecs,0);
-      document.getElementById('timer-digits').textContent=fmtDisp(rem);
-      document.getElementById('timer-progress').style.width=(elapsedSecs/totalSecs*100).toFixed(1)+'%';
-      setTimerStatus('running','Keep going! 💪');
+      setTimerRing(elapsedSecs, totalSecs, 'running', 'Keep going! 💪');
       if (rem<=0) {
         clearInterval(timerInterval); isRunning=false; elapsedSecs=totalSecs;
-        document.getElementById('timer-progress').style.width='100%';
-        document.getElementById('timer-progress').classList.add('finished');
-        document.getElementById('timer-digits').textContent=fmtDisp(0);
-        setTimerStatus('finished','Session complete! 🎉');
+        setTimerRing(totalSecs, totalSecs, 'finished', 'Session complete! 🎉');
         stopDraftLoop();
         onTimerComplete();
       }
@@ -1036,15 +1041,16 @@
   function timerReset() {
     clearInterval(timerInterval); stopDraftLoop();
     isRunning=false; isPaused=false; elapsedSecs=0; totalSecs=0; elapsedAtResume=0; runTs=null;
-    document.getElementById('timer-progress').style.width='0%';
-    document.getElementById('timer-progress').classList.remove('paused','finished');
+    const ring=document.getElementById('ring-fill');
+    ring.style.strokeDashoffset='0'; ring.className='ring-fill';
     document.getElementById('timer-digits').textContent='00:00:00';
+    document.getElementById('timer-digits').className='timer-digits';
+    document.getElementById('timer-label').textContent='Set time below';
     document.getElementById('btn-play').textContent='▶';
     document.getElementById('btn-stop').style.display='none';
     document.getElementById('inp-h').disabled=false;
     document.getElementById('inp-m').disabled=false;
     document.getElementById('paper-select').disabled=false;
-    setTimerStatus('idle','Set time below');
   }
 
   // ─────────────────────────────────────────

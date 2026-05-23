@@ -115,6 +115,17 @@
     .btn-reset { background:var(--surface-2); color:var(--text-muted); }
     .btn-reset:hover { background:var(--border); }
 
+    /* Target badge */
+    .sw-target-badge {
+      display:inline-flex; align-items:center; gap:6px;
+      background:var(--primary-light); border:1.5px solid rgba(45,91,227,0.2);
+      border-radius:20px; padding:4px 12px; font-size:12px; font-weight:600;
+      color:var(--primary); margin-bottom:14px; cursor:pointer; transition:all 0.2s;
+    }
+    .sw-target-badge:hover { background:rgba(45,91,227,0.15); }
+    .sw-target-badge.no-target { background:var(--surface-2); border-color:var(--border); color:var(--text-muted); }
+    .sw-target-badge.hit { background:rgba(0,201,167,0.12); border-color:rgba(0,201,167,0.3); color:var(--success); animation:badge-pulse 1s ease; }
+    @keyframes badge-pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.06)} }
 
     /* ── Resume Banner ── */
     .resume-banner {
@@ -341,6 +352,8 @@
                 <label>📚 Studying Which Paper?</label>
                 <select class="form-select" id="sw-paper-select"><option value="General Study">General Study</option></select>
               </div>
+
+              <div id="sw-target-badge" class="sw-target-badge no-target">🎯 No target set — tap to set one</div>
 
               <!-- Clean clock display -->
               <div class="clock-display">
@@ -626,6 +639,7 @@
       sel.value = swPaper; sel.disabled = true;
       document.getElementById('sw-digits').textContent = fmtDisp(swElapsed);
       document.getElementById('sw-btn-stop').style.display = 'flex';
+      swRenderBadge();
 
       if (draft.isPaused) {
         swPaused = true; swRunning = false;
@@ -727,6 +741,7 @@
   document.getElementById('sw-btn-play').addEventListener('click',  swTogglePlay);
   document.getElementById('sw-btn-stop').addEventListener('click',  swStop);
   document.getElementById('sw-btn-reset').addEventListener('click', swReset);
+  document.getElementById('sw-target-badge').addEventListener('click', swSetTarget);
 
   // Todo
   document.getElementById('btn-add-todo').addEventListener('click', addTodo);
@@ -1035,6 +1050,34 @@
   // ─────────────────────────────────────────
   //  STOPWATCH
   // ─────────────────────────────────────────
+  function swSetTarget() {
+    if (swRunning||swPaused) { toast('Cannot change target while running.','error'); return; }
+    const cur=swTargetSecs>0?`Current: ${fmtTime(swTargetSecs)}. `:'';
+    const raw=window.prompt(`${cur}Set a target (e.g. "1h 30m", "90m"). Leave blank to clear:`,'');
+    if (raw===null) return;
+    if (!raw.trim()) { swTargetSecs=0; swTargetHit=false; swRenderBadge(); return; }
+    const parsed=parseTarget(raw.trim());
+    if (!parsed) { toast('Try "1h 30m" or "45m"','error'); return; }
+    swTargetSecs=parsed; swTargetHit=false; swRenderBadge();
+    toast(`Target set: ${fmtTime(swTargetSecs)}`,'success');
+  }
+
+  function parseTarget(s) {
+    let t=0;
+    const hm=s.match(/(\d+(\.\d+)?)\s*h/i); const mm=s.match(/(\d+)\s*m/i);
+    if(hm) t+=parseFloat(hm[1])*3600; if(mm) t+=parseInt(mm[1])*60;
+    if(!hm&&!mm){const n=parseInt(s);if(!isNaN(n))t=n*60;}
+    return t>0?Math.round(t):0;
+  }
+
+  function swRenderBadge() {
+    const b=document.getElementById('sw-target-badge');
+    if (!swTargetSecs) { b.className='sw-target-badge no-target'; b.textContent='🎯 No target set — tap to set one'; return; }
+    if (swTargetHit)   { b.className='sw-target-badge hit'; b.textContent=`🎉 Target hit! ${fmtTime(swTargetSecs)}`; return; }
+    const rem=Math.max(swTargetSecs-swElapsed,0);
+    b.className='sw-target-badge';
+    b.textContent=`🎯 Target: ${fmtTime(swTargetSecs)} — ${fmtTime(rem)} remaining`;
+  }
 
   function swTogglePlay() {
     if (swRunning) { swPause(); return; }
@@ -1059,7 +1102,7 @@
     clearInterval(swInterval);
     document.getElementById('sw-btn-play').textContent='▶';
     setSwStatus('paused','Paused ⏸');
-    saveDraftLS();
+    swRenderBadge(); saveDraftLS();
   }
 
   function swResume() {
@@ -1077,9 +1120,9 @@
       setSwStatus('running','Keep going! 💪');
       if (swTargetSecs>0) {
         if (!swTargetHit && swElapsed>=swTargetSecs) {
-          swTargetHit=true;
+          swTargetHit=true; swRenderBadge();
           toast(`🎉 Target reached! ${fmtTime(swTargetSecs)} studied!`,'success');
-        }
+        } else if (!swTargetHit) swRenderBadge();
       }
     },1000);
   }
@@ -1138,6 +1181,7 @@
     document.getElementById('sw-btn-stop').style.display='none';
     document.getElementById('sw-paper-select').disabled=false;
     setSwStatus('idle','Press ▶ to begin');
+    swRenderBadge();
   }
 
   // ─────────────────────────────────────────

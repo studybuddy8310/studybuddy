@@ -9,7 +9,7 @@
   <style>
     .timer-page { display:grid; grid-template-columns:1fr 360px; gap:24px; align-items:start; }
 
-    /* ── Mode Tabs ───────────────────────────────────────────── */
+    /* ── Mode Tabs ── */
     .mode-tabs {
       display:flex; gap:0; margin-bottom:20px;
       background:var(--surface-2); border-radius:var(--radius-lg);
@@ -21,69 +21,71 @@
       font-weight:600; color:var(--text-muted); cursor:pointer;
       transition:all 0.22s; display:flex; align-items:center; justify-content:center; gap:7px;
     }
-    .mode-tab.active {
-      background:var(--surface); color:var(--primary);
-      box-shadow:0 2px 8px rgba(0,0,0,0.08);
-    }
+    .mode-tab.active { background:var(--surface); color:var(--primary); box-shadow:0 2px 8px rgba(0,0,0,0.08); }
     .mode-tab:hover:not(.active){ color:var(--text-primary); }
 
-    /* ── Timer Card ──────────────────────────────────────── */
+    /* ── Timer Card ── */
     .timer-card {
       background:var(--surface); border:1px solid var(--border);
       border-radius:var(--radius-xl); padding:28px 24px; text-align:center;
     }
-    .timer-ring-wrap {
-      position:relative; width:380px; height:380px; margin:0 auto 4px;
-    }
-    .timer-ring { position:absolute; inset:0; }
-    .ring-track { fill:none; stroke:var(--border); stroke-width:10; }
-    .ring-fill  {
-      fill:none; stroke:var(--primary); stroke-width:10;
-      stroke-linecap:round;
-      transform:rotate(-90deg); transform-origin:50% 50%;
-      transition:stroke-dashoffset 1s linear, stroke 0.3s;
-    }
-    .ring-fill.paused   { stroke:var(--warning); }
-    .ring-fill.finished { stroke:var(--success); }
 
-    /* Stopwatch ring — counts up, rotates fill infinitely when running */
-    .sw-ring-fill {
-      fill:none; stroke:var(--primary); stroke-width:10;
-      stroke-linecap:round;
-      transform:rotate(-90deg); transform-origin:50% 50%;
-      transition:stroke-dashoffset 0.25s linear, stroke 0.3s;
-    }
-    .sw-ring-fill.paused  { stroke:var(--warning); }
-    .sw-ring-fill.stopped { stroke:var(--success); }
-
-    .timer-center {
-      position:absolute; inset:0; display:flex;
-      flex-direction:column; align-items:center; justify-content:center;
+    /* ── Clock Display (no ring) ── */
+    .clock-display {
+      margin:24px auto 20px;
+      display:flex; flex-direction:column; align-items:center; gap:10px;
     }
     .timer-digits {
-      font-family:var(--font-heading); font-size:2.8rem; font-weight:700;
-      color:var(--text-primary); letter-spacing:2px; line-height:1;
+      font-family:var(--font-heading); font-size:4rem; font-weight:800;
+      color:var(--text-primary); letter-spacing:4px; line-height:1;
       transition:color 0.3s;
     }
     .timer-digits.running  { color:var(--primary); }
     .timer-digits.paused   { color:var(--warning); }
     .timer-digits.finished { color:var(--success); }
-    .timer-state-label { font-size:12px; color:var(--text-muted); margin-top:5px; font-weight:500; }
+    .status-pill {
+      display:inline-flex; align-items:center; gap:6px;
+      padding:5px 14px; border-radius:20px;
+      font-size:12px; font-weight:700; letter-spacing:0.3px;
+      transition:all 0.3s;
+    }
+    .status-pill.idle     { background:var(--surface-2); color:var(--text-muted); border:1.5px solid var(--border); }
+    .status-pill.running  { background:var(--primary-light); color:var(--primary); border:1.5px solid rgba(45,91,227,0.2); }
+    .status-pill.paused   { background:var(--warning-light); color:#8A5F00; border:1.5px solid rgba(245,158,11,0.25); }
+    .status-pill.finished { background:var(--success-light); color:var(--success); border:1.5px solid rgba(0,201,167,0.25); }
+    .status-dot {
+      width:7px; height:7px; border-radius:50%; flex-shrink:0;
+    }
+    .status-pill.running  .status-dot { background:var(--primary); animation:blink 1.2s infinite; }
+    .status-pill.paused   .status-dot { background:var(--warning); }
+    .status-pill.finished .status-dot { background:var(--success); }
+    .status-pill.idle     .status-dot { background:var(--text-muted); }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.25} }
+
+    /* Timer progress bar (replaces ring) */
+    .timer-progress-wrap { width:100%; margin:0 auto 6px; }
+    .timer-progress-track {
+      width:100%; height:6px; background:var(--border);
+      border-radius:3px; overflow:hidden;
+    }
+    .timer-progress-fill {
+      height:100%; background:var(--primary); border-radius:3px;
+      transition:width 1s linear, background 0.3s;
+      width:0%;
+    }
+    .timer-progress-fill.paused   { background:var(--warning); }
+    .timer-progress-fill.finished { background:var(--success); }
 
     /* Set time row */
-    .set-time-row {
-      display:flex; align-items:center; justify-content:center;
-      gap:8px; margin:12px 0;
-    }
+    .set-time-row { display:flex; align-items:center; justify-content:center; gap:8px; margin:12px 0; }
     .time-inp-group { display:flex; flex-direction:column; align-items:center; gap:3px; }
     .time-inp-group label { font-size:10px; color:var(--text-muted); font-weight:700; text-transform:uppercase; }
     .time-inp-group input {
-      width:68px; text-align:center;
-      font-family:var(--font-heading); font-size:1.5rem; font-weight:700;
+      width:68px; text-align:center; font-family:var(--font-heading); font-size:1.5rem; font-weight:700;
       border:2px solid var(--border); border-radius:var(--radius-md);
       padding:7px 4px; outline:none; color:var(--text-primary); background:var(--surface);
     }
-    .time-inp-group input:focus  { border-color:var(--primary); }
+    .time-inp-group input:focus    { border-color:var(--primary); }
     .time-inp-group input:disabled { background:var(--surface-2); color:var(--text-muted); }
     .time-colon { font-size:1.8rem; font-weight:700; color:var(--text-muted); margin-top:14px; }
 
@@ -92,12 +94,11 @@
     .preset-btn {
       padding:5px 13px; border-radius:20px; border:1.5px solid var(--border);
       background:var(--surface); font-size:12px; font-weight:600;
-      color:var(--text-secondary); cursor:pointer; transition:all 0.2s;
-      font-family:var(--font-body);
+      color:var(--text-secondary); cursor:pointer; transition:all 0.2s; font-family:var(--font-body);
     }
     .preset-btn:hover { border-color:var(--primary); color:var(--primary); background:var(--primary-light); }
 
-    /* Paper select */
+    /* Paper row */
     .paper-row { text-align:left; margin-bottom:14px; }
     .paper-row label { display:block; font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:5px; }
 
@@ -109,98 +110,97 @@
     }
     .btn-play  { background:var(--primary); color:#fff; width:64px; height:64px; font-size:24px; box-shadow:0 4px 16px rgba(45,91,227,0.4); }
     .btn-play:hover  { background:var(--primary-dark); transform:scale(1.05); }
-    .btn-pause { background:var(--warning-light); color:#8A5F00; }
-    .btn-pause:hover { background:var(--warning); color:#fff; }
-    .btn-stop  { background:var(--danger-light);  color:var(--danger); }
-    .btn-stop:hover  { background:var(--danger);  color:#fff; }
+    .btn-stop  { background:var(--danger-light); color:var(--danger); }
+    .btn-stop:hover  { background:var(--danger); color:#fff; }
     .btn-reset { background:var(--surface-2); color:var(--text-muted); }
     .btn-reset:hover { background:var(--border); }
 
-    /* ── Stopwatch Target Badge ──────────────────────────── */
+    /* Target badge */
     .sw-target-badge {
       display:inline-flex; align-items:center; gap:6px;
       background:var(--primary-light); border:1.5px solid rgba(45,91,227,0.2);
-      border-radius:20px; padding:4px 12px; font-size:12px;
-      font-weight:600; color:var(--primary); margin-bottom:10px;
-      cursor:pointer; transition:all 0.2s;
+      border-radius:20px; padding:4px 12px; font-size:12px; font-weight:600;
+      color:var(--primary); margin-bottom:14px; cursor:pointer; transition:all 0.2s;
     }
     .sw-target-badge:hover { background:rgba(45,91,227,0.15); }
-    .sw-target-badge.no-target {
-      background:var(--surface-2); border-color:var(--border); color:var(--text-muted);
-    }
-    .sw-target-badge.hit {
-      background:rgba(0,201,167,0.12); border-color:rgba(0,201,167,0.3); color:var(--success);
-      animation:badge-pulse 1s ease;
-    }
+    .sw-target-badge.no-target { background:var(--surface-2); border-color:var(--border); color:var(--text-muted); }
+    .sw-target-badge.hit { background:rgba(0,201,167,0.12); border-color:rgba(0,201,167,0.3); color:var(--success); animation:badge-pulse 1s ease; }
     @keyframes badge-pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.06)} }
 
-    /* ── Diary / To-Do Section ───────────────────────────── */
+    /* ── Resume Banner ── */
+    .resume-banner {
+      display:flex; align-items:center; gap:14px;
+      background:linear-gradient(135deg,rgba(45,91,227,0.08),rgba(45,91,227,0.04));
+      border:1.5px solid rgba(45,91,227,0.25); border-radius:var(--radius-lg);
+      padding:14px 18px; margin-bottom:18px; animation:banner-slide 0.4s ease;
+    }
+    @keyframes banner-slide { from{opacity:0;transform:translateY(-10px)} to{opacity:1;transform:none} }
+    .resume-banner-icon  { font-size:28px; flex-shrink:0; }
+    .resume-banner-body  { flex:1; }
+    .resume-banner-title { font-family:var(--font-heading); font-size:14px; font-weight:700; color:var(--primary); }
+    .resume-banner-sub   { font-size:12px; color:var(--text-secondary); margin-top:3px; }
+    .resume-banner-actions { display:flex; gap:8px; flex-shrink:0; }
+    .btn-resume        { padding:8px 16px; border-radius:var(--radius-md); border:none; background:var(--primary); color:#fff; font-family:var(--font-heading); font-size:13px; font-weight:700; cursor:pointer; transition:all 0.2s; }
+    .btn-resume:hover  { background:var(--primary-dark); }
+    .btn-discard-draft { padding:8px 14px; border-radius:var(--radius-md); border:1.5px solid var(--border); background:var(--surface); color:var(--text-muted); font-family:var(--font-heading); font-size:13px; font-weight:600; cursor:pointer; transition:all 0.2s; }
+    .btn-discard-draft:hover { border-color:var(--danger); color:var(--danger); }
+
+    /* Draft indicator */
+    .draft-indicator {
+      display:inline-flex; align-items:center; gap:5px;
+      font-size:11px; color:var(--text-muted); margin-top:10px;
+      opacity:0; transition:opacity 0.4s;
+    }
+    .draft-indicator.show { opacity:1; }
+    .draft-dot { width:6px; height:6px; border-radius:50%; background:var(--success); animation:pulse-dot 2s infinite; }
+    @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+    /* ── Diary Section ── */
     .diary-section {
       background:var(--surface); border:1px solid var(--border);
       border-radius:var(--radius-lg); padding:20px; margin-top:16px;
     }
-    .diary-title {
-      font-family:var(--font-heading); font-size:15px; font-weight:600;
-      margin-bottom:4px; display:flex; align-items:center; gap:8px;
-    }
-    .diary-sub { font-size:12px; color:var(--text-muted); margin-bottom:14px; }
+    .diary-title { font-family:var(--font-heading); font-size:15px; font-weight:600; margin-bottom:4px; display:flex; align-items:center; gap:8px; }
+    .diary-sub   { font-size:12px; color:var(--text-muted); margin-bottom:14px; }
     .todo-add-row { display:flex; gap:8px; margin-bottom:12px; }
     .todo-add-row input { flex:1; }
-    .todo-list { display:flex; flex-direction:column; gap:6px; min-height:40px; }
+    .todo-list { display:flex; flex-direction:column; gap:6px; }
     .todo-item {
       display:flex; align-items:center; gap:10px;
       background:var(--surface-2); border:1px solid var(--border);
-      border-radius:var(--radius-md); padding:10px 12px;
-      transition:all 0.2s;
+      border-radius:var(--radius-md); padding:10px 12px; transition:all 0.2s;
     }
     .todo-item.done { background:var(--success-light); border-color:rgba(0,201,167,0.25); }
     .todo-item.done .todo-text { text-decoration:line-through; color:var(--text-muted); }
-    .todo-check {
-      width:20px; height:20px; cursor:pointer;
-      accent-color:var(--success); flex-shrink:0;
-    }
-    .todo-text { flex:1; font-size:13px; color:var(--text-primary); }
-    .todo-del {
-      background:none; border:none; color:var(--text-muted);
-      cursor:pointer; font-size:15px; padding:2px; line-height:1;
-      transition:color 0.2s; flex-shrink:0;
-    }
+    .todo-check { width:20px; height:20px; cursor:pointer; accent-color:var(--success); flex-shrink:0; }
+    .todo-text  { flex:1; font-size:13px; color:var(--text-primary); }
+    .todo-del   { background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:15px; padding:2px; line-height:1; transition:color 0.2s; flex-shrink:0; }
     .todo-del:hover { color:var(--danger); }
     .todo-empty { text-align:center; padding:16px; color:var(--text-muted); font-size:13px; }
-
     .todo-completion-bar {
       display:flex; align-items:center; gap:10px; margin-top:12px;
-      padding:10px 14px; background:var(--primary-light);
-      border-radius:var(--radius-md);
+      padding:10px 14px; background:var(--primary-light); border-radius:var(--radius-md);
     }
     .comp-bar-track { flex:1; height:8px; background:rgba(45,91,227,0.15); border-radius:4px; overflow:hidden; }
     .comp-bar-fill  { height:100%; background:var(--primary); border-radius:4px; transition:width 0.4s; }
     .comp-pct { font-size:12px; font-weight:700; color:var(--primary); white-space:nowrap; }
 
-    /* ── Right Panel ──────────────────────────────────────── */
+    /* ── Right Panel ── */
     .right-panel { display:flex; flex-direction:column; gap:16px; }
-
-    .streak-card {
-      background:linear-gradient(135deg, #FF8C42, #FFB830);
-      border-radius:var(--radius-lg); padding:20px; text-align:center; color:#fff;
-    }
+    .streak-card { background:linear-gradient(135deg,#FF8C42,#FFB830); border-radius:var(--radius-lg); padding:20px; text-align:center; color:#fff; }
     .streak-card .fire { font-size:36px; margin-bottom:6px; }
-    .streak-num { font-family:var(--font-heading); font-size:3rem; font-weight:700; line-height:1; }
+    .streak-num   { font-family:var(--font-heading); font-size:3rem; font-weight:700; line-height:1; }
     .streak-label { font-size:13px; opacity:0.85; margin-top:3px; }
     .streak-best  { font-size:11px; opacity:0.65; margin-top:6px; }
-
-    .today-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:18px; }
-    .today-card-title { font-family:var(--font-heading); font-size:14px; font-weight:600; margin-bottom:12px; display:flex; align-items:center; gap:6px; }
+    .today-card   { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:18px; }
+    .today-card-title { font-family:var(--font-heading); font-size:14px; font-weight:600; margin-bottom:12px; }
     .sess-item { display:flex; align-items:center; justify-content:space-between; padding:9px 0; border-bottom:1px solid var(--border); }
     .sess-item:last-child { border-bottom:none; }
     .sess-paper { font-size:13px; font-weight:600; color:var(--text-primary); }
-    .sess-time  { font-size:11px; color:var(--text-muted); }
     .sess-dur   { font-family:var(--font-heading); font-size:13px; font-weight:700; color:var(--primary); }
     .today-total { display:flex; justify-content:space-between; padding-top:10px; margin-top:4px; border-top:2px solid var(--border); }
     .today-total-label { font-size:13px; font-weight:600; color:var(--text-secondary); }
     .today-total-val   { font-family:var(--font-heading); font-size:17px; font-weight:700; color:var(--primary); }
-
-    /* Weekly chart */
     .weekly-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:18px; }
     .weekly-card-title { font-family:var(--font-heading); font-size:14px; font-weight:600; margin-bottom:14px; }
     .week-bars { display:flex; align-items:flex-end; gap:6px; height:90px; }
@@ -209,28 +209,20 @@
     .week-bar.today { background:var(--primary); }
     .week-bar-day { font-size:10px; color:var(--text-muted); font-weight:600; }
     .week-bar-hrs { font-size:9px; color:var(--text-muted); }
-
-    /* Diary history */
     .diary-history { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:18px; }
     .diary-history-title { font-family:var(--font-heading); font-size:14px; font-weight:600; margin-bottom:12px; }
-
     .diary-day-item { padding:10px 0; border-bottom:1px solid var(--border); cursor:pointer; }
     .diary-day-item:last-child { border-bottom:none; }
     .diary-day-header { display:flex; justify-content:space-between; align-items:center; }
     .diary-day-date { font-size:13px; font-weight:600; color:var(--text-primary); }
-    .diary-day-time { font-size:12px; color:var(--text-muted); }
+    .diary-day-time { font-size:11px; color:var(--text-muted); }
     .diary-day-comp { font-size:11px; font-weight:600; }
     .diary-day-tasks { margin-top:6px; display:none; }
     .diary-day-tasks.open { display:block; }
     .diary-task-mini { font-size:12px; color:var(--text-secondary); padding:2px 0; display:flex; align-items:center; gap:6px; }
-
-    /* Session type badge in history */
-    .sess-type-badge {
-      font-size:10px; font-weight:700; padding:2px 7px; border-radius:10px;
-      display:inline-block; margin-left:6px;
-    }
-    .sess-type-badge.timer    { background:var(--primary-light);  color:var(--primary); }
-    .sess-type-badge.stopwatch{ background:rgba(0,201,167,0.12);  color:var(--success); }
+    .sess-type-badge { font-size:10px; font-weight:700; padding:2px 7px; border-radius:10px; display:inline-block; margin-left:6px; }
+    .sess-type-badge.timer     { background:var(--primary-light); color:var(--primary); }
+    .sess-type-badge.stopwatch { background:rgba(0,201,167,0.12); color:var(--success); }
 
     @media(max-width:960px){ .timer-page{grid-template-columns:1fr;} }
   </style>
@@ -248,14 +240,14 @@
       <a href="dashboard.html" class="nav-item"><span class="nav-item-icon">🏠</span> Home</a>
       <a href="progress.html"  class="nav-item"><span class="nav-item-icon">📊</span> Progress Dashboard</a>
       <div class="nav-section-label">Study</div>
-      <a href="material.html" class="nav-item"><span class="nav-item-icon">📚</span> Study Material</a>
-      <a href="mcq.html"      class="nav-item"><span class="nav-item-icon">✏️</span> Practice MCQ</a>
-      <a href="tests.html"    class="nav-item"><span class="nav-item-icon">📝</span> Mock Tests</a>
+      <a href="material.html"  class="nav-item"><span class="nav-item-icon">📚</span> Study Material</a>
+      <a href="mcq.html"       class="nav-item"><span class="nav-item-icon">✏️</span> Practice MCQ</a>
+      <a href="tests.html"     class="nav-item"><span class="nav-item-icon">📝</span> Mock Tests</a>
       <div class="nav-section-label">Tools</div>
-      <a href="timer.html"    class="nav-item active"><span class="nav-item-icon">⏱️</span> Study Timer</a>
-      <a href="tips.html"     class="nav-item"><span class="nav-item-icon">💡</span> Tips & Ideas</a>
+      <a href="timer.html"     class="nav-item active"><span class="nav-item-icon">⏱️</span> Study Timer</a>
+      <a href="tips.html"      class="nav-item"><span class="nav-item-icon">💡</span> Tips & Ideas</a>
       <div class="nav-section-label">Account</div>
-      <a href="profile.html"  class="nav-item"><span class="nav-item-icon">👤</span> My Profile</a>
+      <a href="profile.html"   class="nav-item"><span class="nav-item-icon">👤</span> My Profile</a>
     </nav>
     <div class="sidebar-bottom">
       <div class="sidebar-user">
@@ -272,165 +264,140 @@
   <main class="student-main">
     <div class="page-content">
       <div class="page-hero">
-        <button class="btn-hamburger hero-hamburger" id="btn-hamburger" onclick="toggleSidebar()" aria-label="Menu">
+        <button class="btn-hamburger hero-hamburger" id="btn-hamburger" aria-label="Menu">
           <span></span><span></span><span></span>
         </button>
         <div class="hero-title-wrap">
           <h1>⏱️ Study Timer & Diary</h1>
           <p>Track your study sessions and build your streak</p>
         </div>
-        <a href="dashboard.html" class="hero-home-btn" title="Home">🏠</a>
+        <a href="dashboard.html" class="hero-home-btn" id="hero-home" title="Home">🏠</a>
       </div>
 
       <div class="timer-page">
-        <!-- ── Left: Timer/Stopwatch + Diary ──────────────── -->
+        <!-- LEFT -->
         <div>
+          <!-- Resume Banner -->
+          <div class="resume-banner hidden" id="resume-banner">
+            <div class="resume-banner-icon" id="resume-icon">📂</div>
+            <div class="resume-banner-body">
+              <div class="resume-banner-title" id="resume-title">Resume last session?</div>
+              <div class="resume-banner-sub"   id="resume-sub">Loading draft…</div>
+            </div>
+            <div class="resume-banner-actions">
+              <button class="btn-resume"        id="btn-resume-draft">▶ Resume</button>
+              <button class="btn-discard-draft" id="btn-discard-draft">✕ Discard</button>
+            </div>
+          </div>
 
           <!-- Mode Tabs -->
           <div class="mode-tabs">
-            <button class="mode-tab active" id="tab-timer-btn"     onclick="switchMode('timer')">⏳ Timer</button>
-            <button class="mode-tab"        id="tab-stopwatch-btn" onclick="switchMode('stopwatch')">⏱️ Stopwatch</button>
+            <button class="mode-tab active" id="tab-timer-btn">⏳ Timer</button>
+            <button class="mode-tab"        id="tab-sw-btn">⏱️ Stopwatch</button>
           </div>
 
-          <!-- ══════════ TIMER PANEL ══════════ -->
+          <!-- ══ TIMER PANEL ══ -->
           <div id="panel-timer">
             <div class="timer-card">
               <h3 style="font-family:var(--font-heading);margin-bottom:4px;">Study Session</h3>
               <p class="text-secondary fs-13">Set time, add your tasks, then start!</p>
-
               <div class="paper-row" style="margin-top:16px;">
                 <label>📚 Studying Which Paper?</label>
-                <select class="form-select" id="paper-select">
-                  <option value="General Study">General Study</option>
-                </select>
+                <select class="form-select" id="paper-select"><option value="General Study">General Study</option></select>
               </div>
 
-              <!-- Ring -->
-              <div class="timer-ring-wrap">
-                <svg class="timer-ring" viewBox="0 0 200 200">
-                  <circle class="ring-track" cx="100" cy="100" r="88"/>
-                  <circle class="ring-fill" id="ring-fill" cx="100" cy="100" r="88"
-                    stroke-dasharray="553" stroke-dashoffset="0"/>
-                </svg>
-                <div class="timer-center">
-                  <div class="timer-digits" id="timer-digits">00:00:00</div>
-                  <div class="timer-state-label" id="timer-label">Set time below</div>
+              <!-- Clean clock display -->
+              <div class="clock-display">
+                <div class="timer-digits" id="timer-digits">00:00:00</div>
+                <div class="status-pill idle" id="timer-status-pill">
+                  <div class="status-dot"></div>
+                  <span id="timer-status-text">Set time below</span>
                 </div>
               </div>
 
-              <!-- Set time -->
-              <div class="set-time-row" id="time-inputs">
-                <div class="time-inp-group">
-                  <label>Hours</label>
-                  <input type="number" id="inp-h" min="0" max="12" value="1"/>
+              <!-- Thin progress bar -->
+              <div class="timer-progress-wrap">
+                <div class="timer-progress-track">
+                  <div class="timer-progress-fill" id="timer-progress"></div>
                 </div>
+              </div>
+
+              <div class="set-time-row">
+                <div class="time-inp-group"><label>Hours</label><input type="number" id="inp-h" min="0" max="12" value="1"/></div>
                 <span class="time-colon">:</span>
-                <div class="time-inp-group">
-                  <label>Mins</label>
-                  <input type="number" id="inp-m" min="0" max="59" value="30"/>
-                </div>
+                <div class="time-inp-group"><label>Mins</label><input type="number" id="inp-m" min="0" max="59" value="30"/></div>
               </div>
-
-              <div class="presets">
-                <button class="preset-btn" onclick="setPreset(0,30)">30m</button>
-                <button class="preset-btn" onclick="setPreset(1,0)">1h</button>
-                <button class="preset-btn" onclick="setPreset(1,30)">1.5h</button>
-                <button class="preset-btn" onclick="setPreset(2,0)">2h</button>
-                <button class="preset-btn" onclick="setPreset(3,0)">3h</button>
+              <div class="presets" id="presets-row">
+                <button class="preset-btn" data-h="0" data-m="30">30m</button>
+                <button class="preset-btn" data-h="1" data-m="0">1h</button>
+                <button class="preset-btn" data-h="1" data-m="30">1.5h</button>
+                <button class="preset-btn" data-h="2" data-m="0">2h</button>
+                <button class="preset-btn" data-h="3" data-m="0">3h</button>
               </div>
-
               <div class="timer-controls">
-                <button class="btn-ctrl btn-reset" id="btn-reset" onclick="resetTimer()" title="Reset">↺</button>
-                <button class="btn-ctrl btn-play"  id="btn-play"  onclick="togglePlay()" title="Start">▶</button>
-                <button class="btn-ctrl btn-stop"  id="btn-stop"  onclick="stopTimer()" title="Stop & Save" style="display:none;">⏹</button>
+                <button class="btn-ctrl btn-reset" id="btn-reset" title="Reset">↺</button>
+                <button class="btn-ctrl btn-play"  id="btn-play"  title="Start">▶</button>
+                <button class="btn-ctrl btn-stop"  id="btn-stop"  title="Stop & Save" style="display:none;">⏹</button>
               </div>
+              <div class="draft-indicator" id="t-draft-ind"><div class="draft-dot"></div> Draft saved</div>
             </div>
-          </div><!-- /panel-timer -->
+          </div>
 
-          <!-- ══════════ STOPWATCH PANEL ══════════ -->
+          <!-- ══ STOPWATCH PANEL ══ -->
           <div id="panel-stopwatch" style="display:none;">
             <div class="timer-card">
               <h3 style="font-family:var(--font-heading);margin-bottom:4px;">Stopwatch Session</h3>
               <p class="text-secondary fs-13">Start studying — stop when you're done!</p>
-
               <div class="paper-row" style="margin-top:16px;">
                 <label>📚 Studying Which Paper?</label>
-                <select class="form-select" id="sw-paper-select">
-                  <option value="General Study">General Study</option>
-                </select>
+                <select class="form-select" id="sw-paper-select"><option value="General Study">General Study</option></select>
               </div>
 
-              <!-- Target badge (click to set/clear target) -->
-              <div id="sw-target-badge" class="sw-target-badge no-target" onclick="swSetTarget()">
-                🎯 No target set — tap to set one
-              </div>
+              <div id="sw-target-badge" class="sw-target-badge no-target">🎯 No target set — tap to set one</div>
 
-              <!-- Ring -->
-              <div class="timer-ring-wrap">
-                <svg class="timer-ring" viewBox="0 0 200 200">
-                  <circle class="ring-track" cx="100" cy="100" r="88"/>
-                  <!-- target arc (faint, shows goal) -->
-                  <circle id="sw-ring-target" cx="100" cy="100" r="88"
-                    fill="none" stroke="rgba(45,91,227,0.12)" stroke-width="10"
-                    stroke-dasharray="553" stroke-dashoffset="0"
-                    transform="rotate(-90 100 100)" style="display:none;"/>
-                  <!-- progress arc -->
-                  <circle class="sw-ring-fill" id="sw-ring-fill" cx="100" cy="100" r="88"
-                    stroke-dasharray="553" stroke-dashoffset="553"/>
-                </svg>
-                <div class="timer-center">
-                  <div class="timer-digits" id="sw-digits">00:00:00</div>
-                  <div class="timer-state-label" id="sw-label">Press ▶ to begin</div>
+              <!-- Clean clock display -->
+              <div class="clock-display">
+                <div class="timer-digits" id="sw-digits">00:00:00</div>
+                <div class="status-pill idle" id="sw-status-pill">
+                  <div class="status-dot"></div>
+                  <span id="sw-status-text">Press ▶ to begin</span>
                 </div>
               </div>
 
               <div class="timer-controls">
-                <button class="btn-ctrl btn-reset" id="sw-btn-reset" onclick="swReset()" title="Reset">↺</button>
-                <button class="btn-ctrl btn-play"  id="sw-btn-play"  onclick="swTogglePlay()" title="Start">▶</button>
-                <button class="btn-ctrl btn-stop"  id="sw-btn-stop"  onclick="swStop()" title="Stop & Save" style="display:none;">⏹</button>
+                <button class="btn-ctrl btn-reset" id="sw-btn-reset" title="Reset">↺</button>
+                <button class="btn-ctrl btn-play"  id="sw-btn-play"  title="Start">▶</button>
+                <button class="btn-ctrl btn-stop"  id="sw-btn-stop"  title="Stop & Save" style="display:none;">⏹</button>
               </div>
+              <div class="draft-indicator" id="sw-draft-ind"><div class="draft-dot"></div> Draft saved</div>
             </div>
-          </div><!-- /panel-stopwatch -->
+          </div>
 
-          <!-- ── Diary / To-Do (shared) ──────────────────── -->
+          <!-- Diary -->
           <div class="diary-section">
             <div class="diary-title">📓 Session Diary</div>
             <div class="diary-sub">Add what you plan to study. Mark done when stopping.</div>
-
             <div class="todo-add-row">
-              <input type="text" id="todo-input" class="form-input"
-                placeholder="Add a task e.g. Ind AS 2 — Chapter notes"
-                onkeydown="if(event.key==='Enter')addTodo()"/>
-              <button class="btn btn-primary btn-sm" onclick="addTodo()">+ Add</button>
+              <input type="text" id="todo-input" class="form-input" placeholder="Add a task e.g. Ind AS 2 — Chapter notes"/>
+              <button class="btn btn-primary btn-sm" id="btn-add-todo">+ Add</button>
             </div>
-
             <div class="todo-list" id="todo-list"></div>
-              <div class="todo-empty" id="todo-empty">
-                📝 No tasks added yet. Add what you plan to study!
-              </div>
-
-            <!-- Completion bar (shown when tasks exist) -->
+            <div class="todo-empty" id="todo-empty">📝 No tasks added yet. Add what you plan to study!</div>
             <div class="todo-completion-bar hidden" id="comp-bar">
-              <div class="comp-bar-track">
-                <div class="comp-bar-fill" id="comp-bar-fill" style="width:0%"></div>
-              </div>
+              <div class="comp-bar-track"><div class="comp-bar-fill" id="comp-bar-fill" style="width:0%"></div></div>
               <div class="comp-pct" id="comp-pct">0% done</div>
             </div>
           </div>
         </div>
 
-        <!-- ── Right Panel ──────────────────────────────── -->
+        <!-- RIGHT PANEL -->
         <div class="right-panel">
-
-          <!-- Streak -->
           <div class="streak-card">
             <div class="fire">🔥</div>
             <div class="streak-num" id="streak-num">0</div>
             <div class="streak-label">Day Streak</div>
             <div class="streak-best" id="streak-best">Best: 0 days</div>
           </div>
-
-          <!-- Today -->
           <div class="today-card">
             <div class="today-card-title">📚 Today's Study</div>
             <div id="today-list"><div style="text-align:center;padding:14px;color:var(--text-muted);font-size:13px;">No sessions yet today</div></div>
@@ -439,321 +406,567 @@
               <span class="today-total-val" id="today-total-val">0h</span>
             </div>
           </div>
-
-          <!-- Weekly -->
           <div class="weekly-card">
             <div class="weekly-card-title">📅 This Week</div>
             <div class="week-bars" id="week-bars"></div>
           </div>
-
-          <!-- Diary History -->
           <div class="diary-history">
             <div class="diary-history-title">📓 Recent Sessions</div>
-            <div id="diary-history-list">
-              <div style="text-align:center;padding:14px;color:var(--text-muted);font-size:13px;">No sessions yet</div>
-            </div>
+            <div id="diary-history-list"><div style="text-align:center;padding:14px;color:var(--text-muted);font-size:13px;">No sessions yet</div></div>
           </div>
-
         </div>
       </div>
     </div>
   </main>
 </div>
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
 
 <script type="module">
   import { auth, db } from '../js/firebase-config.js';
   import { Modal } from '../js/utils/modal.js';
   import { onAuthStateChanged, signOut }
     from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-  import { doc, getDoc, addDoc, collection,
-    getDocs, setDoc, serverTimestamp, orderBy, query, limit }
+  import { doc, getDoc, addDoc, collection, getDocs,
+    setDoc, deleteDoc, serverTimestamp, orderBy, query, limit }
     from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-  // ── Shared State ──────────────────────────────────────────
-  let uid=null, userLevel=null, userGroup=null;
-  let todos=[];
-  let currentMode='timer'; // 'timer' | 'stopwatch'
+  // ─────────────────────────────────────────
+  //  CONSTANTS
+  // ─────────────────────────────────────────
+  const DRAFT_LS_KEY  = 'sb_session_draft';
+  const DRAFT_TTL_MS  = 24 * 60 * 60 * 1000;
+  const LS_SAVE_MS    = 10 * 1000;
+  const FS_SAVE_MS    = 30 * 1000;
 
-  // ── Timer State ───────────────────────────────────────────
-  let timerInterval=null, startTime=null;
-  let totalSecs=0, elapsedSecs=0;
-  let isRunning=false, isPaused=false;
-  let runStartTimestamp=null;
-  let elapsedAtLastResume=0;
-  let sessionPaper='General Study';
-  const CIRCUM=2*Math.PI*88; // 553
+  // ─────────────────────────────────────────
+  //  STATE
+  // ─────────────────────────────────────────
+  let uid = null, userLevel = null, userGroup = null;
+  let todos       = [];
+  let currentMode = 'timer';
 
-  // ── Stopwatch State ───────────────────────────────────────
-  let swInterval=null, swStartTime=null;
-  let swElapsed=0;           // total elapsed seconds counted so far
-  let swRunning=false, swPaused=false;
-  let swRunTimestamp=null;   // Date.now() when last resumed
-  let swElapsedAtResume=0;   // snapshot of swElapsed when last resumed
-  let swPaper='General Study';
-  let swTargetSecs=0;        // 0 = no target
-  let swTargetHit=false;
+  // Timer
+  let timerInterval = null, startTime = null;
+  let totalSecs = 0, elapsedSecs = 0;
+  let isRunning = false, isPaused = false;
+  let runTs = null, elapsedAtResume = 0;
+  let sessionPaper = 'General Study';
 
-  // ── Helpers ───────────────────────────────────────────────
-  function getStudyDay(d=new Date()){const x=new Date(d);if(x.getHours()<5)x.setDate(x.getDate()-1);return x.toISOString().split('T')[0];}
-  function fmtTime(s){const h=Math.floor(s/3600),m=Math.floor((s%3600)/60);if(h===0)return`${m}m`;if(m===0)return`${h}h`;return`${h}h ${m}m`;}
-  function fmtDisp(s){return[Math.floor(s/3600),Math.floor((s%3600)/60),s%60].map(x=>x.toString().padStart(2,'0')).join(':');}
-  function toast(msg,type='info'){const c=document.getElementById('toast-container');const t=document.createElement('div');t.className=`toast toast-${type}`;t.innerHTML=`<span>${{success:'✅',error:'❌',info:'ℹ️'}[type]}</span> ${msg}`;c.appendChild(t);setTimeout(()=>t.remove(),4000);}
+  // Stopwatch
+  let swInterval = null, swStartTime = null;
+  let swElapsed = 0, swRunning = false, swPaused = false;
+  let swRunTs = null, swElapsedAtResume = 0;
+  let swPaper = 'General Study';
+  let swTargetSecs = 0, swTargetHit = false;
 
-  // ── Mode Switch ───────────────────────────────────────────
-  window.switchMode=function(mode){
-    if(mode===currentMode)return;
-    // Guard: don't switch while a session is active
-    if(currentMode==='timer'&&(isRunning||isPaused)&&elapsedSecs>=10){
-      toast('Stop or save your Timer session before switching.','error'); return;
+  // Draft intervals
+  let lsInterval = null, fsInterval = null;
+
+  // Pending draft loaded on page start
+  let pendingDraft = null;
+
+  // ─────────────────────────────────────────
+  //  HELPERS
+  // ─────────────────────────────────────────
+  function getStudyDay(d = new Date()) {
+    const x = new Date(d);
+    if (x.getHours() < 5) x.setDate(x.getDate() - 1);
+    return x.toISOString().split('T')[0];
+  }
+  function fmtTime(s) {
+    const h = Math.floor(s/3600), m = Math.floor((s%3600)/60);
+    if (h===0) return `${m}m`; if (m===0) return `${h}h`; return `${h}h ${m}m`;
+  }
+  function fmtDisp(s) {
+    return [Math.floor(s/3600),Math.floor((s%3600)/60),s%60].map(x=>x.toString().padStart(2,'0')).join(':');
+  }
+  function toast(msg, type='info') {
+    const c = document.getElementById('toast-container');
+    const t = document.createElement('div');
+    t.className = `toast toast-${type}`;
+    t.innerHTML = `<span>${{success:'✅',error:'❌',info:'ℹ️'}[type]}</span> ${msg}`;
+    c.appendChild(t);
+    setTimeout(()=>t.remove(), 4000);
+  }
+  function flashDraftSaved(mode) {
+    const el = document.getElementById(mode==='timer'?'t-draft-ind':'sw-draft-ind');
+    if (!el) return;
+    el.classList.add('show');
+    clearTimeout(el._t);
+    el._t = setTimeout(()=>el.classList.remove('show'), 3000);
+  }
+
+  // ─────────────────────────────────────────
+  //  DRAFT — BUILD / SAVE / CLEAR
+  // ─────────────────────────────────────────
+  function buildDraft() {
+    const base = { mode:currentMode, todos:todos.map(t=>({...t})), savedAt:Date.now() };
+    if (currentMode === 'timer') {
+      return { ...base, paper:sessionPaper, total:totalSecs, elapsed:elapsedSecs, isPaused };
+    } else {
+      return { ...base, paper:swPaper, elapsed:swElapsed, target:swTargetSecs, targetHit:swTargetHit, isPaused:swPaused };
     }
-    if(currentMode==='stopwatch'&&(swRunning||swPaused)&&swElapsed>=10){
-      toast('Stop or save your Stopwatch session before switching.','error'); return;
-    }
-    currentMode=mode;
-    document.getElementById('panel-timer').style.display      = mode==='timer'      ?'block':'none';
-    document.getElementById('panel-stopwatch').style.display  = mode==='stopwatch'  ?'block':'none';
-    document.getElementById('tab-timer-btn').classList.toggle('active',    mode==='timer');
-    document.getElementById('tab-stopwatch-btn').classList.toggle('active', mode==='stopwatch');
-  };
+  }
 
-  // ── Auth ──────────────────────────────────────────────────
-  onAuthStateChanged(auth, async(user)=>{
-    if(!user){window.location.href='../index.html';return;}
-    const snap=await getDoc(doc(db,'users',user.uid));
-    if(!snap.exists()){window.location.href='../index.html';return;}
-    const data=snap.data();
-    if(data.role!=='student'||data.status!=='approved'){window.location.href='../index.html';return;}
+  function saveDraftLS() {
+    if (!anyActive()) return;
+    try { localStorage.setItem(DRAFT_LS_KEY, JSON.stringify(buildDraft())); flashDraftSaved(currentMode); } catch(e) {}
+  }
+
+  async function saveDraftFS() {
+    if (!uid || !anyActive()) return;
+    try {
+      await setDoc(doc(db,'draftSessions',uid), { ...buildDraft(), updatedAt:serverTimestamp() });
+      flashDraftSaved(currentMode);
+    } catch(e) { console.warn('Draft FS:', e); }
+  }
+
+  function startDraftLoop() {
+    stopDraftLoop();
+    lsInterval = setInterval(saveDraftLS, LS_SAVE_MS);
+    fsInterval = setInterval(saveDraftFS, FS_SAVE_MS);
+  }
+
+  function stopDraftLoop() {
+    clearInterval(lsInterval); clearInterval(fsInterval);
+    lsInterval = null; fsInterval = null;
+  }
+
+  async function clearDraft() {
+    try { localStorage.removeItem(DRAFT_LS_KEY); } catch(e) {}
+    try { if (uid) await deleteDoc(doc(db,'draftSessions',uid)); } catch(e) {}
+  }
+
+  // ─────────────────────────────────────────
+  //  DRAFT — LOAD ON PAGE START
+  // ─────────────────────────────────────────
+  async function checkForDraft() {
+    let draft = null;
+
+    // 1. Firestore first
+    try {
+      const snap = await getDoc(doc(db,'draftSessions',uid));
+      if (snap.exists()) {
+        const d = snap.data();
+        const age = Date.now() - (d.savedAt?.toMillis?.() || 0);
+        if (age < DRAFT_TTL_MS) draft = d;
+        else await deleteDoc(doc(db,'draftSessions',uid));
+      }
+    } catch(e) {}
+
+    // 2. localStorage fallback
+    if (!draft) {
+      try {
+        const raw = localStorage.getItem(DRAFT_LS_KEY);
+        if (raw) {
+          const d = JSON.parse(raw);
+          if (Date.now() - (d.savedAt||0) < DRAFT_TTL_MS) draft = d;
+          else localStorage.removeItem(DRAFT_LS_KEY);
+        }
+      } catch(e) {}
+    }
+
+    if (!draft) return;
+
+    pendingDraft = draft;
+    const modeIcon  = draft.mode==='stopwatch' ? '⏱️' : '⏳';
+    const modeLabel = draft.mode==='stopwatch' ? 'Stopwatch' : 'Timer';
+    const ageMin    = Math.round((Date.now()-(draft.savedAt||Date.now()))/60000);
+    const agoStr    = ageMin < 2 ? 'just now' : `${ageMin}m ago`;
+    const targetStr = (draft.mode==='stopwatch' && draft.target>0) ? ` · 🎯 ${fmtTime(draft.target)}` : '';
+
+    document.getElementById('resume-icon').textContent  = modeIcon;
+    document.getElementById('resume-title').textContent = `Resume ${modeLabel} — ${draft.paper||'General Study'}`;
+    document.getElementById('resume-sub').textContent   = `${fmtTime(draft.elapsed||0)} studied${targetStr} · saved ${agoStr}`;
+    document.getElementById('resume-banner').classList.remove('hidden');
+  }
+
+  // ─────────────────────────────────────────
+  //  DRAFT — RESUME / DISCARD
+  // ─────────────────────────────────────────
+  function resumeDraft() {
+    if (!pendingDraft) return;
+    const draft = pendingDraft; pendingDraft = null;
+    document.getElementById('resume-banner').classList.add('hidden');
+
+    todos = (draft.todos||[]).map(t=>({...t}));
+    renderTodos();
+
+    if (draft.mode === 'timer') {
+      sessionPaper      = draft.paper || 'General Study';
+      totalSecs         = draft.total || 0;
+      elapsedSecs       = draft.elapsed || 0;
+      elapsedAtResume   = elapsedSecs;
+      startTime         = new Date();
+
+      switchMode('timer');
+      const sel = document.getElementById('paper-select');
+      sel.value = sessionPaper; sel.disabled = true;
+      const h = Math.floor(totalSecs/3600), m = Math.floor((totalSecs%3600)/60);
+      const inp_h = document.getElementById('inp-h');
+      const inp_m = document.getElementById('inp-m');
+      inp_h.value = h; inp_h.disabled = true;
+      inp_m.value = m; inp_m.disabled = true;
+      const rem = Math.max(totalSecs - elapsedSecs, 0);
+      document.getElementById('timer-digits').textContent = fmtDisp(rem);
+      document.getElementById('timer-progress').style.width = (elapsedSecs/totalSecs*100).toFixed(1)+'%';
+      document.getElementById('btn-stop').style.display = 'flex';
+
+      if (draft.isPaused) {
+        isPaused = true; isRunning = false;
+        setTimerStatus('paused','Paused ⏸ — tap ▶ to resume');
+        document.getElementById('btn-play').textContent = '▶';
+      } else {
+        runTs = Date.now();
+        isRunning = true; isPaused = false;
+        document.getElementById('btn-play').textContent = '⏸';
+        setTimerStatus('running','Keep going! 💪');
+        runTick();
+      }
+      startDraftLoop();
+      toast(`▶ Timer resumed — ${fmtTime(rem)} remaining`, 'success');
+
+    } else {
+      swPaper           = draft.paper || 'General Study';
+      swElapsed         = draft.elapsed || 0;
+      swElapsedAtResume = swElapsed;
+      swTargetSecs      = draft.target || 0;
+      swTargetHit       = draft.targetHit || false;
+      swStartTime       = new Date();
+
+      switchMode('stopwatch');
+      const sel = document.getElementById('sw-paper-select');
+      sel.value = swPaper; sel.disabled = true;
+      document.getElementById('sw-digits').textContent = fmtDisp(swElapsed);
+      document.getElementById('sw-btn-stop').style.display = 'flex';
+      swRenderBadge();
+
+      if (draft.isPaused) {
+        swPaused = true; swRunning = false;
+        document.getElementById('sw-btn-play').textContent = '▶';
+        setSwStatus('paused','Paused ⏸ — tap ▶ to resume');
+      } else {
+        swRunTs = Date.now();
+        swRunning = true; swPaused = false;
+        document.getElementById('sw-btn-play').textContent = '⏸';
+        setSwStatus('running','Keep going! 💪');
+        swTick();
+      }
+      startDraftLoop();
+      toast(`▶ Stopwatch resumed — ${fmtTime(swElapsed)} so far`, 'success');
+    }
+  }
+
+  async function discardDraft() {
+    const ok = await Modal.confirm('Discard Draft?','Your saved session draft will be permanently deleted. Are you sure?','Yes, Discard');
+    if (!ok) return;
+    pendingDraft = null;
+    document.getElementById('resume-banner').classList.add('hidden');
+    await clearDraft();
+    toast('Draft discarded.','info');
+  }
+
+  // ─────────────────────────────────────────
+  //  MODE SWITCH
+  // ─────────────────────────────────────────
+  function switchMode(mode) {
+    if (mode === currentMode) return;
+    if (currentMode==='timer'     && (isRunning||isPaused) && elapsedSecs>=10) { toast('Stop or save your Timer session first.','error'); return; }
+    if (currentMode==='stopwatch' && (swRunning||swPaused) && swElapsed>=10)   { toast('Stop or save your Stopwatch session first.','error'); return; }
+    currentMode = mode;
+    document.getElementById('panel-timer').style.display     = mode==='timer'     ? 'block' : 'none';
+    document.getElementById('panel-stopwatch').style.display = mode==='stopwatch' ? 'block' : 'none';
+    document.getElementById('tab-timer-btn').classList.toggle('active', mode==='timer');
+    document.getElementById('tab-sw-btn').classList.toggle('active',    mode==='stopwatch');
+  }
+
+  // ─────────────────────────────────────────
+  //  STATUS PILL HELPERS
+  // ─────────────────────────────────────────
+  function setTimerStatus(state, text) {
+    const pill = document.getElementById('timer-status-pill');
+    pill.className = `status-pill ${state}`;
+    document.getElementById('timer-status-text').textContent = text;
+    document.getElementById('timer-digits').className = `timer-digits ${state}`;
+  }
+  function setSwStatus(state, text) {
+    const pill = document.getElementById('sw-status-pill');
+    pill.className = `status-pill ${state}`;
+    document.getElementById('sw-status-text').textContent = text;
+    document.getElementById('sw-digits').className = `timer-digits ${state}`;
+  }
+
+  // ─────────────────────────────────────────
+  //  AUTH
+  // ─────────────────────────────────────────
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) { location.href='../index.html'; return; }
+    const snap = await getDoc(doc(db,'users',user.uid));
+    if (!snap.exists()) { location.href='../index.html'; return; }
+    const data = snap.data();
+    if (data.role!=='student'||data.status!=='approved') { location.href='../index.html'; return; }
     uid=user.uid; userLevel=data.level; userGroup=data.group||null;
-    document.getElementById('sidebar-avatar').textContent=(data.firstName[0]+data.lastName[0]).toUpperCase();
-    document.getElementById('sidebar-name').textContent=data.firstName+' '+data.lastName;
-    document.getElementById('sb-course').textContent=data.course;
-    document.getElementById('sb-level').textContent=data.level;
+    document.getElementById('sidebar-avatar').textContent = (data.firstName[0]+data.lastName[0]).toUpperCase();
+    document.getElementById('sidebar-name').textContent   = data.firstName+' '+data.lastName;
+    document.getElementById('sb-course').textContent      = data.course;
+    document.getElementById('sb-level').textContent       = data.level;
     document.getElementById('page-loader').classList.add('hidden');
     loadPapers(); loadStreak(); loadToday(); loadWeekly(); loadDiaryHistory();
+    checkForDraft();
   });
-  document.getElementById('btn-logout').addEventListener('click',async()=>{await signOut(auth);window.location.href='../index.html';});
 
-  // ── Load Papers ───────────────────────────────────────────
-  async function loadPapers(){
-    try{
-      const snap=await getDocs(collection(db,'courseStructure',userLevel,'papers'));
-      let papers=[];snap.forEach(d=>papers.push({id:d.id,...d.data()}));
+  document.getElementById('btn-logout').addEventListener('click', async () => {
+    await clearDraft(); await signOut(auth); location.href='../index.html';
+  });
+
+  // ─────────────────────────────────────────
+  //  WIRE ALL BUTTONS (no onclick attrs)
+  // ─────────────────────────────────────────
+  document.getElementById('tab-timer-btn').addEventListener('click', ()=>switchMode('timer'));
+  document.getElementById('tab-sw-btn').addEventListener('click',    ()=>switchMode('stopwatch'));
+  document.getElementById('btn-hamburger').addEventListener('click', toggleSidebar);
+  document.getElementById('sidebar-overlay').addEventListener('click', closeSidebar);
+  document.getElementById('btn-resume-draft').addEventListener('click', resumeDraft);
+  document.getElementById('btn-discard-draft').addEventListener('click', discardDraft);
+
+  // Timer buttons
+  document.getElementById('btn-play').addEventListener('click',  timerToggle);
+  document.getElementById('btn-stop').addEventListener('click',  timerStop);
+  document.getElementById('btn-reset').addEventListener('click', timerReset);
+  document.querySelectorAll('#presets-row .preset-btn').forEach(btn => {
+    btn.addEventListener('click', () => setPreset(+btn.dataset.h, +btn.dataset.m));
+  });
+
+  // Stopwatch buttons
+  document.getElementById('sw-btn-play').addEventListener('click',  swTogglePlay);
+  document.getElementById('sw-btn-stop').addEventListener('click',  swStop);
+  document.getElementById('sw-btn-reset').addEventListener('click', swReset);
+  document.getElementById('sw-target-badge').addEventListener('click', swSetTarget);
+
+  // Todo
+  document.getElementById('btn-add-todo').addEventListener('click', addTodo);
+  document.getElementById('todo-input').addEventListener('keydown', e=>{ if(e.key==='Enter') addTodo(); });
+
+  // Nav links — intercept all sidebar nav + home button
+  document.querySelectorAll('.nav-item, #hero-home').forEach(a => {
+    a.addEventListener('click', e => { closeSidebar(); interceptNav(e, a.getAttribute('href')); });
+  });
+
+  // ─────────────────────────────────────────
+  //  LOAD PAPERS
+  // ─────────────────────────────────────────
+  async function loadPapers() {
+    try {
+      const snap = await getDocs(collection(db,'courseStructure',userLevel,'papers'));
+      let papers=[]; snap.forEach(d=>papers.push({id:d.id,...d.data()}));
       papers.sort((a,b)=>(a.order||0)-(b.order||0));
-      const hasGroups=['CA-Final','CA-Intermediate'].includes(userLevel);
-      if(hasGroups && userGroup && userGroup!=='both'){
-        papers=papers.filter(p=>{
+      const hasGroups = ['CA-Final','CA-Intermediate'].includes(userLevel);
+      if (hasGroups && userGroup && userGroup!=='both') {
+        papers = papers.filter(p=>{
           if(p.group && p.group!=='both') return p.group===userGroup;
           const ord=p.order||0;
-          return userGroup==='group1' ? ord<=3 : ord>=4 && ord<=6;
+          return userGroup==='group1' ? ord<=3 : ord>=4&&ord<=6;
         });
       }
-      [document.getElementById('paper-select'), document.getElementById('sw-paper-select')].forEach(sel=>{
-        papers.forEach(p=>{const o=document.createElement('option');o.value=p.name;o.textContent=p.name;sel.appendChild(o);});
+      [document.getElementById('paper-select'),document.getElementById('sw-paper-select')].forEach(sel=>{
+        papers.forEach(p=>{ const o=document.createElement('option'); o.value=p.name; o.textContent=p.name; sel.appendChild(o); });
       });
-    }catch(e){}
+    } catch(e) {}
   }
 
-  // ── Streak ────────────────────────────────────────────────
-  async function loadStreak(){
-    try{
+  // ─────────────────────────────────────────
+  //  STREAK / TODAY / WEEKLY / HISTORY
+  // ─────────────────────────────────────────
+  async function loadStreak() {
+    try {
       const snap=await getDoc(doc(db,'streaks',uid));
       const data=snap.exists()?snap.data():{};
-      document.getElementById('streak-num').textContent=data.currentStreak||0;
-      document.getElementById('streak-best').textContent=`Best: ${data.longestStreak||0} days`;
-    }catch(e){}
+      document.getElementById('streak-num').textContent  = data.currentStreak||0;
+      document.getElementById('streak-best').textContent = `Best: ${data.longestStreak||0} days`;
+    } catch(e) {}
   }
-
-  // ── Today ─────────────────────────────────────────────────
-  async function loadToday(){
-    try{
+  async function loadToday() {
+    try {
       const today=getStudyDay();
       const snap=await getDocs(collection(db,'timerSessions',uid,'sessions'));
-      const sessions=[];
-      snap.forEach(d=>{const s=d.data();if(s.studyDay===today)sessions.push(s);});
-      if(!sessions.length)return;
-      const map={};let total=0;
+      const sessions=[]; snap.forEach(d=>{const s=d.data();if(s.studyDay===today)sessions.push(s);});
+      if(!sessions.length) return;
+      const map={}; let total=0;
       sessions.forEach(s=>{const p=s.paperName||'General';if(!map[p])map[p]=0;map[p]+=(s.duration||0);total+=(s.duration||0);});
-      const list=document.getElementById('today-list');
-      list.innerHTML=Object.entries(map).map(([p,s])=>`
-        <div class="sess-item">
-          <div><div class="sess-paper">${p}</div></div>
-          <div class="sess-dur">${fmtTime(s)}</div>
-        </div>`).join('');
+      document.getElementById('today-list').innerHTML=Object.entries(map).map(([p,s])=>`
+        <div class="sess-item"><div><div class="sess-paper">${p}</div></div><div class="sess-dur">${fmtTime(s)}</div></div>`).join('');
       document.getElementById('today-total').style.display='flex';
       document.getElementById('today-total-val').textContent=fmtTime(total);
-    }catch(e){}
+    } catch(e) {}
   }
-
-  // ── Weekly ────────────────────────────────────────────────
-  async function loadWeekly(){
-    try{
+  async function loadWeekly() {
+    try {
       const days=[];
       for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);days.push({date:getStudyDay(d),label:d.toLocaleDateString('en-IN',{weekday:'short'}).substring(0,2),secs:0});}
       const snap=await getDocs(collection(db,'timerSessions',uid,'sessions'));
       snap.forEach(d=>{const s=d.data();const day=days.find(x=>x.date===s.studyDay);if(day)day.secs+=(s.duration||0);});
-      const maxSecs=Math.max(...days.map(d=>d.secs),1);
+      const max=Math.max(...days.map(d=>d.secs),1);
       const todayStr=getStudyDay();
       document.getElementById('week-bars').innerHTML=days.map(day=>{
         const h=Math.round(day.secs/3600*10)/10;
-        const pct=Math.round((day.secs/maxSecs)*85);
-        const isToday=day.date===todayStr;
+        const pct=Math.round((day.secs/max)*85);
+        const it=day.date===todayStr;
         return`<div class="week-bar-col">
-          <div class="week-bar ${isToday?'today':''}" style="height:${Math.max(pct,4)}px;" title="${fmtTime(day.secs)}"></div>
-          <div class="week-bar-day" style="${isToday?'color:var(--primary);font-weight:700;':''}">${day.label}</div>
+          <div class="week-bar ${it?'today':''}" style="height:${Math.max(pct,4)}px;" title="${fmtTime(day.secs)}"></div>
+          <div class="week-bar-day" style="${it?'color:var(--primary);font-weight:700;':''}">${day.label}</div>
           <div class="week-bar-hrs">${h>0?h+'h':''}</div>
         </div>`;}).join('');
-    }catch(e){}
+    } catch(e) {}
   }
-
-  // ── Diary History ─────────────────────────────────────────
-  async function loadDiaryHistory(){
-    try{
-      const snap=await getDocs(
-        query(collection(db,'timerSessions',uid,'sessions'),orderBy('savedAt','desc'),limit(10))
-      );
-      const sessions=[];snap.forEach(d=>sessions.push({id:d.id,...d.data()}));
+  async function loadDiaryHistory() {
+    try {
+      const snap=await getDocs(query(collection(db,'timerSessions',uid,'sessions'),orderBy('savedAt','desc'),limit(10)));
+      const sessions=[]; snap.forEach(d=>sessions.push({id:d.id,...d.data()}));
       const list=document.getElementById('diary-history-list');
       if(!sessions.length){list.innerHTML='<div style="text-align:center;padding:14px;color:var(--text-muted);font-size:13px;">No sessions yet</div>';return;}
       list.innerHTML=sessions.map((s,i)=>{
         const tasks=s.todos||[];
         const done=tasks.filter(t=>t.done).length;
         const pct=tasks.length?Math.round((done/tasks.length)*100):null;
-        const compColor=pct===100?'var(--success)':pct>=50?'var(--warning)':'var(--danger)';
-        const typeLabel=s.sessionType==='stopwatch'
+        const cc=pct===100?'var(--success)':pct>=50?'var(--warning)':'var(--danger)';
+        const tb=s.sessionType==='stopwatch'
           ?'<span class="sess-type-badge stopwatch">⏱ Stopwatch</span>'
           :'<span class="sess-type-badge timer">⏳ Timer</span>';
-        return`<div class="diary-day-item" onclick="toggleDiaryItem('diary-tasks-${i}')">
+        return`<div class="diary-day-item" id="dhi-${i}">
           <div class="diary-day-header">
             <div>
-              <div class="diary-day-date">${s.paperName||'General Study'} ${typeLabel}</div>
+              <div class="diary-day-date">${s.paperName||'General Study'} ${tb}</div>
               <div class="diary-day-time">${s.studyDay||''} • ${fmtTime(s.duration||0)}</div>
             </div>
-            ${pct!==null?`<div class="diary-day-comp" style="color:${compColor};">${done}/${tasks.length} tasks ✓</div>`:''}
+            ${pct!==null?`<div class="diary-day-comp" style="color:${cc};">${done}/${tasks.length} tasks ✓</div>`:''}
           </div>
-          ${tasks.length?`<div class="diary-day-tasks" id="diary-tasks-${i}">
+          ${tasks.length?`<div class="diary-day-tasks" id="dht-${i}">
             ${tasks.map(t=>`<div class="diary-task-mini">
               <span>${t.done?'✅':'⬜'}</span>
               <span style="${t.done?'text-decoration:line-through;color:var(--text-muted);':''}">${t.text}</span>
             </div>`).join('')}
           </div>`:''}
         </div>`;}).join('');
-    }catch(e){console.error('Diary history:',e);}
+      // Wire click handlers for diary items
+      sessions.forEach((_,i)=>{
+        const el=document.getElementById(`dhi-${i}`);
+        const tasks=document.getElementById(`dht-${i}`);
+        if(el && tasks) el.addEventListener('click',()=>tasks.classList.toggle('open'));
+      });
+    } catch(e) { console.error('Diary history:',e); }
   }
-  window.toggleDiaryItem=function(id){const el=document.getElementById(id);if(el)el.classList.toggle('open');};
 
-  // ── Todo (shared) ─────────────────────────────────────────
-  window.addTodo=function(){
+  // ─────────────────────────────────────────
+  //  TODOS
+  // ─────────────────────────────────────────
+  function addTodo() {
     const inp=document.getElementById('todo-input');
-    const text=inp.value.trim();
-    if(!text)return;
+    const text=inp.value.trim(); if(!text) return;
     todos.push({id:Date.now(),text,done:false});
-    inp.value='';
-    renderTodos();
-  };
-  function renderTodos(){
+    inp.value=''; renderTodos();
+    saveDraftLS(); // save immediately when task added
+  }
+  function renderTodos() {
     const list=document.getElementById('todo-list');
     const empty=document.getElementById('todo-empty');
-    const compBar=document.getElementById('comp-bar');
-    if(!todos.length){
-      list.innerHTML='';
-      if(empty) empty.style.display='block';
-      compBar.classList.add('hidden');
-      return;
-    }
-    if(empty) empty.style.display='none';
-    compBar.classList.remove('hidden');
+    const bar=document.getElementById('comp-bar');
+    if(!todos.length){ list.innerHTML=''; empty.style.display='block'; bar.classList.add('hidden'); return; }
+    empty.style.display='none'; bar.classList.remove('hidden');
     const done=todos.filter(t=>t.done).length;
     const pct=Math.round((done/todos.length)*100);
     document.getElementById('comp-bar-fill').style.width=pct+'%';
     document.getElementById('comp-pct').textContent=`${pct}% done (${done}/${todos.length})`;
-    list.innerHTML=todos.map((todo,i)=>`
-      <div class="todo-item ${todo.done?'done':''}" id="todo-${todo.id}">
-        <input type="checkbox" class="todo-check" ${todo.done?'checked':''}
-          onchange="toggleTodo(${i})"/>
-        <span class="todo-text">${todo.text}</span>
-        <button class="todo-del" onclick="deleteTodo(${i})">✕</button>
+    list.innerHTML=todos.map((t,i)=>`
+      <div class="todo-item ${t.done?'done':''}">
+        <input type="checkbox" class="todo-check" ${t.done?'checked':''} data-i="${i}"/>
+        <span class="todo-text">${t.text}</span>
+        <button class="todo-del" data-i="${i}">✕</button>
       </div>`).join('');
+    list.querySelectorAll('.todo-check').forEach(cb=>{
+      cb.addEventListener('change', ()=>{ todos[+cb.dataset.i].done=cb.checked; renderTodos(); saveDraftLS(); });
+    });
+    list.querySelectorAll('.todo-del').forEach(btn=>{
+      btn.addEventListener('click', ()=>{ todos.splice(+btn.dataset.i,1); renderTodos(); saveDraftLS(); });
+    });
   }
-  window.toggleTodo=function(i){todos[i].done=!todos[i].done;renderTodos();};
-  window.deleteTodo=function(i){todos.splice(i,1);renderTodos();};
 
-  // ── Shared: Completion Modal + Save ──────────────────────
-  async function showCompletionModal(elapsedSeconds, paper, mode){
-    if(!todos.length){ await saveSession(elapsedSeconds, paper, mode); return; }
+  // ─────────────────────────────────────────
+  //  SAVE SESSION
+  // ─────────────────────────────────────────
+  async function showCompletionModal(elapsed, paper, mode) {
+    if (!todos.length) { await saveSession(elapsed,paper,mode); return; }
     const todoHTML=todos.map((t,i)=>`
       <label style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f1f5f9;cursor:pointer;">
-        <input type="checkbox" id="cm-todo-${i}" ${t.done?'checked':''}
-          style="width:18px;height:18px;accent-color:#00C9A7;cursor:pointer;"/>
+        <input type="checkbox" id="cm-todo-${i}" ${t.done?'checked':''} style="width:18px;height:18px;accent-color:#00C9A7;cursor:pointer;"/>
         <span style="font-size:13px;color:#2C2C54;">${t.text}</span>
       </label>`).join('');
     await Modal.custom({
       icon: mode==='stopwatch'?'⏱️':'📓',
-      title:'Session Complete!',
-      body:`
-        <div style="text-align:left;">
-          <p style="font-size:13px;color:#64748B;margin-bottom:12px;">
-            ✅ <strong>${fmtTime(elapsedSeconds)}</strong> on <strong>${paper}</strong><br/>
-            Mark which tasks you completed:
-          </p>
-          <div style="max-height:200px;overflow-y:auto;">${todoHTML}</div>
-        </div>`,
-      buttons:[{ label:'Save Session', value:true, style:'background:#00C9A7;color:#fff;width:100%;justify-content:center;' }]
+      title: 'Session Complete!',
+      body: `<div style="text-align:left;">
+        <p style="font-size:13px;color:#64748B;margin-bottom:12px;">
+          ✅ <strong>${fmtTime(elapsed)}</strong> on <strong>${paper}</strong><br/>Mark which tasks you completed:
+        </p>
+        <div style="max-height:200px;overflow-y:auto;">${todoHTML}</div>
+      </div>`,
+      buttons:[{label:'Save Session',value:true,style:'background:#00C9A7;color:#fff;width:100%;justify-content:center;'}]
     });
-    todos.forEach((t,i)=>{ const cb=document.getElementById('cm-todo-'+i); if(cb)t.done=cb.checked; });
+    todos.forEach((t,i)=>{const cb=document.getElementById('cm-todo-'+i);if(cb)t.done=cb.checked;});
     renderTodos();
-    await saveSession(elapsedSeconds, paper, mode);
+    await saveSession(elapsed,paper,mode);
   }
 
-  async function saveSession(elapsedSeconds, paper, mode){
-    if(elapsedSeconds<10){ return; }
-    try{
+  async function saveSession(elapsed, paper, mode) {
+    if (elapsed<10) return;
+    try {
       const studyDay=getStudyDay(mode==='stopwatch'?(swStartTime||new Date()):(startTime||new Date()));
       await addDoc(collection(db,'timerSessions',uid,'sessions'),{
-        paperName:   paper,
-        duration:    elapsedSeconds,
-        studyDay:    studyDay,
-        todos:       todos.map(t=>({text:t.text,done:t.done})),
-        sessionType: mode,           // 'timer' | 'stopwatch'
-        savedAt:     serverTimestamp()
+        paperName:paper, duration:elapsed, studyDay,
+        todos:todos.map(t=>({text:t.text,done:t.done})),
+        sessionType:mode, savedAt:serverTimestamp()
       });
-      toast(`Saved! ${fmtTime(elapsedSeconds)} of ${paper}`,'success');
+      toast(`Saved! ${fmtTime(elapsed)} of ${paper}`,'success');
       await updateStreak(studyDay);
+      await clearDraft(); stopDraftLoop();
       todos=[]; renderTodos();
       loadToday(); loadWeekly(); loadStreak(); loadDiaryHistory();
-    }catch(e){console.error('Save error:',e);toast('Session could not be saved.','error');}
+    } catch(e) { console.error('Save error:',e); toast('Session could not be saved.','error'); }
   }
 
-  async function updateStreak(studyDay){
-    try{
+  async function updateStreak(studyDay) {
+    try {
       const snap=await getDoc(doc(db,'streaks',uid));
       const data=snap.exists()?snap.data():{};
-      const lastDay=data.lastStudyDay||'';
-      const curr=data.currentStreak||0,best=data.longestStreak||0;
-      const yesterday=new Date();yesterday.setDate(yesterday.getDate()-1);
+      const last=data.lastStudyDay||'';
+      const curr=data.currentStreak||0, best=data.longestStreak||0;
+      const yesterday=new Date(); yesterday.setDate(yesterday.getDate()-1);
       const yStr=getStudyDay(yesterday);
-      let newStreak=lastDay===studyDay?curr:lastDay===yStr?curr+1:!lastDay?1:1;
-      await setDoc(doc(db,'streaks',uid),{currentStreak:newStreak,longestStreak:Math.max(newStreak,best),lastStudyDay:studyDay,updatedAt:serverTimestamp()});
-    }catch(e){console.error('Streak error:',e);}
+      const n=last===studyDay?curr:last===yStr?curr+1:1;
+      await setDoc(doc(db,'streaks',uid),{currentStreak:n,longestStreak:Math.max(n,best),lastStudyDay:studyDay,updatedAt:serverTimestamp()});
+    } catch(e) {}
   }
 
-  // ════════════════════════════════════════════════════════
-  //  TIMER LOGIC
-  // ════════════════════════════════════════════════════════
-  window.setPreset=function(h,m){if(isRunning||isPaused)return;document.getElementById('inp-h').value=h;document.getElementById('inp-m').value=m;};
+  // ─────────────────────────────────────────
+  //  TIMER
+  // ─────────────────────────────────────────
+  function setPreset(h, m) {
+    if (isRunning||isPaused) return;
+    document.getElementById('inp-h').value=h;
+    document.getElementById('inp-m').value=m;
+  }
 
-  window.togglePlay=function(){
-    if(isRunning){pauseTimer();return;}
-    if(isPaused){resumeTimer();return;}
-    startTimer();
-  };
+  function timerToggle() {
+    if (isRunning) { timerPause(); return; }
+    if (isPaused)  { timerResume(); return; }
+    timerStart();
+  }
 
-  function startTimer(){
+  function timerStart() {
     const h=parseInt(document.getElementById('inp-h').value)||0;
     const m=parseInt(document.getElementById('inp-m').value)||0;
     totalSecs=h*3600+m*60;
-    if(totalSecs===0){toast('Set a time first!','error');return;}
-    elapsedSecs=0; elapsedAtLastResume=0; startTime=new Date();
-    runStartTimestamp=Date.now();
+    if (!totalSecs) { toast('Set a time first!','error'); return; }
+    elapsedSecs=0; elapsedAtResume=0; startTime=new Date(); runTs=Date.now();
     sessionPaper=document.getElementById('paper-select').value;
     document.getElementById('inp-h').disabled=true;
     document.getElementById('inp-m').disabled=true;
@@ -761,443 +974,293 @@
     document.getElementById('btn-stop').style.display='flex';
     isRunning=true; isPaused=false;
     document.getElementById('btn-play').textContent='⏸';
-    document.getElementById('ring-fill').classList.remove('paused','finished');
+    document.getElementById('timer-progress').classList.remove('paused','finished');
+    setTimerStatus('running','Keep going! 💪');
+    startDraftLoop();
     runTick();
   }
 
-  function pauseTimer(){
-    elapsedSecs=elapsedAtLastResume+Math.floor((Date.now()-runStartTimestamp)/1000);
-    elapsedAtLastResume=elapsedSecs;
+  function timerPause() {
+    elapsedSecs=elapsedAtResume+Math.floor((Date.now()-runTs)/1000);
+    elapsedAtResume=elapsedSecs;
     isRunning=false; isPaused=true;
     clearInterval(timerInterval);
     document.getElementById('btn-play').textContent='▶';
-    document.getElementById('timer-digits').className='timer-digits paused';
-    document.getElementById('ring-fill').classList.add('paused');
-    document.getElementById('timer-label').textContent='Paused ⏸';
+    document.getElementById('timer-progress').classList.add('paused');
+    setTimerStatus('paused','Paused ⏸');
+    saveDraftLS(); // immediate save on pause
   }
 
-  function resumeTimer(){
-    runStartTimestamp=Date.now();
-    isRunning=true; isPaused=false;
+  function timerResume() {
+    runTs=Date.now(); isRunning=true; isPaused=false;
     document.getElementById('btn-play').textContent='⏸';
-    document.getElementById('timer-digits').className='timer-digits running';
-    document.getElementById('ring-fill').classList.remove('paused');
-    document.getElementById('timer-label').textContent='Keep going! 💪';
+    document.getElementById('timer-progress').classList.remove('paused');
+    setTimerStatus('running','Keep going! 💪');
     runTick();
   }
 
-  function runTick(){
+  function runTick() {
     clearInterval(timerInterval);
     timerInterval=setInterval(()=>{
-      const nowElapsed=elapsedAtLastResume+Math.floor((Date.now()-runStartTimestamp)/1000);
-      elapsedSecs=nowElapsed;
-      const rem=totalSecs-elapsedSecs;
-      const offset=(Math.max(rem,0)/totalSecs)*CIRCUM;
-      document.getElementById('ring-fill').style.strokeDashoffset=offset;
-      document.getElementById('timer-digits').textContent=fmtDisp(Math.max(rem,0));
-      document.getElementById('timer-digits').className='timer-digits running';
-      document.getElementById('timer-label').textContent='Keep going! 💪';
-      if(rem<=0){
-        clearInterval(timerInterval); isRunning=false;
-        elapsedSecs=totalSecs;
-        document.getElementById('timer-digits').className='timer-digits finished';
-        document.getElementById('ring-fill').classList.add('finished');
-        document.getElementById('timer-label').textContent='Session complete! 🎉';
+      elapsedSecs=elapsedAtResume+Math.floor((Date.now()-runTs)/1000);
+      const rem=Math.max(totalSecs-elapsedSecs,0);
+      document.getElementById('timer-digits').textContent=fmtDisp(rem);
+      document.getElementById('timer-progress').style.width=(elapsedSecs/totalSecs*100).toFixed(1)+'%';
+      setTimerStatus('running','Keep going! 💪');
+      if (rem<=0) {
+        clearInterval(timerInterval); isRunning=false; elapsedSecs=totalSecs;
+        document.getElementById('timer-progress').style.width='100%';
+        document.getElementById('timer-progress').classList.add('finished');
+        document.getElementById('timer-digits').textContent=fmtDisp(0);
+        setTimerStatus('finished','Session complete! 🎉');
+        stopDraftLoop();
         onTimerComplete();
       }
     },1000);
   }
 
-  async function onTimerComplete(){
-    clearInterval(timerInterval);
-    await showCompletionModal(elapsedSecs, sessionPaper, 'timer');
-    resetTimer();
+  async function onTimerComplete() {
+    await showCompletionModal(elapsedSecs,sessionPaper,'timer');
+    timerReset();
   }
 
-  window.stopTimer=async function(){
-    if(elapsedSecs<10){resetTimer();return;}
-    const yes=await Modal.confirm(
-      'Stop Session?',
-      `You've studied for <strong>${fmtTime(elapsedSecs)}</strong>. Stop and save this session?`,
-      'Stop & Save'
-    );
-    if(!yes)return;
-    clearInterval(timerInterval);
-    isRunning=false; isPaused=false;
-    await showCompletionModal(elapsedSecs, sessionPaper, 'timer');
-    resetTimer();
-  };
+  async function timerStop() {
+    if (elapsedSecs<10) { timerReset(); return; }
+    const yes=await Modal.confirm('Stop Session?',`You've studied for <strong>${fmtTime(elapsedSecs)}</strong>. Stop and save this session?`,'Stop & Save');
+    if (!yes) return;
+    clearInterval(timerInterval); isRunning=false; isPaused=false; stopDraftLoop();
+    await showCompletionModal(elapsedSecs,sessionPaper,'timer');
+    timerReset();
+  }
 
-  window.resetTimer=function(){
-    clearInterval(timerInterval);
-    isRunning=false; isPaused=false; elapsedSecs=0; totalSecs=0;
-    elapsedAtLastResume=0; runStartTimestamp=null;
-    document.getElementById('ring-fill').style.strokeDashoffset='0';
-    document.getElementById('ring-fill').classList.remove('paused','finished');
+  function timerReset() {
+    clearInterval(timerInterval); stopDraftLoop();
+    isRunning=false; isPaused=false; elapsedSecs=0; totalSecs=0; elapsedAtResume=0; runTs=null;
+    document.getElementById('timer-progress').style.width='0%';
+    document.getElementById('timer-progress').classList.remove('paused','finished');
     document.getElementById('timer-digits').textContent='00:00:00';
-    document.getElementById('timer-digits').className='timer-digits';
-    document.getElementById('timer-label').textContent='Set time below';
     document.getElementById('btn-play').textContent='▶';
     document.getElementById('btn-stop').style.display='none';
     document.getElementById('inp-h').disabled=false;
     document.getElementById('inp-m').disabled=false;
     document.getElementById('paper-select').disabled=false;
-  };
+    setTimerStatus('idle','Set time below');
+  }
 
-  // ════════════════════════════════════════════════════════
-  //  STOPWATCH LOGIC
-  // ════════════════════════════════════════════════════════
-
-  // Target setter
-  window.swSetTarget=function(){
-    if(swRunning||swPaused){ toast('Cannot change target while running.','error'); return; }
-    // Quick input via prompt-style modal
-    const cur = swTargetSecs > 0
-      ? `Current target: ${fmtTime(swTargetSecs)}. `
-      : '';
-    const raw = window.prompt(`${cur}Set a study target (e.g. "1h 30m", "90m", "2h"). Leave blank to clear:`,'');
-    if(raw===null)return; // cancelled
-    if(raw.trim()===''){
-      swTargetSecs=0; swTargetHit=false;
-      swRenderTargetBadge();
-      document.getElementById('sw-ring-target').style.display='none';
-      return;
-    }
-    const parsed=parseTargetStr(raw.trim());
-    if(!parsed){ toast('Could not parse. Try "1h 30m" or "90m".','error'); return; }
-    swTargetSecs=parsed; swTargetHit=false;
-    swRenderTargetBadge();
-    // Show target arc (full circle = target boundary)
-    document.getElementById('sw-ring-target').style.display='block';
+  // ─────────────────────────────────────────
+  //  STOPWATCH
+  // ─────────────────────────────────────────
+  function swSetTarget() {
+    if (swRunning||swPaused) { toast('Cannot change target while running.','error'); return; }
+    const cur=swTargetSecs>0?`Current: ${fmtTime(swTargetSecs)}. `:'';
+    const raw=window.prompt(`${cur}Set a target (e.g. "1h 30m", "90m"). Leave blank to clear:`,'');
+    if (raw===null) return;
+    if (!raw.trim()) { swTargetSecs=0; swTargetHit=false; swRenderBadge(); return; }
+    const parsed=parseTarget(raw.trim());
+    if (!parsed) { toast('Try "1h 30m" or "45m"','error'); return; }
+    swTargetSecs=parsed; swTargetHit=false; swRenderBadge();
     toast(`Target set: ${fmtTime(swTargetSecs)}`,'success');
-  };
-
-  function parseTargetStr(s){
-    // "1h 30m" | "1.5h" | "90m" | "90" (minutes assumed)
-    let total=0;
-    const hMatch=s.match(/(\d+(\.\d+)?)\s*h/i);
-    const mMatch=s.match(/(\d+)\s*m/i);
-    if(hMatch) total+=parseFloat(hMatch[1])*3600;
-    if(mMatch) total+=parseInt(mMatch[1])*60;
-    if(!hMatch&&!mMatch){const n=parseInt(s);if(!isNaN(n))total=n*60;}
-    return total>0?Math.round(total):0;
   }
 
-  function swRenderTargetBadge(){
-    const badge=document.getElementById('sw-target-badge');
-    if(!swTargetSecs){
-      badge.className='sw-target-badge no-target';
-      badge.textContent='🎯 No target set — tap to set one';
-      return;
-    }
-    if(swTargetHit){
-      badge.className='sw-target-badge hit';
-      badge.textContent=`🎉 Target hit! ${fmtTime(swTargetSecs)}`;
-      return;
-    }
-    badge.className='sw-target-badge';
+  function parseTarget(s) {
+    let t=0;
+    const hm=s.match(/(\d+(\.\d+)?)\s*h/i); const mm=s.match(/(\d+)\s*m/i);
+    if(hm) t+=parseFloat(hm[1])*3600; if(mm) t+=parseInt(mm[1])*60;
+    if(!hm&&!mm){const n=parseInt(s);if(!isNaN(n))t=n*60;}
+    return t>0?Math.round(t):0;
+  }
+
+  function swRenderBadge() {
+    const b=document.getElementById('sw-target-badge');
+    if (!swTargetSecs) { b.className='sw-target-badge no-target'; b.textContent='🎯 No target set — tap to set one'; return; }
+    if (swTargetHit)   { b.className='sw-target-badge hit'; b.textContent=`🎉 Target hit! ${fmtTime(swTargetSecs)}`; return; }
     const rem=Math.max(swTargetSecs-swElapsed,0);
-    badge.textContent=`🎯 Target: ${fmtTime(swTargetSecs)} — ${fmtTime(rem)} remaining`;
+    b.className='sw-target-badge';
+    b.textContent=`🎯 Target: ${fmtTime(swTargetSecs)} — ${fmtTime(rem)} remaining`;
   }
 
-  window.swTogglePlay=function(){
-    if(swRunning){ swPause(); return; }
-    if(swPaused){ swResume(); return; }
+  function swTogglePlay() {
+    if (swRunning) { swPause(); return; }
+    if (swPaused)  { swResume(); return; }
     swStart();
-  };
+  }
 
-  function swStart(){
-    swStartTime=new Date();
-    swElapsed=0; swElapsedAtResume=0;
-    swRunTimestamp=Date.now();
+  function swStart() {
+    swStartTime=new Date(); swElapsed=0; swElapsedAtResume=0; swRunTs=Date.now();
     swPaper=document.getElementById('sw-paper-select').value;
     document.getElementById('sw-paper-select').disabled=true;
     document.getElementById('sw-btn-stop').style.display='flex';
     swRunning=true; swPaused=false; swTargetHit=false;
     document.getElementById('sw-btn-play').textContent='⏸';
-    document.getElementById('sw-ring-fill').classList.remove('paused','stopped');
-    swTick();
+    setSwStatus('running','Keep going! 💪');
+    startDraftLoop(); swTick();
   }
 
-  function swPause(){
-    swElapsed=swElapsedAtResume+Math.floor((Date.now()-swRunTimestamp)/1000);
-    swElapsedAtResume=swElapsed;
-    swRunning=false; swPaused=true;
+  function swPause() {
+    swElapsed=swElapsedAtResume+Math.floor((Date.now()-swRunTs)/1000);
+    swElapsedAtResume=swElapsed; swRunning=false; swPaused=true;
     clearInterval(swInterval);
     document.getElementById('sw-btn-play').textContent='▶';
-    document.getElementById('sw-digits').className='timer-digits paused';
-    document.getElementById('sw-ring-fill').classList.add('paused');
-    document.getElementById('sw-label').textContent='Paused ⏸';
-    swRenderTargetBadge();
+    setSwStatus('paused','Paused ⏸');
+    swRenderBadge(); saveDraftLS();
   }
 
-  function swResume(){
-    swRunTimestamp=Date.now();
-    swRunning=true; swPaused=false;
+  function swResume() {
+    swRunTs=Date.now(); swRunning=true; swPaused=false;
     document.getElementById('sw-btn-play').textContent='⏸';
-    document.getElementById('sw-digits').className='timer-digits running';
-    document.getElementById('sw-ring-fill').classList.remove('paused');
-    document.getElementById('sw-label').textContent='Keep going! 💪';
+    setSwStatus('running','Keep going! 💪');
     swTick();
   }
 
-  function swTick(){
+  function swTick() {
     clearInterval(swInterval);
     swInterval=setInterval(()=>{
-      const now=swElapsedAtResume+Math.floor((Date.now()-swRunTimestamp)/1000);
-      swElapsed=now;
-
-      // Update digits
+      swElapsed=swElapsedAtResume+Math.floor((Date.now()-swRunTs)/1000);
       document.getElementById('sw-digits').textContent=fmtDisp(swElapsed);
-      document.getElementById('sw-digits').className='timer-digits running';
-      document.getElementById('sw-label').textContent='Keep going! 💪';
-
-      // Animate ring: one full revolution per 60 seconds (like a real stopwatch)
-      const angle=((swElapsed%60)/60)*CIRCUM;
-      document.getElementById('sw-ring-fill').style.strokeDashoffset=(CIRCUM-angle).toFixed(1);
-
-      // Target tracking
-      if(swTargetSecs>0){
-        if(!swTargetHit && swElapsed>=swTargetSecs){
-          swTargetHit=true;
-          swRenderTargetBadge();
-          document.getElementById('sw-ring-fill').classList.add('stopped'); // green flash
-          setTimeout(()=>document.getElementById('sw-ring-fill').classList.remove('stopped'),1200);
+      setSwStatus('running','Keep going! 💪');
+      if (swTargetSecs>0) {
+        if (!swTargetHit && swElapsed>=swTargetSecs) {
+          swTargetHit=true; swRenderBadge();
           toast(`🎉 Target reached! ${fmtTime(swTargetSecs)} studied!`,'success');
-        } else if(!swTargetHit){
-          swRenderTargetBadge(); // update "X remaining"
-        }
+        } else if (!swTargetHit) swRenderBadge();
       }
     },1000);
   }
 
-  window.swStop=async function(){
-    if(swElapsed<10){ swReset(); return; }
-    // Show the stop modal with task tick-off
-    clearInterval(swInterval);
-    swRunning=false; swPaused=false;
-    // Snapshot elapsed (precise)
-    const finalElapsed=swElapsed;
+  async function swStop() {
+    if (swElapsed<10) { swReset(); return; }
+    clearInterval(swInterval); swRunning=false; swPaused=false; stopDraftLoop();
+    const final=swElapsed;
 
-    // Build custom stop modal
-    const todoHTML = todos.length ? todos.map((t,i)=>`
+    const todoHTML=todos.length?todos.map((t,i)=>`
       <label style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f1f5f9;cursor:pointer;">
-        <input type="checkbox" id="sw-todo-${i}" ${t.done?'checked':''}
-          style="width:18px;height:18px;accent-color:#00C9A7;cursor:pointer;"/>
+        <input type="checkbox" id="sw-todo-${i}" ${t.done?'checked':''} style="width:18px;height:18px;accent-color:#00C9A7;cursor:pointer;"/>
         <span style="font-size:13px;color:#2C2C54;">${t.text}</span>
-      </label>`).join('') : '<p style="font-size:13px;color:#64748B;margin:0;">No tasks added for this session.</p>';
+      </label>`).join('')
+      :'<p style="font-size:13px;color:#64748B;margin:0;">No tasks were added.</p>';
 
-    const targetRow = swTargetSecs>0 ? `
+    const targetRow=swTargetSecs>0?`
       <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;
         background:${swTargetHit?'rgba(0,201,167,0.1)':'rgba(45,91,227,0.08)'};
         border-radius:8px;margin-bottom:12px;">
         <span style="font-size:18px;">${swTargetHit?'🎯✅':'🎯'}</span>
         <div>
-          <div style="font-size:12px;font-weight:700;color:${swTargetHit?'#00C9A7':'#2D5BE3'};">
-            Target: ${fmtTime(swTargetSecs)}
-          </div>
-          <div style="font-size:11px;color:#64748B;">
-            ${swTargetHit?'Target achieved! 🎉':`Studied ${fmtTime(finalElapsed)} of ${fmtTime(swTargetSecs)}`}
-          </div>
+          <div style="font-size:12px;font-weight:700;color:${swTargetHit?'#00C9A7':'#2D5BE3'};">Target: ${fmtTime(swTargetSecs)}</div>
+          <div style="font-size:11px;color:#64748B;">${swTargetHit?'Target achieved! 🎉':`Studied ${fmtTime(final)} of ${fmtTime(swTargetSecs)}`}</div>
         </div>
-      </div>` : '';
+      </div>`:'';
 
-    await Modal.custom({
-      icon:'⏱️',
-      title:'Stop Stopwatch',
-      body:`
-        <div style="text-align:left;">
-          <p style="font-size:13px;color:#64748B;margin-bottom:12px;">
-            ⏱️ <strong>${fmtDisp(finalElapsed)}</strong> on <strong>${swPaper}</strong>
-          </p>
-          ${targetRow}
-          ${todos.length?'<p style="font-size:12px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Mark completed tasks:</p>':''}
-          <div style="max-height:200px;overflow-y:auto;">${todoHTML}</div>
-        </div>`,
+    const choice=await Modal.custom({
+      icon:'⏱️', title:'Stop Stopwatch',
+      body:`<div style="text-align:left;">
+        <p style="font-size:13px;color:#64748B;margin-bottom:12px;">⏱️ <strong>${fmtDisp(final)}</strong> on <strong>${swPaper}</strong></p>
+        ${targetRow}
+        ${todos.length?'<p style="font-size:12px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Mark completed tasks:</p>':''}
+        <div style="max-height:200px;overflow-y:auto;">${todoHTML}</div>
+      </div>`,
       buttons:[
-        { label:'Save & Close', value:true,  style:'background:#00C9A7;color:#fff;flex:1;justify-content:center;' },
-        { label:'Discard',      value:false, style:'background:#FEE2E2;color:#DC2626;flex:1;justify-content:center;' }
+        {label:'💾 Save Session',value:'save',    style:'background:#00C9A7;color:#fff;flex:1;justify-content:center;'},
+        {label:'🗑 Discard',     value:'discard', style:'background:#FEE2E2;color:#DC2626;flex:1;justify-content:center;'}
       ]
     });
 
-    // Read checkbox states
-    if(todos.length){
-      todos.forEach((t,i)=>{ const cb=document.getElementById('sw-todo-'+i); if(cb)t.done=cb.checked; });
-      renderTodos();
-    }
-
-    // We always save (modal confirm handled internally); if user picked Discard the modal library
-    // returns false — check via a flag approach using the button value
-    // Since Modal.custom resolves with the button value:
-    const modalResult = await _swStopModalResult;
-    if(modalResult!==false){
-      await saveSession(finalElapsed, swPaper, 'stopwatch');
+    if (todos.length) { todos.forEach((t,i)=>{const cb=document.getElementById('sw-todo-'+i);if(cb)t.done=cb.checked;}); renderTodos(); }
+    if (choice==='save') {
+      await saveSession(final,swPaper,'stopwatch');
     } else {
-      toast('Session discarded.','info');
+      todos=[]; renderTodos(); await clearDraft(); toast('Session discarded.','info');
     }
     swReset();
-  };
+  }
 
-  // Patch: re-implement swStop cleanly using the resolved value
-  window.swStop=async function(){
-    if(swElapsed<10){ swReset(); return; }
-    clearInterval(swInterval);
-    swRunning=false; swPaused=false;
-    const finalElapsed=swElapsed;
-
-    const todoHTML = todos.length ? todos.map((t,i)=>`
-      <label style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f1f5f9;cursor:pointer;">
-        <input type="checkbox" id="sw-todo-${i}" ${t.done?'checked':''}
-          style="width:18px;height:18px;accent-color:#00C9A7;cursor:pointer;"/>
-        <span style="font-size:13px;color:#2C2C54;">${t.text}</span>
-      </label>`).join('') : '<p style="font-size:13px;color:#64748B;margin:0;">No tasks were added.</p>';
-
-    const targetRow = swTargetSecs>0 ? `
-      <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;
-        background:${swTargetHit?'rgba(0,201,167,0.1)':'rgba(45,91,227,0.08)'};
-        border-radius:8px;margin-bottom:12px;">
-        <span style="font-size:18px;">${swTargetHit?'🎯✅':'🎯'}</span>
-        <div>
-          <div style="font-size:12px;font-weight:700;color:${swTargetHit?'#00C9A7':'#2D5BE3'};">
-            Target: ${fmtTime(swTargetSecs)}
-          </div>
-          <div style="font-size:11px;color:#64748B;">
-            ${swTargetHit?'Target achieved! 🎉':`Studied ${fmtTime(finalElapsed)} of ${fmtTime(swTargetSecs)}`}
-          </div>
-        </div>
-      </div>` : '';
-
-    const choice = await Modal.custom({
-      icon:'⏱️',
-      title:'Stop Stopwatch',
-      body:`
-        <div style="text-align:left;">
-          <p style="font-size:13px;color:#64748B;margin-bottom:12px;">
-            ⏱️ <strong>${fmtDisp(finalElapsed)}</strong> on <strong>${swPaper}</strong>
-          </p>
-          ${targetRow}
-          ${todos.length?'<p style="font-size:12px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Mark completed tasks:</p>':''}
-          <div style="max-height:200px;overflow-y:auto;">${todoHTML}</div>
-        </div>`,
-      buttons:[
-        { label:'💾 Save Session', value:'save',    style:'background:#00C9A7;color:#fff;flex:1;justify-content:center;' },
-        { label:'🗑 Discard',      value:'discard', style:'background:#FEE2E2;color:#DC2626;flex:1;justify-content:center;' }
-      ]
-    });
-
-    if(todos.length){
-      todos.forEach((t,i)=>{ const cb=document.getElementById('sw-todo-'+i); if(cb)t.done=cb.checked; });
-      renderTodos();
-    }
-
-    if(choice==='save'){
-      await saveSession(finalElapsed, swPaper, 'stopwatch');
-    } else {
-      todos=[]; renderTodos();
-      toast('Session discarded.','info');
-    }
-    swReset();
-  };
-
-  window.swReset=function(){
-    clearInterval(swInterval);
-    swRunning=false; swPaused=false;
-    swElapsed=0; swElapsedAtResume=0; swRunTimestamp=null; swStartTime=null;
-    swTargetHit=false;
+  function swReset() {
+    clearInterval(swInterval); stopDraftLoop();
+    swRunning=false; swPaused=false; swElapsed=0; swElapsedAtResume=0; swRunTs=null; swStartTime=null; swTargetHit=false;
     document.getElementById('sw-digits').textContent='00:00:00';
-    document.getElementById('sw-digits').className='timer-digits';
-    document.getElementById('sw-label').textContent='Press ▶ to begin';
     document.getElementById('sw-btn-play').textContent='▶';
     document.getElementById('sw-btn-stop').style.display='none';
-    document.getElementById('sw-ring-fill').style.strokeDashoffset=CIRCUM;
-    document.getElementById('sw-ring-fill').classList.remove('paused','stopped');
     document.getElementById('sw-paper-select').disabled=false;
-    // Keep target & badge — user might want to reuse same target
-    swRenderTargetBadge();
-  };
+    setSwStatus('idle','Press ▶ to begin');
+    swRenderBadge();
+  }
 
-  // ── Active session check (both modes) ────────────────────
-  function anySessionActive(){
+  // ─────────────────────────────────────────
+  //  ACTIVE CHECK
+  // ─────────────────────────────────────────
+  function anyActive() {
     return (isRunning||isPaused)&&elapsedSecs>=10 || (swRunning||swPaused)&&swElapsed>=10;
   }
-  function activeElapsed(){ return currentMode==='timer'?elapsedSecs:swElapsed; }
 
-  // Expose for nav guard
-  window.isRunning=isRunning; // kept as live reference via closure below
-
-  // ── Sidebar Toggle ────────────────────────────────────────
-  window.toggleSidebar = function(){
-    const sb  = document.getElementById('sidebar');
-    const btn = document.getElementById('btn-hamburger');
-    const ov  = document.getElementById('sidebar-overlay');
-    const open = sb.classList.toggle('open');
-    btn.classList.toggle('open', open);
-    ov.classList.toggle('show', open);
-  };
-  window.closeSidebar = function(){
+  // ─────────────────────────────────────────
+  //  SIDEBAR
+  // ─────────────────────────────────────────
+  function toggleSidebar() {
+    const sb=document.getElementById('sidebar');
+    const btn=document.getElementById('btn-hamburger');
+    const ov=document.getElementById('sidebar-overlay');
+    const open=sb.classList.toggle('open');
+    btn.classList.toggle('open',open); ov.classList.toggle('show',open);
+  }
+  function closeSidebar() {
     document.getElementById('sidebar').classList.remove('open');
     document.getElementById('btn-hamburger').classList.remove('open');
     document.getElementById('sidebar-overlay').classList.remove('show');
-  };
+  }
 
-  // ── Nav guard ─────────────────────────────────────────────
-  function timerIsActive(){ return anySessionActive(); }
-
-  async function interceptNav(e, dest){
-    if(!timerIsActive()) return;
+  // ─────────────────────────────────────────
+  //  NAV GUARD — custom modal, no beforeunload
+  // ─────────────────────────────────────────
+  async function interceptNav(e, dest) {
+    if (!anyActive()) return;
     e.preventDefault();
-    const yes = await Modal.confirm(
-      'Leave Study Timer?',
-      `You've studied for <strong>${fmtTime(activeElapsed())}</strong>. Save this session before leaving?`,
-      'Save & Leave'
-    );
-    if(yes){
-      if(currentMode==='timer')  { await stopTimer();  }
-      else                       { await swStop(); }
-      window.location.href=dest;
+    const modeLabel=currentMode==='stopwatch'?'⏱️ Stopwatch':'⏳ Timer';
+    const elapsed=currentMode==='timer'?elapsedSecs:swElapsed;
+
+    const choice=await Modal.custom({
+      icon:'🚪', title:'Leave Study Timer?',
+      body:`<div style="text-align:left;">
+        <p style="font-size:13px;color:#64748B;margin-bottom:12px;">
+          You have an active ${modeLabel} session (<strong>${fmtTime(elapsed)}</strong> studied).<br/><br/>
+          Your session will be <strong>saved as a draft</strong> and you can resume it when you come back.
+        </p>
+      </div>`,
+      buttons:[
+        {label:'💾 Save Draft & Leave', value:'save',    style:'background:var(--primary);color:#fff;flex:1;justify-content:center;'},
+        {label:'🗑 Discard & Leave',    value:'discard', style:'background:#FEE2E2;color:#DC2626;flex:1;justify-content:center;'},
+        {label:'↩ Stay',               value:'stay',    style:'background:var(--surface-2);color:var(--text-secondary);flex:1;justify-content:center;'}
+      ]
+    });
+
+    if (!choice || choice==='stay') return;
+
+    if (choice==='save') {
+      if (isRunning) timerPause();
+      if (swRunning) swPause();
+      saveDraftLS();
+      await saveDraftFS();
+      setTimeout(()=>{ location.href=dest; }, 500);
     } else {
-      const discard=await Modal.confirm('Discard Session?','Your session progress will be lost. Are you sure?','Leave Without Saving');
-      if(discard){
-        clearInterval(timerInterval); clearInterval(swInterval);
-        window.location.href=dest;
-      }
+      clearInterval(timerInterval); clearInterval(swInterval);
+      stopDraftLoop(); await clearDraft();
+      location.href=dest;
     }
   }
 
-  document.addEventListener('DOMContentLoaded', function(){
-    document.querySelectorAll('.nav-item').forEach(function(a){
-      a.addEventListener('click', function(e){ window.closeSidebar(); interceptNav(e, a.getAttribute('href')); });
-    });
-    document.querySelectorAll('.hero-home-btn').forEach(function(a){
-      a.addEventListener('click', function(e){ interceptNav(e, a.getAttribute('href')); });
-    });
-  });
-
-  window.addEventListener('beforeunload', function(e){
-    if(timerIsActive()){ e.preventDefault(); e.returnValue=''; }
-  });
-
-  // ── Background accuracy: re-sync on tab focus ─────────────
-  document.addEventListener('visibilitychange', function(){
-    if(document.hidden) return;
-    if(isRunning){
-      elapsedSecs=elapsedAtLastResume+Math.floor((Date.now()-runStartTimestamp)/1000);
-      const rem=totalSecs-elapsedSecs;
-      if(rem>0){
-        document.getElementById('ring-fill').style.strokeDashoffset=((rem/totalSecs)*CIRCUM).toFixed(1);
-        document.getElementById('timer-digits').textContent=fmtDisp(rem);
-      }
+  // ─────────────────────────────────────────
+  //  VISIBILITY CHANGE — re-sync on tab focus
+  // ─────────────────────────────────────────
+  document.addEventListener('visibilitychange', ()=>{
+    if (document.hidden) return;
+    if (isRunning) {
+      elapsedSecs=elapsedAtResume+Math.floor((Date.now()-runTs)/1000);
+      document.getElementById('timer-digits').textContent=fmtDisp(Math.max(totalSecs-elapsedSecs,0));
     }
-    if(swRunning){
-      swElapsed=swElapsedAtResume+Math.floor((Date.now()-swRunTimestamp)/1000);
+    if (swRunning) {
+      swElapsed=swElapsedAtResume+Math.floor((Date.now()-swRunTs)/1000);
       document.getElementById('sw-digits').textContent=fmtDisp(swElapsed);
-      const angle=((swElapsed%60)/60)*CIRCUM;
-      document.getElementById('sw-ring-fill').style.strokeDashoffset=(CIRCUM-angle).toFixed(1);
     }
   });
 
 </script>
-
-<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
 </body>
 </html>

@@ -10,5 +10,45 @@
     window.location.replace('/');
   </script>
 </head>
-<body></body>
+<body>
+  <!-- ── PWA Auto-Update Overlay ──────────────────────────── -->
+  <style>
+    #sw-update-overlay{display:none;position:fixed;inset:0;z-index:99999;background:rgba(13,17,38,0.92);backdrop-filter:blur(6px);flex-direction:column;align-items:center;justify-content:center;gap:20px;font-family:inherit;}
+    #sw-update-overlay.visible{display:flex;}
+    .sw-update-spinner{width:52px;height:52px;border:4px solid rgba(255,255,255,0.15);border-top-color:#2D5BE3;border-radius:50%;animation:sw-spin 0.75s linear infinite;}
+    @keyframes sw-spin{to{transform:rotate(360deg);}}
+    .sw-update-text{color:#fff;font-size:17px;font-weight:600;letter-spacing:0.2px;}
+    .sw-update-sub{color:#8b9cbf;font-size:13px;margin-top:-12px;}
+  </style>
+  <div id="sw-update-overlay"><div class="sw-update-spinner"></div><div class="sw-update-text">Updating StudyBuddy…</div><div class="sw-update-sub">This will only take a moment</div></div>
+  <script>
+    (function(){
+      if(!('serviceWorker' in navigator)) return;
+      var swReg=null;
+      function doUpdate(reg){
+        document.getElementById('sw-update-overlay').classList.add('visible');
+        var w=reg?reg.waiting:(swReg&&swReg.waiting);
+        if(w){w.postMessage({type:'SKIP_WAITING'});}else{setTimeout(function(){location.reload();},600);}
+      }
+      var refreshing=false;
+      navigator.serviceWorker.addEventListener('controllerchange',function(){if(!refreshing){refreshing=true;location.reload();}});
+      navigator.serviceWorker.addEventListener('message',function(e){if(e.data&&e.data.type==='UPDATE_AVAILABLE'){doUpdate(null);}});
+      window.addEventListener('load',function(){
+        var depth=location.pathname.split('/').length;
+        var swPath=depth>3?'../sw.js':'./sw.js';
+        var scope =depth>3?'../':'./';
+        navigator.serviceWorker.register(swPath,{scope:scope}).then(function(reg){
+          swReg=reg;
+          if(reg.waiting){doUpdate(reg);return;}
+          reg.addEventListener('updatefound',function(){
+            var nw=reg.installing;
+            nw.addEventListener('statechange',function(){
+              if(nw.state==='installed'&&navigator.serviceWorker.controller){doUpdate(reg);}
+            });
+          });
+        }).catch(function(e){console.warn('[SW]',e);});
+      });
+    })();
+  </script>
+</body>
 </html>

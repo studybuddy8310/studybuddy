@@ -1,0 +1,31 @@
+name: Auto Bump Version
+
+on:
+  push:
+    branches: [ main ]
+    paths-ignore:
+      - 'version.json'
+
+jobs:
+  bump-version:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Bump version.json
+        run: |
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          BUILD_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          echo "{\"version\":\"${SHORT_SHA}\",\"buildTime\":\"${BUILD_TIME}\"}" > version.json
+
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add version.json
+          git commit -m "chore: bump version.json [skip ci]"
+          git push

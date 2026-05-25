@@ -118,9 +118,9 @@
       </div>
       <!-- Material Type Tabs — NO RTP -->
       <div class="material-type-tabs">
-        <button class="mat-tab active"   onclick="switchMatTab('notes')">📒 Notes</button>
+        <button class="mat-tab active"   onclick="switchMatTab('studyMaterial')">📚 Study Material</button>
         <button class="mat-tab" onclick="switchMatTab('questionBank')">❓ Question Bank</button>
-        <button class="mat-tab" onclick="switchMatTab('studyMaterial')">📚 Study Material</button>
+        <button class="mat-tab" onclick="switchMatTab('notes')">📒 Notes</button>
         <button class="mat-tab" onclick="switchMatTab('mtp')">📋 MTP</button>
         <button class="mat-tab" onclick="switchMatTab('suggested')">✅ Suggested Answers</button>
       </div>
@@ -149,7 +149,7 @@
   import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
   import { doc, getDoc, setDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-  let currentLevel='CA-Foundation', currentMatTab='notes', currentPaper='';
+  let currentLevel='CA-Foundation', currentMatTab='studyMaterial', currentPaper='';
   let currentPDFs=[], dragSrcIndex=null, orderChanged=false;
 
   function showToast(msg,type='info'){const c=document.getElementById('toast-container');const t=document.createElement('div');t.className=`toast toast-${type}`;t.innerHTML=`<span>${{success:'✅',error:'❌',info:'ℹ️'}[type]}</span> ${msg}`;c.appendChild(t);setTimeout(()=>t.remove(),4000);}
@@ -202,7 +202,7 @@
 
   window.switchMatTab=function(tab){
     currentMatTab=tab;
-    const tabs=['notes','questionBank','studyMaterial','mtp','suggested'];
+    const tabs=['studyMaterial','questionBank','notes','mtp','suggested'];
     document.querySelectorAll('.mat-tab').forEach((t,i)=>t.classList.toggle('active',tabs[i]===tab));
     orderChanged=false;document.getElementById('btn-save-order').classList.remove('visible');
     if(currentPaper)loadMaterials();

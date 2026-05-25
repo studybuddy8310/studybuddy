@@ -162,9 +162,9 @@
 
       <!-- Material Type Tabs -->
       <div class="mat-type-tabs">
-        <button class="mat-type-btn active" onclick="switchMatType('notes',this)">📒 Notes</button>
+        <button class="mat-type-btn active" onclick="switchMatType('studyMaterial',this)">📚 Study Material</button>
         <button class="mat-type-btn" onclick="switchMatType('questionBank',this)">❓ Question Bank</button>
-        <button class="mat-type-btn" onclick="switchMatType('studyMaterial',this)">📚 Study Material</button>
+        <button class="mat-type-btn" onclick="switchMatType('notes',this)">📒 Notes</button>
         <button class="mat-type-btn" onclick="switchMatType('mtp',this)">📋 MTP</button>
         <button class="mat-type-btn" onclick="switchMatType('suggested',this)">✅ Suggested Answers</button>
       </div>
@@ -191,7 +191,7 @@
   let uid=null, userLevel=null;
   let allPapers=[];
   let currentPaperId='';
-  let currentMatType='notes';
+  let currentMatType='studyMaterial';
 
   const MAT_LABELS = {
     notes:'Notes', questionBank:'Question Bank',

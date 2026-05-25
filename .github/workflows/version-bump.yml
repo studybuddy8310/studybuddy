@@ -29,4 +29,3 @@ jobs:
           git add version.json
           git commit -m "chore: bump version.json [skip ci]"
           git push
-

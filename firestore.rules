@@ -1,0 +1,208 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helpers ──────────────────────────────────────────────
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function isSelf(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    function isApproved() {
+      return isSignedIn() && getUserData().status == 'approved';
+    }
+    function isStudent() {
+      return isApproved() && getUserData().role == 'student';
+    }
+    function isAdmin() {
+      return isApproved() && (getUserData().role == 'admin' || getUserData().role == 'superadmin');
+    }
+    function isSuperAdmin() {
+      return isApproved() && getUserData().role == 'superadmin';
+    }
+
+    // ── users ─────────────────────────────────────────────────
+    // Public: anyone signed in can create their own user doc (signup)
+    // Students: read/update own doc only
+    // Admins: read all users, update status/role fields
+    match /users/{userId} {
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      allow read:   if isSelf(userId) || isAdmin();
+      allow update: if isSelf(userId)
+                    || isAdmin();
+      allow delete: if isSuperAdmin();
+    }
+
+    // ── config ────────────────────────────────────────────────
+    // Anyone signed in can read (needed for adminKey check on signup)
+    // Only superadmin can write
+    match /config/{docId} {
+      allow read:  if isSignedIn();
+      allow write: if isSuperAdmin();
+    }
+
+    // ── invites ───────────────────────────────────────────────
+    // Anyone signed in can read (needed to validate invite token on signup)
+    // Only admins can create/update invites
+    match /invites/{token} {
+      allow read:   if isSignedIn();
+      allow create: if isAdmin();
+      allow update: if isSignedIn(); // usedCount incremented on signup
+      allow delete: if isAdmin();
+    }
+
+    // ── courseStructure ───────────────────────────────────────
+    // Hierarchical: courseStructure/{level}/papers/{paperId}/chapters/{chId}
+    // Students: read only (to load paper/chapter lists)
+    // Admins: full read/write
+    match /courseStructure/{level}/{rest=**} {
+      allow read:  if isApproved();
+      allow write: if isAdmin();
+    }
+
+    // ── materials ─────────────────────────────────────────────
+    // materials/{level}/papers/{paperId}
+    // Students: read only
+    // Admins: full read/write
+    match /materials/{level}/{rest=**} {
+      allow read:  if isApproved();
+      allow write: if isAdmin();
+    }
+
+    // ── mcqs ──────────────────────────────────────────────────
+    // mcqs/{level}/papers/{paperId}/questions/{qId}
+    // Students: read only (to load questions for practice)
+    // Admins: full read/write
+    match /mcqs/{level}/{rest=**} {
+      allow read:  if isApproved();
+      allow write: if isAdmin();
+    }
+
+    // ── casebasedMCQs ─────────────────────────────────────────
+    // casebasedMCQs/{level}/papers/{paperId}/questions/{qId}
+    // Students: read only
+    // Admins: full read/write
+    match /casebasedMCQs/{level}/{rest=**} {
+      allow read:  if isApproved();
+      allow write: if isAdmin();
+    }
+
+    // ── mockTests ─────────────────────────────────────────────
+    // mockTests/{level}/tests/{testId}/questions/{qId}
+    // Students: read only (to load test + questions)
+    // Admins: full read/write
+    match /mockTests/{level}/{rest=**} {
+      allow read:  if isApproved();
+      allow write: if isAdmin();
+    }
+
+    // ── mcqScores ─────────────────────────────────────────────
+    // mcqScores/{userId}/papers/{paperId}/chapters/{chId}
+    // mcqScores/{userId}/papers/{paperId}/caseStudies/{csId}
+    // Students: read/write own scores only
+    // Admins: read any student's scores (for clearRequests)
+    match /mcqScores/{userId}/{rest=**} {
+      allow read:  if isSelf(userId) || isAdmin();
+      allow write: if isSelf(userId);
+      allow delete: if isSelf(userId) || isAdmin(); // admin can clear on request
+    }
+
+    // ── mockResults ───────────────────────────────────────────
+    // mockResults/{userId}/tests/{testId}
+    // Students: read/write own results only
+    // Admins: read any (for clear requests)
+    match /mockResults/{userId}/{rest=**} {
+      allow read:  if isSelf(userId) || isAdmin();
+      allow write: if isSelf(userId);
+      allow delete: if isSelf(userId) || isAdmin();
+    }
+
+    // ── progress ──────────────────────────────────────────────
+    // progress/{userId}/papers/{paperId}/chapters/{chId}
+    // Students: read/write own only
+    // Admins: read any (for clear requests)
+    match /progress/{userId}/{rest=**} {
+      allow read:  if isSelf(userId) || isAdmin();
+      allow write: if isSelf(userId);
+      allow delete: if isSelf(userId) || isAdmin();
+    }
+
+    // ── progressSummary ───────────────────────────────────────
+    // progressSummary/{userId}
+    // Students: read/write own only
+    match /progressSummary/{userId} {
+      allow read, write: if isSelf(userId);
+    }
+
+    // ── timerSessions ─────────────────────────────────────────
+    // timerSessions/{userId}/sessions/{sessionId}
+    // Students: read/write own only
+    match /timerSessions/{userId}/{rest=**} {
+      allow read, write: if isSelf(userId);
+    }
+
+    // ── draftSessions ─────────────────────────────────────────
+    // draftSessions/{userId}
+    // Students: read/write own only (used to resume interrupted timer)
+    match /draftSessions/{userId} {
+      allow read, write: if isSelf(userId);
+    }
+
+    // ── streaks ───────────────────────────────────────────────
+    // streaks/{userId}
+    // Students: read/write own only
+    match /streaks/{userId} {
+      allow read, write: if isSelf(userId);
+    }
+
+    // ── tips ──────────────────────────────────────────────────
+    // tips/{tipId}
+    // All approved users: read
+    // Admins: full read/write
+    match /tips/{tipId} {
+      allow read:  if isApproved();
+      allow write: if isAdmin();
+    }
+
+    // ── exams ─────────────────────────────────────────────────
+    // exams/{examId}  (schedule/exam timetable)
+    // All approved users: read
+    // Admins: full read/write
+    match /exams/{examId} {
+      allow read:  if isApproved();
+      allow write: if isAdmin();
+    }
+
+    // ── emailLogs ─────────────────────────────────────────────
+    // emailLogs/{logId}
+    // Admins only: read/write
+    match /emailLogs/{logId} {
+      allow read, write: if isAdmin();
+    }
+
+    // ── courseChangeRequests ──────────────────────────────────
+    // courseChangeRequests/{requestId}
+    // Students: create own request + read own
+    // Admins: read all, update (approve/reject), delete
+    match /courseChangeRequests/{requestId} {
+      allow create: if isStudent();
+      allow read:   if isAdmin()
+                    || (isStudent() && resource.data.uid == request.auth.uid);
+      allow update,
+            delete: if isAdmin();
+    }
+
+    // ── clearRequests ─────────────────────────────────────────
+    // clearRequests/{userId}  (student requests data clear)
+    // Students: create/read/delete own request
+    // Admins: read all, delete after processing
+    match /clearRequests/{userId} {
+      allow read, write: if isSelf(userId) || isAdmin();
+    }
+
+  }
+}

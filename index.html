@@ -784,5 +784,72 @@
       });
     })();
   </script>
+
+  <!-- ── Fullscreen on load ──────────────────────────────── -->
+  <style>
+    #fs-btn {
+      position: fixed; bottom: 18px; right: 18px; z-index: 9000;
+      background: rgba(45,91,227,0.85); color: #fff;
+      border: none; border-radius: 50%; width: 44px; height: 44px;
+      font-size: 20px; cursor: pointer; display: none;
+      align-items: center; justify-content: center;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.25);
+      backdrop-filter: blur(4px);
+      transition: opacity 0.3s;
+    }
+    #fs-btn:hover { background: rgba(45,91,227,1); }
+  </style>
+  <button id="fs-btn" title="Enter Fullscreen">⛶</button>
+  <script>
+    (function () {
+      var btn = document.getElementById('fs-btn');
+
+      function enterFS() {
+        var el = document.documentElement;
+        var fn = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
+        if (fn) fn.call(el).catch(function(){});
+      }
+
+      function isFS() {
+        return !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement);
+      }
+
+      function updateBtn() {
+        btn.style.display = isFS() ? 'none' : 'flex';
+        btn.textContent   = '⛶';
+      }
+
+      // Show/hide btn based on fullscreen state
+      document.addEventListener('fullscreenchange',       updateBtn);
+      document.addEventListener('webkitfullscreenchange', updateBtn);
+      document.addEventListener('mozfullscreenchange',    updateBtn);
+      document.addEventListener('MSFullscreenChange',     updateBtn);
+
+      // Try auto-fullscreen on first user interaction (required by browsers)
+      var triggered = false;
+      function tryAuto() {
+        if (triggered) return;
+        triggered = true;
+        if (!isFS()) enterFS();
+        // remove listeners after first trigger
+        ['click','touchstart','keydown'].forEach(function(e){
+          document.removeEventListener(e, tryAuto);
+        });
+      }
+      ['click','touchstart','keydown'].forEach(function(e){
+        document.addEventListener(e, tryAuto, { once: true });
+      });
+
+      // Show the floating button after a short delay if not already fullscreen
+      setTimeout(function() {
+        if (!isFS()) btn.style.display = 'flex';
+      }, 1500);
+
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        enterFS();
+      });
+    })();
+  </script>
 </body>
 </html>

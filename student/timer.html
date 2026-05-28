@@ -213,7 +213,18 @@
     .sess-type-badge.timer     { background:var(--primary-light); color:var(--primary); }
     .sess-type-badge.stopwatch { background:rgba(0,201,167,0.12); color:var(--success); }
 
-    @media(max-width:960px){ .timer-page{grid-template-columns:1fr;} }
+    /* ── Mobile optimisations ── */
+    @media(max-width:960px){
+      .timer-page { grid-template-columns:1fr; }
+      .timer-digits { font-size:3.2rem; }
+      .btn-play  { width:72px; height:72px; font-size:28px; }
+      .btn-ctrl  { width:58px; height:58px; font-size:22px; }
+      .time-inp-group input { width:76px; font-size:1.6rem; }
+      .preset-btn { padding:7px 16px; font-size:13px; }
+      .resume-banner { flex-wrap:wrap; }
+      .resume-banner-actions { width:100%; justify-content:stretch; }
+      .btn-resume, .btn-discard-draft { flex:1; text-align:center; }
+    }
   </style>
 </head>
 <body>
@@ -1182,19 +1193,117 @@
   }
 
   // ─────────────────────────────────────────
-  //  VISIBILITY CHANGE — re-sync on tab focus
+  //  MOBILE LIFECYCLE — save draft & re-sync
+  //  Covers: Android backgrounding, screen lock,
+  //  tab switch, PWA minimize
   // ─────────────────────────────────────────
-  document.addEventListener('visibilitychange', ()=>{
-    if (document.hidden) return;
-    if (isRunning) {
-      elapsedSecs=elapsedAtResume+Math.floor((Date.now()-runTs)/1000);
-      document.getElementById('timer-digits').textContent=fmtDisp(Math.max(totalSecs-elapsedSecs,0));
-    }
-    if (swRunning) {
-      swElapsed=swElapsedAtResume+Math.floor((Date.now()-swRunTs)/1000);
-      document.getElementById('sw-digits').textContent=fmtDisp(swElapsed);
+
+  // Wake Lock — keep screen awake while timer is running
+  let wakeLock = null;
+  async function requestWakeLock() {
+    if (!('wakeLock' in navigator)) return;
+    try {
+      wakeLock = await navigator.wakeLock.request('screen');
+      wakeLock.addEventListener('release', () => { wakeLock = null; });
+    } catch(e) {}
+  }
+  async function releaseWakeLock() {
+    if (wakeLock) { try { await wakeLock.release(); } catch(e) {} wakeLock = null; }
+  }
+
+  // Re-request wake lock if released (e.g. screen turned off then on)
+  document.addEventListener('visibilitychange', async () => {
+    if (!document.hidden && (isRunning || swRunning)) {
+      await requestWakeLock();
     }
   });
+
+  // Sync elapsed time from wall clock (handles interval being killed)
+  function resyncTimers() {
+    if (isRunning && runTs) {
+      elapsedSecs = elapsedAtResume + Math.floor((Date.now() - runTs) / 1000);
+      const rem = Math.max(totalSecs - elapsedSecs, 0);
+      document.getElementById('timer-digits').textContent = fmtDisp(rem);
+      document.getElementById('timer-progress').style.width = (elapsedSecs / totalSecs * 100).toFixed(1) + '%';
+      // If timer expired while backgrounded
+      if (rem <= 0) {
+        clearInterval(timerInterval); isRunning = false; elapsedSecs = totalSecs;
+        document.getElementById('timer-progress').style.width = '100%';
+        document.getElementById('timer-progress').classList.add('finished');
+        document.getElementById('timer-digits').textContent = fmtDisp(0);
+        setTimerStatus('finished', 'Session complete! 🎉');
+        stopDraftLoop(); onTimerComplete();
+      } else {
+        // Restart interval (Android may have killed it)
+        runTick();
+      }
+    }
+    if (swRunning && swRunTs) {
+      swElapsed = swElapsedAtResume + Math.floor((Date.now() - swRunTs) / 1000);
+      document.getElementById('sw-digits').textContent = fmtDisp(swElapsed);
+      // Restart interval
+      swTick();
+    }
+  }
+
+  // Save draft immediately when app goes to background / screen locks
+  function saveDraftNow() {
+    if (!anyActive()) return;
+    // Snapshot current elapsed before intervals die
+    if (isRunning && runTs) {
+      elapsedSecs = elapsedAtResume + Math.floor((Date.now() - runTs) / 1000);
+      elapsedAtResume = elapsedSecs; runTs = Date.now();
+    }
+    if (swRunning && swRunTs) {
+      swElapsed = swElapsedAtResume + Math.floor((Date.now() - swRunTs) / 1000);
+      swElapsedAtResume = swElapsed; swRunTs = Date.now();
+    }
+    saveDraftLS();
+    if (uid) saveDraftFS();
+  }
+
+  // visibilitychange — most reliable cross-platform event
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      saveDraftNow();
+    } else {
+      // Coming back — re-sync time and restart intervals
+      resyncTimers();
+    }
+  });
+
+  // pagehide — fires on Android when tab is killed/navigated away
+  window.addEventListener('pagehide', () => { saveDraftNow(); });
+
+  // freeze — Page Lifecycle API, fires when Android freezes the tab
+  window.addEventListener('freeze', () => { saveDraftNow(); });
+
+  // resume — Page Lifecycle API, fires when tab is unfrozen
+  window.addEventListener('resume', () => { resyncTimers(); });
+
+  // Online — re-sync Firestore draft after coming back online
+  window.addEventListener('online', () => {
+    if (anyActive()) saveDraftFS();
+  });
+
+  // Patch timerStart + swStart to request wake lock
+  const _origTimerStart = timerStart;
+  // (wake lock requested inline in timerStart/swStart below via monkey-patch)
+
+  // Override startDraftLoop to also request wake lock
+  const _origStartDraftLoop = startDraftLoop;
+  function startDraftLoop() {
+    _origStartDraftLoop();
+    requestWakeLock();
+  }
+
+  // Override stopDraftLoop to also release wake lock
+  const _origStopDraftLoop = stopDraftLoop;
+  function stopDraftLoop() {
+    _origStopDraftLoop();
+    // Only release if nothing is still active
+    setTimeout(() => { if (!anyActive()) releaseWakeLock(); }, 500);
+  }
 
 </script>
 

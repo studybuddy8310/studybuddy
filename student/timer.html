@@ -1213,12 +1213,7 @@
     if (wakeLock) { try { await wakeLock.release(); } catch(e) {} wakeLock = null; }
   }
 
-  // Re-request wake lock if released (e.g. screen turned off then on)
-  document.addEventListener('visibilitychange', async () => {
-    if (!document.hidden && (isRunning || swRunning)) {
-      await requestWakeLock();
-    }
-  });
+  // Re-request wake lock when coming back to foreground
 
   // Sync elapsed time from wall clock (handles interval being killed)
   function resyncTimers() {
@@ -1269,8 +1264,9 @@
     if (document.hidden) {
       saveDraftNow();
     } else {
-      // Coming back — re-sync time and restart intervals
+      // Coming back — re-sync time, restart intervals, re-request wake lock
       resyncTimers();
+      if (isRunning || swRunning) requestWakeLock();
     }
   });
 

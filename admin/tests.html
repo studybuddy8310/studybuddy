@@ -146,6 +146,15 @@
       flex-shrink:0;
     }
     .mcq-del:hover { background:var(--danger); color:#fff; }
+    .mcq-edit {
+      background:var(--primary-light); color:var(--primary);
+      border:none; padding:5px 10px; border-radius:var(--radius-sm);
+      font-size:12px; font-weight:600; cursor:pointer;
+      font-family:var(--font-body); transition:all 0.2s; white-space:nowrap;
+      flex-shrink:0;
+    }
+    .mcq-edit:hover { background:var(--primary); color:#fff; }
+    .mcq-item-btns { display:flex; flex-direction:column; gap:6px; flex-shrink:0; }
 
     /* ── Mock Test Cards ─────────────────────────────────── */
     .test-card {
@@ -539,6 +548,101 @@
   </div>
 </div>
 
+<!-- ════════ EDIT MCQ MODAL ════════ -->
+<div class="modal-overlay hidden" id="edit-mcq-modal">
+  <div class="modal-box" style="max-width:680px; max-height:90vh; overflow-y:auto;">
+    <div class="modal-header">
+      <div class="modal-title" id="edit-mcq-modal-title">✏️ Edit MCQ</div>
+      <button class="btn-modal-close" onclick="closeEditMCQ()">✕</button>
+    </div>
+    <!-- Chapter / Case name row -->
+    <div class="meta-row" id="edit-mcq-meta-row">
+      <div class="form-group" id="edit-mcq-chapter-grp">
+        <label class="form-label" id="edit-mcq-meta-label">Chapter Name</label>
+        <input type="text" id="edit-mcq-chapter" class="form-input"/>
+      </div>
+      <div class="form-group" id="edit-mcq-passage-grp" style="display:none;">
+        <label class="form-label">Case Passage</label>
+        <textarea id="edit-mcq-passage" class="form-input" rows="4"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Marks per Question</label>
+        <select id="edit-mcq-marks" class="form-select">
+          <option value="1">1 Mark</option>
+          <option value="2">2 Marks</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Question</label>
+      <textarea id="edit-mcq-question" class="form-input" rows="4"></textarea>
+    </div>
+    <div class="options-grid">
+      <div class="option-row"><div class="option-label opt-a">A</div><input type="text" id="edit-mcq-oa" class="form-input" placeholder="Option A"/></div>
+      <div class="option-row"><div class="option-label opt-b">B</div><input type="text" id="edit-mcq-ob" class="form-input" placeholder="Option B"/></div>
+      <div class="option-row"><div class="option-label opt-c">C</div><input type="text" id="edit-mcq-oc" class="form-input" placeholder="Option C"/></div>
+      <div class="option-row"><div class="option-label opt-d">D</div><input type="text" id="edit-mcq-od" class="form-input" placeholder="Option D"/></div>
+    </div>
+    <div class="correct-row">
+      <label class="form-label" style="margin:0;">Correct Answer:</label>
+      <div class="correct-options" id="edit-mcq-correct-opts">
+        <label class="correct-opt" onclick="selectEditCorrect(this,'A')"><input type="radio" name="edit-mcq-correct" value="A"/>A</label>
+        <label class="correct-opt" onclick="selectEditCorrect(this,'B')"><input type="radio" name="edit-mcq-correct" value="B"/>B</label>
+        <label class="correct-opt" onclick="selectEditCorrect(this,'C')"><input type="radio" name="edit-mcq-correct" value="C"/>C</label>
+        <label class="correct-opt" onclick="selectEditCorrect(this,'D')"><input type="radio" name="edit-mcq-correct" value="D"/>D</label>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Explanation (Optional)</label>
+      <textarea id="edit-mcq-explanation" class="form-input" rows="2"></textarea>
+    </div>
+    <div class="flex flex-gap-12">
+      <button class="btn btn-primary" onclick="saveEditMCQ()">💾 Save Changes</button>
+      <button class="btn btn-outline" onclick="closeEditMCQ()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ EDIT MOCK TEST MODAL ════════ -->
+<div class="modal-overlay hidden" id="edit-test-modal">
+  <div class="modal-box" style="max-width:600px; max-height:90vh; overflow-y:auto;">
+    <div class="modal-header">
+      <div class="modal-title">✏️ Edit Mock Test</div>
+      <button class="btn-modal-close" onclick="closeEditTest()">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Test Title</label>
+      <input type="text" id="edit-mt-title" class="form-input"/>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="form-group">
+        <label class="form-label">Marks per Question</label>
+        <select id="edit-mt-marks" class="form-select">
+          <option value="1">1 Mark</option>
+          <option value="2">2 Marks</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Negative Marking</label>
+        <select id="edit-mt-negative" class="form-select">
+          <option value="0">No Negative Marking</option>
+          <option value="0.25">-0.25 per wrong</option>
+          <option value="0.5">-0.5 per wrong</option>
+          <option value="1">-1 per wrong</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Custom Instructions</label>
+      <textarea id="edit-mt-instructions" class="form-input" rows="3"></textarea>
+    </div>
+    <div class="flex flex-gap-12">
+      <button class="btn btn-primary" onclick="saveEditTest()">💾 Save Changes</button>
+      <button class="btn btn-outline" onclick="closeEditTest()">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <script type="module">
   import { auth, db, CLOUDINARY_CONFIG } from '../js/firebase-config.js';
   import { Modal } from '../js/utils/modal.js';
@@ -705,7 +809,9 @@
         grouped[ch].push(q);
       });
 
-      list.innerHTML=Object.entries(grouped).map(([ch,qs])=>`
+      list.innerHTML=Object.entries(grouped)
+        .sort(([a],[b])=>a.localeCompare(b,undefined,{numeric:true,sensitivity:'base'}))
+        .map(([ch,qs])=>`
         <div class="chapter-block">
           <div class="chapter-block-header">
             <div class="chapter-block-title">
@@ -751,7 +857,9 @@
         grouped[cs].push(q);
       });
 
-      list.innerHTML=Object.entries(grouped).map(([cs,qs])=>`
+      list.innerHTML=Object.entries(grouped)
+        .sort(([a],[b])=>a.localeCompare(b,undefined,{numeric:true,sensitivity:'base'}))
+        .map(([cs,qs])=>`
         <div class="chapter-block">
           <div class="chapter-block-header">
             <div class="chapter-block-title">
@@ -792,7 +900,10 @@
             <span class="badge badge-neutral">⭐ ${q.marks||1} mark${q.marks>1?'s':''}</span>
           </div>
         </div>
-        <button class="mcq-del" onclick="deleteMCQ('${q.id}','${level}','${paper}','${type}')">🗑 Delete</button>
+        <div class="mcq-item-btns">
+          <button class="mcq-edit" onclick="openEditMCQ('${q.id}','${level}','${paper}','${type}')">✏️ Edit</button>
+          <button class="mcq-del" onclick="deleteMCQ('${q.id}','${level}','${paper}','${type}')">🗑 Delete</button>
+        </div>
       </div>`;
   }
 
@@ -870,6 +981,105 @@
       toast('MCQ deleted.','info');
       type==='normal'?loadNormalMCQs():loadCaseBased();
     }catch(e){toast('Delete failed.','error');}
+  };
+
+  // ── Edit MCQ ───────────────────────────────────────────────
+  let editMCQState={};
+  let editMCQCorrect='';
+
+  window.openEditMCQ=async function(qId,level,paper,type){
+    const col=type==='normal'
+      ?collection(db,'mcqs',level,'papers',paper,'questions')
+      :collection(db,'casebasedMCQs',level,'papers',paper,'questions');
+    try{
+      const snap=await getDoc(doc(col,qId));
+      if(!snap.exists()){toast('Question not found.','error');return;}
+      const q={id:snap.id,...snap.data()};
+      editMCQState={qId,level,paper,type};
+      editMCQCorrect=q.correct||'';
+
+      // Modal title
+      document.getElementById('edit-mcq-modal-title').textContent=
+        type==='normal'?'✏️ Edit Normal MCQ':'✏️ Edit Case Based MCQ';
+
+      // Chapter vs Case fields
+      const chapterGrp=document.getElementById('edit-mcq-chapter-grp');
+      const passageGrp=document.getElementById('edit-mcq-passage-grp');
+      const metaLabel=document.getElementById('edit-mcq-meta-label');
+      if(type==='normal'){
+        metaLabel.textContent='Chapter Name';
+        chapterGrp.style.display='block';
+        passageGrp.style.display='none';
+        document.getElementById('edit-mcq-chapter').value=q.chapterName||'';
+      } else {
+        metaLabel.textContent='Case Study Name';
+        chapterGrp.style.display='block';
+        passageGrp.style.display='block';
+        document.getElementById('edit-mcq-chapter').value=q.caseName||'';
+        document.getElementById('edit-mcq-passage').value=q.passage||'';
+      }
+
+      document.getElementById('edit-mcq-question').value=q.question||'';
+      document.getElementById('edit-mcq-oa').value=q.optionA||'';
+      document.getElementById('edit-mcq-ob').value=q.optionB||'';
+      document.getElementById('edit-mcq-oc').value=q.optionC||'';
+      document.getElementById('edit-mcq-od').value=q.optionD||'';
+      document.getElementById('edit-mcq-explanation').value=q.explanation||'';
+      document.getElementById('edit-mcq-marks').value=String(q.marks||1);
+
+      // Set correct answer highlight
+      document.querySelectorAll('#edit-mcq-correct-opts .correct-opt').forEach(el=>{
+        el.classList.toggle('selected', el.querySelector('input').value===editMCQCorrect);
+      });
+
+      document.getElementById('edit-mcq-modal').classList.remove('hidden');
+    }catch(e){toast('Failed to load question.','error');console.error(e);}
+  };
+
+  window.closeEditMCQ=function(){
+    document.getElementById('edit-mcq-modal').classList.add('hidden');
+    editMCQState={};editMCQCorrect='';
+  };
+
+  window.selectEditCorrect=function(el,val){
+    document.querySelectorAll('#edit-mcq-correct-opts .correct-opt').forEach(e=>e.classList.remove('selected'));
+    el.classList.add('selected');
+    editMCQCorrect=val;
+  };
+
+  window.saveEditMCQ=async function(){
+    const {qId,level,paper,type}=editMCQState;
+    if(!qId){toast('No question loaded.','error');return;}
+    const question=document.getElementById('edit-mcq-question').value.trim();
+    const oa=document.getElementById('edit-mcq-oa').value.trim();
+    const ob=document.getElementById('edit-mcq-ob').value.trim();
+    const oc=document.getElementById('edit-mcq-oc').value.trim();
+    const od=document.getElementById('edit-mcq-od').value.trim();
+    const explanation=document.getElementById('edit-mcq-explanation').value.trim();
+    const marks=parseInt(document.getElementById('edit-mcq-marks').value)||1;
+    const metaVal=document.getElementById('edit-mcq-chapter').value.trim();
+
+    if(!question){toast('Enter a question.','error');return;}
+    if(!oa||!ob||!oc||!od){toast('Fill all 4 options.','error');return;}
+    if(!editMCQCorrect){toast('Select the correct answer.','error');return;}
+    if(!metaVal){toast(type==='normal'?'Enter chapter name.':'Enter case study name.','error');return;}
+
+    const updates={question,optionA:oa,optionB:ob,optionC:oc,optionD:od,correct:editMCQCorrect,explanation,marks};
+    if(type==='normal') updates.chapterName=metaVal;
+    else{
+      updates.caseName=metaVal;
+      updates.passage=document.getElementById('edit-mcq-passage').value.trim();
+    }
+
+    const col=type==='normal'
+      ?collection(db,'mcqs',level,'papers',paper,'questions')
+      :collection(db,'casebasedMCQs',level,'papers',paper,'questions');
+    try{
+      await updateDoc(doc(col,qId),updates);
+      toast('MCQ updated! ✅','success');
+      closeEditMCQ();
+      type==='normal'?loadNormalMCQs():loadCaseBased();
+    }catch(e){toast('Update failed.','error');console.error(e);}
   };
 
   // ── Delete Chapter / Case Study ────────────────────────────
@@ -1091,6 +1301,7 @@
             <span class="badge ${statusClass}">${statusLabel}</span>
             ${t.status==='hidden'?`<button class="btn btn-sm" style="background:var(--success-light);color:#006B55;" onclick="toggleActivate('${t.id}')">🟢 Activate</button>`:''}
             ${t.status==='active'?`<button class="btn btn-sm" style="background:var(--warning-light);color:#8A5F00;" onclick="closeTest('${t.id}')">⛔ Close</button>`:''}
+            <button class="btn btn-outline btn-sm" onclick="openEditTest('${t.id}')">✏️ Edit</button>
             <button class="btn btn-outline btn-sm" onclick="openTestMCQs('${t.id}')">✏️ MCQs</button>
             <button class="btn btn-sm" style="background:var(--danger-light);color:var(--danger);" onclick="deleteTest('${t.id}')">🗑</button>
           </div>
@@ -1171,6 +1382,42 @@
       await batch.commit();
       toast('Test deleted.','info');loadMockTests();
     }catch(e){toast('Delete failed.','error');}
+  };
+
+  // ── Edit Mock Test ─────────────────────────────────────────
+  let editTestId='';
+
+  window.openEditTest=function(testId){
+    const t=allMockTests.find(x=>x.id===testId);
+    if(!t){toast('Test not found.','error');return;}
+    editTestId=testId;
+    document.getElementById('edit-mt-title').value=t.title||'';
+    document.getElementById('edit-mt-marks').value=String(t.marksPerQ||1);
+    document.getElementById('edit-mt-negative').value=String(t.negativeMarking||0);
+    document.getElementById('edit-mt-instructions').value=t.customInstructions||'';
+    document.getElementById('edit-test-modal').classList.remove('hidden');
+  };
+
+  window.closeEditTest=function(){
+    document.getElementById('edit-test-modal').classList.add('hidden');
+    editTestId='';
+  };
+
+  window.saveEditTest=async function(){
+    if(!editTestId){toast('No test loaded.','error');return;}
+    const title=document.getElementById('edit-mt-title').value.trim();
+    const marks=parseInt(document.getElementById('edit-mt-marks').value)||1;
+    const negative=parseFloat(document.getElementById('edit-mt-negative').value)||0;
+    const instructions=document.getElementById('edit-mt-instructions').value.trim();
+    if(!title){toast('Enter test title.','error');return;}
+    try{
+      await updateDoc(doc(db,'mockTests',currentMtLevel,'tests',editTestId),{
+        title, marksPerQ:marks, negativeMarking:negative, customInstructions:instructions
+      });
+      toast('Test updated! ✅','success');
+      closeEditTest();
+      loadMockTests();
+    }catch(e){toast('Update failed.','error');console.error(e);}
   };
 
   window.openTestMCQs=function(testId){

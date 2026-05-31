@@ -550,52 +550,118 @@
 
 <!-- ════════ EDIT MCQ MODAL ════════ -->
 <div class="modal-overlay hidden" id="edit-mcq-modal">
-  <div class="modal-box" style="max-width:680px; max-height:90vh; overflow-y:auto;">
+  <div class="modal-box" style="max-width:720px; max-height:92vh; overflow-y:auto;">
     <div class="modal-header">
       <div class="modal-title" id="edit-mcq-modal-title">✏️ Edit MCQ</div>
       <button class="btn-modal-close" onclick="closeEditMCQ()">✕</button>
     </div>
-    <!-- Chapter / Case name row -->
-    <div class="meta-row" id="edit-mcq-meta-row">
-      <div class="form-group" id="edit-mcq-chapter-grp">
-        <label class="form-label" id="edit-mcq-meta-label">Chapter Name</label>
-        <input type="text" id="edit-mcq-chapter" class="form-input"/>
-      </div>
-      <div class="form-group" id="edit-mcq-passage-grp" style="display:none;">
-        <label class="form-label">Case Passage</label>
-        <textarea id="edit-mcq-passage" class="form-input" rows="4"></textarea>
+
+    <!-- ── NORMAL MCQ fields ── -->
+    <div id="edit-nm-fields">
+      <div class="meta-row">
+        <div class="form-group">
+          <label class="form-label">Chapter Name</label>
+          <input type="text" id="edit-nm-chapter" class="form-input" placeholder="e.g. Ind AS 2 or Chapter 3" list="edit-nm-chapter-list"/>
+          <datalist id="edit-nm-chapter-list"></datalist>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Marks per Question</label>
+          <select id="edit-nm-marks" class="form-select">
+            <option value="1">1 Mark</option>
+            <option value="2">2 Marks</option>
+          </select>
+        </div>
       </div>
       <div class="form-group">
-        <label class="form-label">Marks per Question</label>
-        <select id="edit-mcq-marks" class="form-select">
-          <option value="1">1 Mark</option>
-          <option value="2">2 Marks</option>
-        </select>
+        <label class="form-label">Question</label>
+        <div class="q-toolbar">
+          <button type="button" onclick="insertTable('edit-nm-question')">📊 Insert Table</button>
+          <label class="img-upload-btn">
+            📷 Insert Image
+            <input type="file" accept="image/*" onchange="uploadEditQImage(event,'nm')"/>
+          </label>
+        </div>
+        <textarea id="edit-nm-question" class="form-input" rows="4"
+          placeholder="Type your question here. For tables use Insert Table button. For images use Insert Image."></textarea>
+        <img id="edit-nm-q-img" class="q-img-preview"/>
+      </div>
+      <div class="options-grid">
+        <div class="option-row"><div class="option-label opt-a">A</div><input type="text" id="edit-nm-oa" class="form-input" placeholder="Option A"/></div>
+        <div class="option-row"><div class="option-label opt-b">B</div><input type="text" id="edit-nm-ob" class="form-input" placeholder="Option B"/></div>
+        <div class="option-row"><div class="option-label opt-c">C</div><input type="text" id="edit-nm-oc" class="form-input" placeholder="Option C"/></div>
+        <div class="option-row"><div class="option-label opt-d">D</div><input type="text" id="edit-nm-od" class="form-input" placeholder="Option D"/></div>
+      </div>
+      <div class="correct-row">
+        <label class="form-label" style="margin:0;">Correct Answer:</label>
+        <div class="correct-options" id="edit-nm-correct-opts">
+          <label class="correct-opt" onclick="selectEditCorrect('nm',this,'A')"><input type="radio" name="edit-nm-correct" value="A"/>A</label>
+          <label class="correct-opt" onclick="selectEditCorrect('nm',this,'B')"><input type="radio" name="edit-nm-correct" value="B"/>B</label>
+          <label class="correct-opt" onclick="selectEditCorrect('nm',this,'C')"><input type="radio" name="edit-nm-correct" value="C"/>C</label>
+          <label class="correct-opt" onclick="selectEditCorrect('nm',this,'D')"><input type="radio" name="edit-nm-correct" value="D"/>D</label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Explanation (Optional)</label>
+        <textarea id="edit-nm-explanation" class="form-input" rows="2" placeholder="Explain why this answer is correct (leave blank if not needed)"></textarea>
       </div>
     </div>
-    <div class="form-group">
-      <label class="form-label">Question</label>
-      <textarea id="edit-mcq-question" class="form-input" rows="4"></textarea>
-    </div>
-    <div class="options-grid">
-      <div class="option-row"><div class="option-label opt-a">A</div><input type="text" id="edit-mcq-oa" class="form-input" placeholder="Option A"/></div>
-      <div class="option-row"><div class="option-label opt-b">B</div><input type="text" id="edit-mcq-ob" class="form-input" placeholder="Option B"/></div>
-      <div class="option-row"><div class="option-label opt-c">C</div><input type="text" id="edit-mcq-oc" class="form-input" placeholder="Option C"/></div>
-      <div class="option-row"><div class="option-label opt-d">D</div><input type="text" id="edit-mcq-od" class="form-input" placeholder="Option D"/></div>
-    </div>
-    <div class="correct-row">
-      <label class="form-label" style="margin:0;">Correct Answer:</label>
-      <div class="correct-options" id="edit-mcq-correct-opts">
-        <label class="correct-opt" onclick="selectEditCorrect(this,'A')"><input type="radio" name="edit-mcq-correct" value="A"/>A</label>
-        <label class="correct-opt" onclick="selectEditCorrect(this,'B')"><input type="radio" name="edit-mcq-correct" value="B"/>B</label>
-        <label class="correct-opt" onclick="selectEditCorrect(this,'C')"><input type="radio" name="edit-mcq-correct" value="C"/>C</label>
-        <label class="correct-opt" onclick="selectEditCorrect(this,'D')"><input type="radio" name="edit-mcq-correct" value="D"/>D</label>
+
+    <!-- ── CASE BASED fields ── -->
+    <div id="edit-cb-fields" style="display:none;">
+      <div class="meta-row">
+        <div class="form-group">
+          <label class="form-label">Case Study Name</label>
+          <input type="text" id="edit-cb-casename" class="form-input" placeholder="e.g. Case Study 1 or XYZ Ltd Case" list="edit-cb-case-list"/>
+          <datalist id="edit-cb-case-list"></datalist>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Marks per Question</label>
+          <select id="edit-cb-marks" class="form-select">
+            <option value="1">1 Mark</option>
+            <option value="2">2 Marks</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Case Passage (shared across all questions in this case)</label>
+        <div class="q-toolbar">
+          <button type="button" onclick="insertTable('edit-cb-passage')">📊 Insert Table</button>
+          <label class="img-upload-btn">📷 Insert Image<input type="file" accept="image/*" onchange="uploadEditQImage(event,'cb-pass')"/></label>
+        </div>
+        <textarea id="edit-cb-passage" class="form-input" rows="5"
+          placeholder="Type the case study passage. All MCQs below will refer to this passage.&#10;&#10;Leave blank if this MCQ uses same passage as an existing case study (same Case Study Name)."></textarea>
+        <img id="edit-cb-pass-img" class="q-img-preview"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Question</label>
+        <div class="q-toolbar">
+          <button type="button" onclick="insertTable('edit-cb-question')">📊 Insert Table</button>
+          <label class="img-upload-btn">📷 Insert Image<input type="file" accept="image/*" onchange="uploadEditQImage(event,'cb-q')"/></label>
+        </div>
+        <textarea id="edit-cb-question" class="form-input" rows="3" placeholder="Based on the above case, which of the following..."></textarea>
+        <img id="edit-cb-q-img" class="q-img-preview"/>
+      </div>
+      <div class="options-grid">
+        <div class="option-row"><div class="option-label opt-a">A</div><input type="text" id="edit-cb-oa" class="form-input" placeholder="Option A"/></div>
+        <div class="option-row"><div class="option-label opt-b">B</div><input type="text" id="edit-cb-ob" class="form-input" placeholder="Option B"/></div>
+        <div class="option-row"><div class="option-label opt-c">C</div><input type="text" id="edit-cb-oc" class="form-input" placeholder="Option C"/></div>
+        <div class="option-row"><div class="option-label opt-d">D</div><input type="text" id="edit-cb-od" class="form-input" placeholder="Option D"/></div>
+      </div>
+      <div class="correct-row">
+        <label class="form-label" style="margin:0;">Correct Answer:</label>
+        <div class="correct-options" id="edit-cb-correct-opts">
+          <label class="correct-opt" onclick="selectEditCorrect('cb',this,'A')"><input type="radio" name="edit-cb-correct" value="A"/>A</label>
+          <label class="correct-opt" onclick="selectEditCorrect('cb',this,'B')"><input type="radio" name="edit-cb-correct" value="B"/>B</label>
+          <label class="correct-opt" onclick="selectEditCorrect('cb',this,'C')"><input type="radio" name="edit-cb-correct" value="C"/>C</label>
+          <label class="correct-opt" onclick="selectEditCorrect('cb',this,'D')"><input type="radio" name="edit-cb-correct" value="D"/>D</label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Explanation (Optional)</label>
+        <textarea id="edit-cb-explanation" class="form-input" rows="2" placeholder="Explanation for the correct answer..."></textarea>
       </div>
     </div>
-    <div class="form-group">
-      <label class="form-label">Explanation (Optional)</label>
-      <textarea id="edit-mcq-explanation" class="form-input" rows="2"></textarea>
-    </div>
+
     <div class="flex flex-gap-12">
       <button class="btn btn-primary" onclick="saveEditMCQ()">💾 Save Changes</button>
       <button class="btn btn-outline" onclick="closeEditMCQ()">Cancel</button>
@@ -793,6 +859,7 @@
 
       // Update chapter datalist
       const chapters=[...new Set(allQ.map(q=>q.chapterName||'').filter(Boolean))];
+      window._nmChapters=chapters;
       const dl=document.getElementById('nm-chapter-list');
       dl.innerHTML=chapters.map(c=>`<option value="${c}"/>`).join('');
 
@@ -842,6 +909,7 @@
       const allQ=[];snap.forEach(d=>allQ.push({id:d.id,...d.data()}));
 
       const cases=[...new Set(allQ.map(q=>q.caseName||'').filter(Boolean))];
+      window._cbCases=cases;
       const dl=document.getElementById('cb-case-list');
       dl.innerHTML=cases.map(c=>`<option value="${c}"/>`).join('');
 
@@ -985,7 +1053,8 @@
 
   // ── Edit MCQ ───────────────────────────────────────────────
   let editMCQState={};
-  let editMCQCorrect='';
+  let editNmCorrect='';
+  let editCbCorrect='';
 
   window.openEditMCQ=async function(qId,level,paper,type){
     const col=type==='normal'
@@ -995,42 +1064,67 @@
       const snap=await getDoc(doc(col,qId));
       if(!snap.exists()){toast('Question not found.','error');return;}
       const q={id:snap.id,...snap.data()};
-      editMCQState={qId,level,paper,type};
-      editMCQCorrect=q.correct||'';
+      editMCQState={qId,level,paper,type,imgUrl:'',passImgUrl:''};
 
-      // Modal title
+      // Show correct panel, hide the other
+      document.getElementById('edit-nm-fields').style.display=type==='normal'?'block':'none';
+      document.getElementById('edit-cb-fields').style.display=type==='casebased'?'block':'none';
       document.getElementById('edit-mcq-modal-title').textContent=
         type==='normal'?'✏️ Edit Normal MCQ':'✏️ Edit Case Based MCQ';
 
-      // Chapter vs Case fields
-      const chapterGrp=document.getElementById('edit-mcq-chapter-grp');
-      const passageGrp=document.getElementById('edit-mcq-passage-grp');
-      const metaLabel=document.getElementById('edit-mcq-meta-label');
-      if(type==='normal'){
-        metaLabel.textContent='Chapter Name';
-        chapterGrp.style.display='block';
-        passageGrp.style.display='none';
-        document.getElementById('edit-mcq-chapter').value=q.chapterName||'';
-      } else {
-        metaLabel.textContent='Case Study Name';
-        chapterGrp.style.display='block';
-        passageGrp.style.display='block';
-        document.getElementById('edit-mcq-chapter').value=q.caseName||'';
-        document.getElementById('edit-mcq-passage').value=q.passage||'';
-      }
-
-      document.getElementById('edit-mcq-question').value=q.question||'';
-      document.getElementById('edit-mcq-oa').value=q.optionA||'';
-      document.getElementById('edit-mcq-ob').value=q.optionB||'';
-      document.getElementById('edit-mcq-oc').value=q.optionC||'';
-      document.getElementById('edit-mcq-od').value=q.optionD||'';
-      document.getElementById('edit-mcq-explanation').value=q.explanation||'';
-      document.getElementById('edit-mcq-marks').value=String(q.marks||1);
-
-      // Set correct answer highlight
-      document.querySelectorAll('#edit-mcq-correct-opts .correct-opt').forEach(el=>{
-        el.classList.toggle('selected', el.querySelector('input').value===editMCQCorrect);
+      // Reset all image previews
+      ['edit-nm-q-img','edit-cb-q-img','edit-cb-pass-img'].forEach(id=>{
+        const el=document.getElementById(id);if(el){el.src='';el.style.display='none';}
       });
+
+      if(type==='normal'){
+        editNmCorrect=q.correct||'';
+        document.getElementById('edit-nm-chapter').value=q.chapterName||'';
+        document.getElementById('edit-nm-marks').value=String(q.marks||1);
+        document.getElementById('edit-nm-question').value=q.question||'';
+        document.getElementById('edit-nm-oa').value=q.optionA||'';
+        document.getElementById('edit-nm-ob').value=q.optionB||'';
+        document.getElementById('edit-nm-oc').value=q.optionC||'';
+        document.getElementById('edit-nm-od').value=q.optionD||'';
+        document.getElementById('edit-nm-explanation').value=q.explanation||'';
+        // Populate chapter datalist
+        const dl=document.getElementById('edit-nm-chapter-list');
+        dl.innerHTML=[...new Set(window._nmChapters||[])].map(c=>`<option value="${c}"/>`).join('');
+        // Show existing image
+        if(q.imageUrl){
+          const p=document.getElementById('edit-nm-q-img');p.src=q.imageUrl;p.style.display='block';
+          editMCQState.imgUrl=q.imageUrl;
+        }
+        // Highlight correct answer
+        document.querySelectorAll('#edit-nm-correct-opts .correct-opt').forEach(el=>
+          el.classList.toggle('selected', el.querySelector('input').value===editNmCorrect));
+      } else {
+        editCbCorrect=q.correct||'';
+        document.getElementById('edit-cb-casename').value=q.caseName||'';
+        document.getElementById('edit-cb-marks').value=String(q.marks||1);
+        document.getElementById('edit-cb-passage').value=q.passage||'';
+        document.getElementById('edit-cb-question').value=q.question||'';
+        document.getElementById('edit-cb-oa').value=q.optionA||'';
+        document.getElementById('edit-cb-ob').value=q.optionB||'';
+        document.getElementById('edit-cb-oc').value=q.optionC||'';
+        document.getElementById('edit-cb-od').value=q.optionD||'';
+        document.getElementById('edit-cb-explanation').value=q.explanation||'';
+        // Populate case datalist
+        const dl=document.getElementById('edit-cb-case-list');
+        dl.innerHTML=[...new Set(window._cbCases||[])].map(c=>`<option value="${c}"/>`).join('');
+        // Show existing images
+        if(q.imageUrl){
+          const p=document.getElementById('edit-cb-q-img');p.src=q.imageUrl;p.style.display='block';
+          editMCQState.imgUrl=q.imageUrl;
+        }
+        if(q.passageImageUrl){
+          const p=document.getElementById('edit-cb-pass-img');p.src=q.passageImageUrl;p.style.display='block';
+          editMCQState.passImgUrl=q.passageImageUrl;
+        }
+        // Highlight correct answer
+        document.querySelectorAll('#edit-cb-correct-opts .correct-opt').forEach(el=>
+          el.classList.toggle('selected', el.querySelector('input').value===editCbCorrect));
+      }
 
       document.getElementById('edit-mcq-modal').classList.remove('hidden');
     }catch(e){toast('Failed to load question.','error');console.error(e);}
@@ -1038,47 +1132,86 @@
 
   window.closeEditMCQ=function(){
     document.getElementById('edit-mcq-modal').classList.add('hidden');
-    editMCQState={};editMCQCorrect='';
+    ['edit-nm-q-img','edit-cb-q-img','edit-cb-pass-img'].forEach(id=>{
+      const el=document.getElementById(id);if(el){el.src='';el.style.display='none';}
+    });
+    editMCQState={};editNmCorrect='';editCbCorrect='';
   };
 
-  window.selectEditCorrect=function(el,val){
-    document.querySelectorAll('#edit-mcq-correct-opts .correct-opt').forEach(e=>e.classList.remove('selected'));
+  window.selectEditCorrect=function(prefix,el,val){
+    document.querySelectorAll(`#edit-${prefix}-correct-opts .correct-opt`).forEach(e=>e.classList.remove('selected'));
     el.classList.add('selected');
-    editMCQCorrect=val;
+    if(prefix==='nm') editNmCorrect=val; else editCbCorrect=val;
+  };
+
+  // Unified image uploader for edit modal — target: 'nm', 'cb-q', 'cb-pass'
+  window.uploadEditQImage=async function(event,target){
+    const file=event.target.files[0];if(!file)return;
+    if(file.size>5*1024*1024){toast('Max 5MB','error');return;}
+    toast('Uploading image...','info');
+    const fd=new FormData();fd.append('file',file);fd.append('upload_preset',CLOUDINARY_CONFIG.uploadPreset);
+    try{
+      const res=await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CONFIG.cloudName}/image/upload`,{method:'POST',body:fd});
+      const data=await res.json();
+      const url=data.secure_url;
+      if(target==='nm'){
+        editMCQState.imgUrl=url;
+        const p=document.getElementById('edit-nm-q-img');p.src=url;p.style.display='block';
+      } else if(target==='cb-q'){
+        editMCQState.imgUrl=url;
+        const p=document.getElementById('edit-cb-q-img');p.src=url;p.style.display='block';
+      } else if(target==='cb-pass'){
+        editMCQState.passImgUrl=url;
+        const p=document.getElementById('edit-cb-pass-img');p.src=url;p.style.display='block';
+        const ta=document.getElementById('edit-cb-passage');
+        ta.value+=(ta.value?'\n':'')+`<img src="${url}" style="max-width:100%;border-radius:8px;"/>`;
+      }
+      toast('Image uploaded!','success');
+    }catch(e){toast('Image upload failed.','error');}
   };
 
   window.saveEditMCQ=async function(){
     const {qId,level,paper,type}=editMCQState;
     if(!qId){toast('No question loaded.','error');return;}
-    const question=document.getElementById('edit-mcq-question').value.trim();
-    const oa=document.getElementById('edit-mcq-oa').value.trim();
-    const ob=document.getElementById('edit-mcq-ob').value.trim();
-    const oc=document.getElementById('edit-mcq-oc').value.trim();
-    const od=document.getElementById('edit-mcq-od').value.trim();
-    const explanation=document.getElementById('edit-mcq-explanation').value.trim();
-    const marks=parseInt(document.getElementById('edit-mcq-marks').value)||1;
-    const metaVal=document.getElementById('edit-mcq-chapter').value.trim();
+    const isNm=type==='normal';
+    const px=isNm?'nm':'cb';
+    const correct=isNm?editNmCorrect:editCbCorrect;
+
+    const question=document.getElementById(`edit-${px}-question`).value.trim();
+    const oa=document.getElementById(`edit-${px}-oa`).value.trim();
+    const ob=document.getElementById(`edit-${px}-ob`).value.trim();
+    const oc=document.getElementById(`edit-${px}-oc`).value.trim();
+    const od=document.getElementById(`edit-${px}-od`).value.trim();
+    const explanation=document.getElementById(`edit-${px}-explanation`).value.trim();
+    const marks=parseInt(document.getElementById(`edit-${px}-marks`).value)||1;
 
     if(!question){toast('Enter a question.','error');return;}
     if(!oa||!ob||!oc||!od){toast('Fill all 4 options.','error');return;}
-    if(!editMCQCorrect){toast('Select the correct answer.','error');return;}
-    if(!metaVal){toast(type==='normal'?'Enter chapter name.':'Enter case study name.','error');return;}
+    if(!correct){toast('Select the correct answer.','error');return;}
 
-    const updates={question,optionA:oa,optionB:ob,optionC:oc,optionD:od,correct:editMCQCorrect,explanation,marks};
-    if(type==='normal') updates.chapterName=metaVal;
-    else{
-      updates.caseName=metaVal;
-      updates.passage=document.getElementById('edit-mcq-passage').value.trim();
+    const updates={question,optionA:oa,optionB:ob,optionC:oc,optionD:od,correct,explanation,marks};
+    if(editMCQState.imgUrl) updates.imageUrl=editMCQState.imgUrl;
+
+    if(isNm){
+      const chapter=document.getElementById('edit-nm-chapter').value.trim();
+      if(!chapter){toast('Enter chapter name.','error');return;}
+      updates.chapterName=chapter;
+    } else {
+      const caseName=document.getElementById('edit-cb-casename').value.trim();
+      if(!caseName){toast('Enter case study name.','error');return;}
+      updates.caseName=caseName;
+      updates.passage=document.getElementById('edit-cb-passage').value.trim();
+      if(editMCQState.passImgUrl) updates.passageImageUrl=editMCQState.passImgUrl;
     }
 
-    const col=type==='normal'
+    const col=isNm
       ?collection(db,'mcqs',level,'papers',paper,'questions')
       :collection(db,'casebasedMCQs',level,'papers',paper,'questions');
     try{
       await updateDoc(doc(col,qId),updates);
       toast('MCQ updated! ✅','success');
       closeEditMCQ();
-      type==='normal'?loadNormalMCQs():loadCaseBased();
+      isNm?loadNormalMCQs():loadCaseBased();
     }catch(e){toast('Update failed.','error');console.error(e);}
   };
 

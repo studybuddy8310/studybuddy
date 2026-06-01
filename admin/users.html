@@ -255,9 +255,8 @@
   </div>
 </div>
 
-<!-- View Student Modal -->
 <div class="modal-overlay hidden" id="view-modal">
-  <div class="modal-box" style="max-width:520px;">
+  <div class="modal-box" style="max-width:720px;max-height:88vh;overflow-y:auto;">
     <div class="modal-header">
       <div class="modal-title">Student Details</div>
       <button class="btn-modal-close" onclick="closeViewModal()">✕</button>
@@ -662,23 +661,22 @@
   };
 
   // ── View Student Modal ─────────────────────────────────────
-  window.viewStudent = function(uid) {
+  window.viewStudent = async function(uid) {
     const u = allUsers.find(x => x.uid === uid);
     if (!u) return;
     const date = u.createdAt ? u.createdAt.toDate().toLocaleDateString('en-IN') : '—';
     const ini  = ((u.firstName||'?')[0]+(u.lastName||'?')[0]).toUpperCase();
 
+    // Show modal immediately with basic info + loading spinner for progress
     document.getElementById('view-content').innerHTML = `
       <div style="display:flex; align-items:center; gap:16px; margin-bottom:24px;">
-        <div class="sidebar-avatar" style="width:56px;height:56px;font-size:22px;border-radius:16px;">
-          ${ini}
-        </div>
+        <div class="sidebar-avatar" style="width:56px;height:56px;font-size:22px;border-radius:16px;">${ini}</div>
         <div>
           <div style="font-size:18px;font-weight:700;">${u.firstName} ${u.lastName}</div>
           <div class="text-secondary fs-13">${u.email}</div>
         </div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;">
         <div class="card" style="padding:14px;">
           <div class="fs-12 text-muted">Phone</div>
           <div class="fw-600">${u.phone||'—'}</div>
@@ -703,8 +701,173 @@
           <div class="fs-12 text-muted">Role</div>
           <div class="fw-600">${u.role||'—'}</div>
         </div>
+      </div>
+      <div id="student-progress-section">
+        <div style="padding:20px;text-align:center;color:var(--text-muted);">⏳ Loading progress data...</div>
       </div>`;
     document.getElementById('view-modal').classList.remove('hidden');
+
+    // Load progress data
+    try {
+      // ── MCQ Scores ──
+      const papersSnap = await getDocs(collection(db,'mcqScores',uid,'papers'));
+      let mcqRows = '';
+      let totalAttempted = 0, totalCorrect = 0;
+
+      for (const pd of papersSnap.docs) {
+        const pdata = pd.data();
+        // Normal chapters
+        const chapSnap = await getDocs(collection(db,'mcqScores',uid,'papers',pd.id,'chapters'));
+        chapSnap.forEach(cd => {
+          const c = cd.data();
+          totalAttempted += c.total||0;
+          totalCorrect   += c.score||0;
+          const pct = c.total ? Math.round((c.score/c.total)*100) : 0;
+          const bar = `<div style="height:6px;background:var(--border);border-radius:3px;margin-top:4px;">
+            <div style="height:6px;background:${pct>=70?'var(--success)':pct>=40?'#FFB830':'var(--danger)'};border-radius:3px;width:${pct}%;"></div></div>`;
+          mcqRows += `<tr>
+            <td style="font-size:12px;">${pd.id}</td>
+            <td style="font-size:12px;">${cd.id}</td>
+            <td style="font-size:12px;">Normal MCQ</td>
+            <td style="font-size:12px;">${c.score||0}/${c.total||0}${bar}</td>
+            <td style="font-size:12px;font-weight:700;color:${pct>=70?'var(--success)':pct>=40?'#856404':'var(--danger)'};">${pct}%</td>
+          </tr>`;
+        });
+        // Case study scores
+        const caseSnap = await getDocs(collection(db,'mcqScores',uid,'papers',pd.id,'caseStudies'));
+        caseSnap.forEach(cd => {
+          const c = cd.data();
+          totalAttempted += c.total||0;
+          totalCorrect   += c.score||0;
+          const pct = c.total ? Math.round((c.score/c.total)*100) : 0;
+          const bar = `<div style="height:6px;background:var(--border);border-radius:3px;margin-top:4px;">
+            <div style="height:6px;background:${pct>=70?'var(--success)':pct>=40?'#FFB830':'var(--danger)'};border-radius:3px;width:${pct}%;"></div></div>`;
+          mcqRows += `<tr>
+            <td style="font-size:12px;">${pd.id}</td>
+            <td style="font-size:12px;">${cd.id}</td>
+            <td style="font-size:12px;">Case Based</td>
+            <td style="font-size:12px;">${c.score||0}/${c.total||0}${bar}</td>
+            <td style="font-size:12px;font-weight:700;color:${pct>=70?'var(--success)':pct>=40?'#856404':'var(--danger)'};">${pct}%</td>
+          </tr>`;
+        });
+      }
+
+      // ── Mock Test Results ──
+      const mockSnap = await getDocs(collection(db,'mockResults',uid,'tests'));
+      let mockRows = '';
+      let mockAttempts = 0;
+      mockSnap.forEach(d => {
+        const m = d.data();
+        mockAttempts++;
+        const pct = m.total ? Math.round((m.score/m.total)*100) : 0;
+        const date = m.attemptedAt ? m.attemptedAt.toDate().toLocaleDateString('en-IN') : '—';
+        const bar = `<div style="height:6px;background:var(--border);border-radius:3px;margin-top:4px;">
+          <div style="height:6px;background:${pct>=70?'var(--success)':pct>=40?'#FFB830':'var(--danger)'};border-radius:3px;width:${pct}%;"></div></div>`;
+        mockRows += `<tr>
+          <td style="font-size:12px;">${m.testTitle||d.id}</td>
+          <td style="font-size:12px;">${m.score||0}/${m.total||0}${bar}</td>
+          <td style="font-size:12px;font-weight:700;color:${pct>=70?'var(--success)':pct>=40?'#856404':'var(--danger)'};">${pct}%</td>
+          <td style="font-size:12px;color:var(--text-muted);">${date}</td>
+        </tr>`;
+      });
+
+      // ── Timer / Study Time ──
+      let timerRows = '';
+      let totalMins = 0;
+      try {
+        const timerSnap = await getDocs(collection(db,'timerUsage',uid,'sessions'));
+        timerSnap.forEach(d => {
+          const t = d.data();
+          const mins = Math.round((t.durationSeconds||t.duration||0)/60);
+          totalMins += mins;
+          const date = t.date||d.id;
+          timerRows += `<tr>
+            <td style="font-size:12px;">${date}</td>
+            <td style="font-size:12px;">${t.subject||t.label||'Study Session'}</td>
+            <td style="font-size:12px;font-weight:600;">${mins} min${mins!==1?'s':''}</td>
+          </tr>`;
+        });
+      } catch(e) { /* timer collection may not exist */ }
+
+      // ── Overall summary cards ──
+      const overallPct = totalAttempted ? Math.round((totalCorrect/totalAttempted)*100) : 0;
+      const hrs = Math.floor(totalMins/60);
+      const mins = totalMins%60;
+      const timeStr = hrs>0 ? `${hrs}h ${mins}m` : `${mins}m`;
+
+      document.getElementById('student-progress-section').innerHTML = `
+        <!-- Summary Cards -->
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px;">
+          <div style="background:var(--primary-light);border-radius:10px;padding:14px;text-align:center;">
+            <div style="font-size:22px;font-weight:800;color:var(--primary);">${totalAttempted}</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">MCQs Attempted</div>
+          </div>
+          <div style="background:var(--success-light);border-radius:10px;padding:14px;text-align:center;">
+            <div style="font-size:22px;font-weight:800;color:var(--success);">${overallPct}%</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Overall Accuracy</div>
+          </div>
+          <div style="background:#FFF3CD;border-radius:10px;padding:14px;text-align:center;">
+            <div style="font-size:22px;font-weight:800;color:#856404;">${timeStr}</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Total Study Time</div>
+          </div>
+        </div>
+
+        <!-- MCQ Progress -->
+        <div style="font-size:13px;font-weight:700;margin-bottom:8px;">📊 MCQ Progress</div>
+        ${mcqRows ? `
+        <div style="overflow-x:auto;margin-bottom:18px;">
+          <table style="width:100%;border-collapse:collapse;font-size:12px;">
+            <thead>
+              <tr style="background:var(--surface-2);">
+                <th style="padding:8px;text-align:left;font-weight:600;border-bottom:1px solid var(--border);">Paper</th>
+                <th style="padding:8px;text-align:left;font-weight:600;border-bottom:1px solid var(--border);">Chapter / Case</th>
+                <th style="padding:8px;text-align:left;font-weight:600;border-bottom:1px solid var(--border);">Type</th>
+                <th style="padding:8px;text-align:left;font-weight:600;border-bottom:1px solid var(--border);">Score</th>
+                <th style="padding:8px;text-align:left;font-weight:600;border-bottom:1px solid var(--border);">%</th>
+              </tr>
+            </thead>
+            <tbody>${mcqRows.replace(/<tr>/g,'<tr style="border-bottom:1px solid var(--border);">').replace(/<td/g,'<td style="padding:7px 8px;"')}</tbody>
+          </table>
+        </div>` : '<div style="color:var(--text-muted);font-size:13px;margin-bottom:18px;">No MCQ attempts yet.</div>'}
+
+        <!-- Mock Test Results -->
+        <div style="font-size:13px;font-weight:700;margin-bottom:8px;">🧪 Mock Test Results</div>
+        ${mockRows ? `
+        <div style="overflow-x:auto;margin-bottom:18px;">
+          <table style="width:100%;border-collapse:collapse;font-size:12px;">
+            <thead>
+              <tr style="background:var(--surface-2);">
+                <th style="padding:8px;text-align:left;font-weight:600;border-bottom:1px solid var(--border);">Test</th>
+                <th style="padding:8px;text-align:left;font-weight:600;border-bottom:1px solid var(--border);">Score</th>
+                <th style="padding:8px;text-align:left;font-weight:600;border-bottom:1px solid var(--border);">%</th>
+                <th style="padding:8px;text-align:left;font-weight:600;border-bottom:1px solid var(--border);">Date</th>
+              </tr>
+            </thead>
+            <tbody>${mockRows.replace(/<tr>/g,'<tr style="border-bottom:1px solid var(--border);">').replace(/<td/g,'<td style="padding:7px 8px;"')}</tbody>
+          </table>
+        </div>` : '<div style="color:var(--text-muted);font-size:13px;margin-bottom:18px;">No mock tests attempted yet.</div>'}
+
+        <!-- Timer Usage -->
+        <div style="font-size:13px;font-weight:700;margin-bottom:8px;">⏱️ Timer Usage</div>
+        ${timerRows ? `
+        <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;font-size:12px;">
+            <thead>
+              <tr style="background:var(--surface-2);">
+                <th style="padding:8px;text-align:left;font-weight:600;border-bottom:1px solid var(--border);">Date</th>
+                <th style="padding:8px;text-align:left;font-weight:600;border-bottom:1px solid var(--border);">Subject / Label</th>
+                <th style="padding:8px;text-align:left;font-weight:600;border-bottom:1px solid var(--border);">Duration</th>
+              </tr>
+            </thead>
+            <tbody>${timerRows.replace(/<tr>/g,'<tr style="border-bottom:1px solid var(--border);">').replace(/<td/g,'<td style="padding:7px 8px;"')}</tbody>
+          </table>
+        </div>` : '<div style="color:var(--text-muted);font-size:13px;">No timer sessions recorded yet.</div>'}
+      `;
+    } catch(e) {
+      document.getElementById('student-progress-section').innerHTML =
+        '<div style="color:var(--danger);font-size:13px;padding:12px 0;">❌ Failed to load progress data.</div>';
+      console.error(e);
+    }
   };
   window.closeViewModal = function() {
     document.getElementById('view-modal').classList.add('hidden');

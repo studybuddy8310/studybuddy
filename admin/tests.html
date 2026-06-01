@@ -213,6 +213,33 @@
     .img-upload-btn input { display:none; }
     .q-img-preview { max-width:100%; max-height:200px; border-radius:8px; margin-top:8px; display:none; }
 
+    /* ── Case Based multi-question slots ─────────────────── */
+    .cb-question-slot {
+      background:var(--surface-2); border:1px solid var(--border);
+      border-radius:var(--radius-md); padding:16px; margin-bottom:14px;
+    }
+    .cb-slot-header {
+      display:flex; align-items:center; justify-content:space-between;
+      margin-bottom:12px;
+    }
+    .cb-slot-title {
+      font-size:13px; font-weight:700; color:var(--primary);
+    }
+    .cb-slot-remove {
+      background:var(--danger-light); color:var(--danger);
+      border:none; padding:4px 10px; border-radius:var(--radius-sm);
+      font-size:12px; font-weight:600; cursor:pointer;
+      font-family:var(--font-body); transition:all 0.2s;
+    }
+    .cb-slot-remove:hover { background:var(--danger); color:#fff; }
+    .cb-case-top {
+      background:var(--primary-light); border:1px solid rgba(45,91,227,0.2);
+      border-radius:var(--radius-md); padding:16px; margin-bottom:18px;
+    }
+    .cb-case-top-label {
+      font-size:12px; font-weight:700; color:var(--primary);
+      text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px;
+    }
     .empty-mcq { text-align:center; padding:48px 20px; color:var(--text-muted); }
     .empty-mcq .icon { font-size:48px; margin-bottom:12px; }
 
@@ -404,63 +431,47 @@
 
         <!-- Add Case Based Form -->
         <div class="add-mcq-card" id="cb-form" style="display:none;">
-          <h3>➕ Add Case Based MCQ</h3>
-          <div class="meta-row">
-            <div class="form-group">
-              <label class="form-label">Case Study Name</label>
-              <input type="text" id="cb-casename" class="form-input" placeholder="e.g. Case Study 1 or XYZ Ltd Case" list="cb-case-list"/>
-              <datalist id="cb-case-list"></datalist>
+          <h3>➕ Add Case Based MCQs</h3>
+
+          <!-- ── CASE TOP: Name + Passage (shared) ── -->
+          <div class="cb-case-top">
+            <div class="cb-case-top-label">📄 Case Details (shared across all questions below)</div>
+            <div class="meta-row">
+              <div class="form-group">
+                <label class="form-label">Case Study Name</label>
+                <input type="text" id="cb-casename" class="form-input" placeholder="e.g. Case Study 1 or XYZ Ltd Case" list="cb-case-list"/>
+                <datalist id="cb-case-list"></datalist>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Marks per Question</label>
+                <select id="cb-marks" class="form-select">
+                  <option value="1">1 Mark</option>
+                  <option value="2">2 Marks</option>
+                </select>
+              </div>
             </div>
-            <div class="form-group">
-              <label class="form-label">Marks per Question</label>
-              <select id="cb-marks" class="form-select">
-                <option value="1">1 Mark</option>
-                <option value="2">2 Marks</option>
-              </select>
-            </div>
-          </div>
-          <!-- Passage -->
-          <div class="form-group">
-            <label class="form-label">Case Passage (shared across all questions in this case)</label>
-            <div class="q-toolbar">
-              <button type="button" onclick="insertTable('cb-passage')">📊 Insert Table</button>
-              <label class="img-upload-btn">📷 Insert Image<input type="file" accept="image/*" onchange="uploadQImage(event,'cb-pass-img')"/></label>
-            </div>
-            <textarea id="cb-passage" class="form-input" rows="5"
-              placeholder="Type the case study passage. All MCQs below will refer to this passage.&#10;&#10;Leave blank if this MCQ uses same passage as an existing case study (same Case Study Name)."></textarea>
-            <img id="cb-pass-img" class="q-img-preview"/>
-          </div>
-          <!-- Question -->
-          <div class="form-group">
-            <label class="form-label">Question</label>
-            <div class="q-toolbar">
-              <button type="button" onclick="insertTable('cb-question')">📊 Insert Table</button>
-              <label class="img-upload-btn">📷 Insert Image<input type="file" accept="image/*" onchange="uploadQImage(event,'cb-q-img')"/></label>
-            </div>
-            <textarea id="cb-question" class="form-input" rows="3" placeholder="Based on the above case, which of the following..."></textarea>
-            <img id="cb-q-img" class="q-img-preview"/>
-          </div>
-          <div class="options-grid">
-            <div class="option-row"><div class="option-label opt-a">A</div><input type="text" id="cb-oa" class="form-input" placeholder="Option A"/></div>
-            <div class="option-row"><div class="option-label opt-b">B</div><input type="text" id="cb-ob" class="form-input" placeholder="Option B"/></div>
-            <div class="option-row"><div class="option-label opt-c">C</div><input type="text" id="cb-oc" class="form-input" placeholder="Option C"/></div>
-            <div class="option-row"><div class="option-label opt-d">D</div><input type="text" id="cb-od" class="form-input" placeholder="Option D"/></div>
-          </div>
-          <div class="correct-row">
-            <label class="form-label" style="margin:0;">Correct Answer:</label>
-            <div class="correct-options" id="cb-correct-opts">
-              <label class="correct-opt" onclick="selectCorrect('cb',this,'A')"><input type="radio" name="cb-correct" value="A"/>A</label>
-              <label class="correct-opt" onclick="selectCorrect('cb',this,'B')"><input type="radio" name="cb-correct" value="B"/>B</label>
-              <label class="correct-opt" onclick="selectCorrect('cb',this,'C')"><input type="radio" name="cb-correct" value="C"/>C</label>
-              <label class="correct-opt" onclick="selectCorrect('cb',this,'D')"><input type="radio" name="cb-correct" value="D"/>D</label>
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label">Case Passage</label>
+              <div class="q-toolbar">
+                <button type="button" onclick="insertTable('cb-passage')">📊 Insert Table</button>
+                <label class="img-upload-btn">📷 Insert Image<input type="file" accept="image/*" onchange="uploadQImage(event,'cb-pass-img')"/></label>
+              </div>
+              <textarea id="cb-passage" class="form-input" rows="5"
+                placeholder="Type the case study passage here. All MCQs below will refer to this passage."></textarea>
+              <img id="cb-pass-img" class="q-img-preview"/>
             </div>
           </div>
-          <div class="form-group">
-            <label class="form-label">Explanation (Optional)</label>
-            <textarea id="cb-explanation" class="form-input" rows="2" placeholder="Explanation for the correct answer..."></textarea>
-          </div>
+
+          <!-- ── QUESTION SLOTS ── -->
+          <div id="cb-question-slots"></div>
+
+          <!-- Add Another Question -->
+          <button class="btn btn-outline" style="width:100%;margin-bottom:16px;" onclick="addCbSlot()">
+            ➕ Add Another Question
+          </button>
+
           <div class="flex flex-gap-12">
-            <button class="btn btn-primary" onclick="saveMCQ('casebased')">💾 Save MCQ</button>
+            <button class="btn btn-primary" onclick="saveCaseBasedAll()">💾 Save All Questions</button>
             <button class="btn btn-outline" onclick="toggleAddForm('cb-form')">Cancel</button>
           </div>
         </div>
@@ -608,58 +619,40 @@
 
     <!-- ── CASE BASED fields ── -->
     <div id="edit-cb-fields" style="display:none;">
-      <div class="meta-row">
-        <div class="form-group">
-          <label class="form-label">Case Study Name</label>
-          <input type="text" id="edit-cb-casename" class="form-input" placeholder="e.g. Case Study 1 or XYZ Ltd Case" list="edit-cb-case-list"/>
-          <datalist id="edit-cb-case-list"></datalist>
+      <!-- Case top: name + passage -->
+      <div class="cb-case-top">
+        <div class="cb-case-top-label">📄 Case Details (shared across all questions)</div>
+        <div class="meta-row">
+          <div class="form-group">
+            <label class="form-label">Case Study Name</label>
+            <input type="text" id="edit-cb-casename" class="form-input" placeholder="e.g. Case Study 1 or XYZ Ltd Case" list="edit-cb-case-list"/>
+            <datalist id="edit-cb-case-list"></datalist>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Marks per Question</label>
+            <select id="edit-cb-marks" class="form-select">
+              <option value="1">1 Mark</option>
+              <option value="2">2 Marks</option>
+            </select>
+          </div>
         </div>
-        <div class="form-group">
-          <label class="form-label">Marks per Question</label>
-          <select id="edit-cb-marks" class="form-select">
-            <option value="1">1 Mark</option>
-            <option value="2">2 Marks</option>
-          </select>
-        </div>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Case Passage (shared across all questions in this case)</label>
-        <div class="q-toolbar">
-          <button type="button" onclick="insertTable('edit-cb-passage')">📊 Insert Table</button>
-          <label class="img-upload-btn">📷 Insert Image<input type="file" accept="image/*" onchange="uploadEditQImage(event,'cb-pass')"/></label>
-        </div>
-        <textarea id="edit-cb-passage" class="form-input" rows="5"
-          placeholder="Type the case study passage. All MCQs below will refer to this passage.&#10;&#10;Leave blank if this MCQ uses same passage as an existing case study (same Case Study Name)."></textarea>
-        <img id="edit-cb-pass-img" class="q-img-preview"/>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Question</label>
-        <div class="q-toolbar">
-          <button type="button" onclick="insertTable('edit-cb-question')">📊 Insert Table</button>
-          <label class="img-upload-btn">📷 Insert Image<input type="file" accept="image/*" onchange="uploadEditQImage(event,'cb-q')"/></label>
-        </div>
-        <textarea id="edit-cb-question" class="form-input" rows="3" placeholder="Based on the above case, which of the following..."></textarea>
-        <img id="edit-cb-q-img" class="q-img-preview"/>
-      </div>
-      <div class="options-grid">
-        <div class="option-row"><div class="option-label opt-a">A</div><input type="text" id="edit-cb-oa" class="form-input" placeholder="Option A"/></div>
-        <div class="option-row"><div class="option-label opt-b">B</div><input type="text" id="edit-cb-ob" class="form-input" placeholder="Option B"/></div>
-        <div class="option-row"><div class="option-label opt-c">C</div><input type="text" id="edit-cb-oc" class="form-input" placeholder="Option C"/></div>
-        <div class="option-row"><div class="option-label opt-d">D</div><input type="text" id="edit-cb-od" class="form-input" placeholder="Option D"/></div>
-      </div>
-      <div class="correct-row">
-        <label class="form-label" style="margin:0;">Correct Answer:</label>
-        <div class="correct-options" id="edit-cb-correct-opts">
-          <label class="correct-opt" onclick="selectEditCorrect('cb',this,'A')"><input type="radio" name="edit-cb-correct" value="A"/>A</label>
-          <label class="correct-opt" onclick="selectEditCorrect('cb',this,'B')"><input type="radio" name="edit-cb-correct" value="B"/>B</label>
-          <label class="correct-opt" onclick="selectEditCorrect('cb',this,'C')"><input type="radio" name="edit-cb-correct" value="C"/>C</label>
-          <label class="correct-opt" onclick="selectEditCorrect('cb',this,'D')"><input type="radio" name="edit-cb-correct" value="D"/>D</label>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">Case Passage</label>
+          <div class="q-toolbar">
+            <button type="button" onclick="insertTable('edit-cb-passage')">📊 Insert Table</button>
+            <label class="img-upload-btn">📷 Insert Image<input type="file" accept="image/*" onchange="uploadEditQImage(event,'cb-pass')"/></label>
+          </div>
+          <textarea id="edit-cb-passage" class="form-input" rows="5"
+            placeholder="Type the case study passage."></textarea>
+          <img id="edit-cb-pass-img" class="q-img-preview"/>
         </div>
       </div>
-      <div class="form-group">
-        <label class="form-label">Explanation (Optional)</label>
-        <textarea id="edit-cb-explanation" class="form-input" rows="2" placeholder="Explanation for the correct answer..."></textarea>
-      </div>
+
+      <!-- Existing + new question slots -->
+      <div id="edit-cb-question-slots"></div>
+      <button class="btn btn-outline" style="width:100%;margin-bottom:16px;" onclick="addEditCbSlot()">
+        ➕ Add Another Question
+      </button>
     </div>
 
     <div class="flex flex-gap-12">
@@ -766,7 +759,12 @@
   // ── Toggle Add Form ────────────────────────────────────────
   window.toggleAddForm=function(id){
     const el=document.getElementById(id);
-    el.style.display=el.style.display==='none'?'block':'none';
+    const opening=el.style.display==='none'||el.style.display==='';
+    el.style.display=opening?'block':'none';
+    if(opening&&id==='cb-form'){
+      const slots=document.getElementById('cb-question-slots');
+      if(!slots.innerHTML.trim()) addCbSlot();
+    }
   };
 
   // ── Select Correct Answer ──────────────────────────────────
@@ -1011,30 +1009,157 @@
         resetForm('nm');
         loadNormalMCQs();
       }catch(e){toast('Save failed.','error');console.error(e);}
-    } else {
-      const caseName=document.getElementById('cb-casename').value.trim();
-      const passage=document.getElementById('cb-passage').value.trim();
-      if(!caseName){toast('Enter case study name.','error');return;}
-      data.caseName=caseName;
-      data.passage=passage||'';
-      if(cbQImgUrl)data.imageUrl=cbQImgUrl;
-      if(cbPassImgUrl)data.passageImageUrl=cbPassImgUrl;
-      try{
-        await addDoc(collection(db,'casebasedMCQs',level,'papers',paper,'questions'),data);
-        toast('Case MCQ saved! ✅','success');
-        resetForm('cb');
-        loadCaseBased();
-      }catch(e){toast('Save failed.','error');console.error(e);}
     }
   };
 
+  // ── Case Based: slot helpers ───────────────────────────────
+  let cbSlotCount=0;
+  const cbSlotImgs={};   // slotId -> imageUrl
+
+  function makeCbSlotHTML(slotId, data={}){
+    const n=slotId;
+    const correct=data.correct||'';
+    const opts=['A','B','C','D'];
+    return`
+    <div class="cb-question-slot" id="cb-slot-${n}">
+      <div class="cb-slot-header">
+        <div class="cb-slot-title">Question ${n}</div>
+        <button class="cb-slot-remove" onclick="removeCbSlot(${n})">✕ Remove</button>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Question</label>
+        <div class="q-toolbar">
+          <button type="button" onclick="insertTable('cb-slot-q-${n}')">📊 Insert Table</button>
+          <label class="img-upload-btn">📷 Insert Image<input type="file" accept="image/*" onchange="uploadCbSlotImage(event,${n})"/></label>
+        </div>
+        <textarea id="cb-slot-q-${n}" class="form-input" rows="3"
+          placeholder="Based on the above case, which of the following...">${data.question||''}</textarea>
+        <img id="cb-slot-img-${n}" class="q-img-preview" ${data.imageUrl?`src="${data.imageUrl}" style="display:block;"`:''}/>
+      </div>
+      <div class="options-grid">
+        <div class="option-row"><div class="option-label opt-a">A</div><input type="text" id="cb-slot-oa-${n}" class="form-input" placeholder="Option A" value="${data.optionA||''}"/></div>
+        <div class="option-row"><div class="option-label opt-b">B</div><input type="text" id="cb-slot-ob-${n}" class="form-input" placeholder="Option B" value="${data.optionB||''}"/></div>
+        <div class="option-row"><div class="option-label opt-c">C</div><input type="text" id="cb-slot-oc-${n}" class="form-input" placeholder="Option C" value="${data.optionC||''}"/></div>
+        <div class="option-row"><div class="option-label opt-d">D</div><input type="text" id="cb-slot-od-${n}" class="form-input" placeholder="Option D" value="${data.optionD||''}"/></div>
+      </div>
+      <div class="correct-row">
+        <label class="form-label" style="margin:0;">Correct Answer:</label>
+        <div class="correct-options" id="cb-slot-correct-${n}">
+          ${opts.map(o=>`<label class="correct-opt${correct===o?' selected':''}" onclick="selectCbSlotCorrect(${n},this,'${o}')"><input type="radio" name="cb-slot-correct-${n}" value="${o}"/>${o}</label>`).join('')}
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label">Explanation (Optional)</label>
+        <textarea id="cb-slot-exp-${n}" class="form-input" rows="2"
+          placeholder="Explanation for the correct answer...">${data.explanation||''}</textarea>
+      </div>
+    </div>`;
+  }
+
+  window.addCbSlot=function(){
+    cbSlotCount++;
+    const container=document.getElementById('cb-question-slots');
+    const div=document.createElement('div');
+    div.innerHTML=makeCbSlotHTML(cbSlotCount);
+    container.appendChild(div.firstElementChild);
+    // renumber headers
+    numberCbSlots('cb-question-slots');
+  };
+
+  window.removeCbSlot=function(n){
+    const el=document.getElementById('cb-slot-'+n);
+    if(el)el.remove();
+    delete cbSlotImgs[n];
+    numberCbSlots('cb-question-slots');
+  };
+
+  function numberCbSlots(containerId){
+    document.querySelectorAll(`#${containerId} .cb-slot-title`).forEach((el,i)=>{
+      el.textContent='Question '+(i+1);
+    });
+  }
+
+  window.selectCbSlotCorrect=function(n,el,val){
+    document.querySelectorAll(`#cb-slot-correct-${n} .correct-opt`).forEach(e=>e.classList.remove('selected'));
+    el.classList.add('selected');
+  };
+
+  window.uploadCbSlotImage=async function(event,n){
+    const file=event.target.files[0];if(!file)return;
+    if(file.size>5*1024*1024){toast('Max 5MB','error');return;}
+    toast('Uploading image...','info');
+    const fd=new FormData();fd.append('file',file);fd.append('upload_preset',CLOUDINARY_CONFIG.uploadPreset);
+    try{
+      const res=await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CONFIG.cloudName}/image/upload`,{method:'POST',body:fd});
+      const data=await res.json();
+      cbSlotImgs[n]=data.secure_url;
+      const p=document.getElementById('cb-slot-img-'+n);p.src=data.secure_url;p.style.display='block';
+      toast('Image uploaded!','success');
+    }catch(e){toast('Image upload failed.','error');}
+  };
+
+  // ── Save All Case Based Questions ──────────────────────────
+  window.saveCaseBasedAll=async function(){
+    const level=document.getElementById('cb-level').value;
+    const paper=document.getElementById('cb-paper').value;
+    const caseName=document.getElementById('cb-casename').value.trim();
+    const passage=document.getElementById('cb-passage').value.trim();
+    const marks=parseInt(document.getElementById('cb-marks').value)||1;
+    if(!level||!paper){toast('Select level and paper first.','error');return;}
+    if(!caseName){toast('Enter case study name.','error');return;}
+
+    const slots=document.querySelectorAll('#cb-question-slots .cb-question-slot');
+    if(!slots.length){toast('Add at least one question.','error');return;}
+
+    const questions=[];
+    for(const slot of slots){
+      const id=slot.id.replace('cb-slot-','');
+      const q=document.getElementById('cb-slot-q-'+id)?.value.trim()||'';
+      const oa=document.getElementById('cb-slot-oa-'+id)?.value.trim()||'';
+      const ob=document.getElementById('cb-slot-ob-'+id)?.value.trim()||'';
+      const oc=document.getElementById('cb-slot-oc-'+id)?.value.trim()||'';
+      const od=document.getElementById('cb-slot-od-'+id)?.value.trim()||'';
+      const exp=document.getElementById('cb-slot-exp-'+id)?.value.trim()||'';
+      const correct=document.querySelector(`#cb-slot-correct-${id} .correct-opt.selected input`)?.value||'';
+      if(!q){toast('Fill question text in all slots.','error');return;}
+      if(!oa||!ob||!oc||!od){toast('Fill all 4 options in every question.','error');return;}
+      if(!correct){toast('Select correct answer in every question.','error');return;}
+      questions.push({question:q,optionA:oa,optionB:ob,optionC:oc,optionD:od,correct,explanation:exp,
+        marks,caseName,passage,imageUrl:cbSlotImgs[id]||''});
+    }
+
+    try{
+      const col=collection(db,'casebasedMCQs',level,'papers',paper,'questions');
+      const batch=writeBatch(db);
+      questions.forEach(qData=>{
+        const ref=doc(col);
+        const d={...qData,createdAt:serverTimestamp()};
+        if(!d.imageUrl)delete d.imageUrl;
+        batch.set(ref,d);
+      });
+      await batch.commit();
+      toast(`${questions.length} Case MCQ${questions.length>1?'s':''} saved! ✅`,'success');
+      // Reset: clear slots only, keep case/passage
+      document.getElementById('cb-question-slots').innerHTML='';
+      cbSlotCount=0;Object.keys(cbSlotImgs).forEach(k=>delete cbSlotImgs[k]);
+      loadCaseBased();
+    }catch(e){toast('Save failed.','error');console.error(e);}
+  };
+
   function resetForm(px){
-    ['question','explanation'].forEach(f=>{const el=document.getElementById(`${px}-${f}`);if(el)el.value='';});
-    ['oa','ob','oc','od'].forEach(f=>{const el=document.getElementById(`${px}-${f}`);if(el)el.value='';});
-    document.querySelectorAll(`#${px}-correct-opts .correct-opt`).forEach(e=>e.classList.remove('selected'));
-    if(px==='nm'){nmCorrect='';nmQImgUrl='';const img=document.getElementById('nm-q-img');if(img)img.style.display='none';}
-    if(px==='cb'){cbCorrect='';cbQImgUrl='';cbPassImgUrl='';
-      ['cb-q-img','cb-pass-img'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='none';});}
+    if(px==='nm'){
+      ['question','explanation'].forEach(f=>{const el=document.getElementById(`nm-${f}`);if(el)el.value='';});
+      ['oa','ob','oc','od'].forEach(f=>{const el=document.getElementById(`nm-${f}`);if(el)el.value='';});
+      document.querySelectorAll('#nm-correct-opts .correct-opt').forEach(e=>e.classList.remove('selected'));
+      nmCorrect='';nmQImgUrl='';const img=document.getElementById('nm-q-img');if(img)img.style.display='none';
+    }
+    if(px==='cb'){
+      // Reset only slots, not case header
+      document.getElementById('cb-question-slots').innerHTML='';
+      cbSlotCount=0;Object.keys(cbSlotImgs).forEach(k=>delete cbSlotImgs[k]);
+      cbCorrect='';cbQImgUrl='';cbPassImgUrl='';
+      ['cb-q-img','cb-pass-img'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='none';});
+    }
   }
 
   // ── Delete MCQ ─────────────────────────────────────────────
@@ -1054,30 +1179,114 @@
   // ── Edit MCQ ───────────────────────────────────────────────
   let editMCQState={};
   let editNmCorrect='';
-  let editCbCorrect='';
+  let editCbSlotCount=0;
+  const editCbSlotImgs={};   // slotId -> imageUrl
+  const editCbSlotIds={};    // slotId -> existing Firestore doc id (or null for new)
+
+  // Build an edit slot HTML — same as add slot but with existing data & optional docId
+  function makeEditCbSlotHTML(slotId, data={}){
+    const n=slotId;
+    const correct=data.correct||'';
+    const opts=['A','B','C','D'];
+    return`
+    <div class="cb-question-slot" id="edit-cb-slot-${n}">
+      <div class="cb-slot-header">
+        <div class="cb-slot-title">Question ${n}</div>
+        <button class="cb-slot-remove" onclick="removeEditCbSlot(${n})">✕ Remove</button>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Question</label>
+        <div class="q-toolbar">
+          <button type="button" onclick="insertTable('edit-cb-slot-q-${n}')">📊 Insert Table</button>
+          <label class="img-upload-btn">📷 Insert Image<input type="file" accept="image/*" onchange="uploadEditCbSlotImage(event,${n})"/></label>
+        </div>
+        <textarea id="edit-cb-slot-q-${n}" class="form-input" rows="3"
+          placeholder="Based on the above case, which of the following...">${data.question||''}</textarea>
+        <img id="edit-cb-slot-img-${n}" class="q-img-preview" ${data.imageUrl?`src="${data.imageUrl}" style="display:block;"`:''}/>
+      </div>
+      <div class="options-grid">
+        <div class="option-row"><div class="option-label opt-a">A</div><input type="text" id="edit-cb-slot-oa-${n}" class="form-input" placeholder="Option A" value="${data.optionA||''}"/></div>
+        <div class="option-row"><div class="option-label opt-b">B</div><input type="text" id="edit-cb-slot-ob-${n}" class="form-input" placeholder="Option B" value="${data.optionB||''}"/></div>
+        <div class="option-row"><div class="option-label opt-c">C</div><input type="text" id="edit-cb-slot-oc-${n}" class="form-input" placeholder="Option C" value="${data.optionC||''}"/></div>
+        <div class="option-row"><div class="option-label opt-d">D</div><input type="text" id="edit-cb-slot-od-${n}" class="form-input" placeholder="Option D" value="${data.optionD||''}"/></div>
+      </div>
+      <div class="correct-row">
+        <label class="form-label" style="margin:0;">Correct Answer:</label>
+        <div class="correct-options" id="edit-cb-slot-correct-${n}">
+          ${opts.map(o=>`<label class="correct-opt${correct===o?' selected':''}" onclick="selectEditCbSlotCorrect(${n},this,'${o}')"><input type="radio" name="edit-cb-slot-correct-${n}" value="${o}"/>${o}</label>`).join('')}
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label">Explanation (Optional)</label>
+        <textarea id="edit-cb-slot-exp-${n}" class="form-input" rows="2"
+          placeholder="Explanation for the correct answer...">${data.explanation||''}</textarea>
+      </div>
+    </div>`;
+  }
+
+  window.addEditCbSlot=function(){
+    editCbSlotCount++;
+    const n=editCbSlotCount;
+    editCbSlotIds[n]=null; // new question
+    const container=document.getElementById('edit-cb-question-slots');
+    const div=document.createElement('div');
+    div.innerHTML=makeEditCbSlotHTML(n);
+    container.appendChild(div.firstElementChild);
+    numberCbSlots('edit-cb-question-slots');
+  };
+
+  window.removeEditCbSlot=function(n){
+    const el=document.getElementById('edit-cb-slot-'+n);
+    if(el)el.remove();
+    delete editCbSlotImgs[n];
+    delete editCbSlotIds[n];
+    numberCbSlots('edit-cb-question-slots');
+  };
+
+  window.selectEditCbSlotCorrect=function(n,el,val){
+    document.querySelectorAll(`#edit-cb-slot-correct-${n} .correct-opt`).forEach(e=>e.classList.remove('selected'));
+    el.classList.add('selected');
+  };
+
+  window.uploadEditCbSlotImage=async function(event,n){
+    const file=event.target.files[0];if(!file)return;
+    if(file.size>5*1024*1024){toast('Max 5MB','error');return;}
+    toast('Uploading image...','info');
+    const fd=new FormData();fd.append('file',file);fd.append('upload_preset',CLOUDINARY_CONFIG.uploadPreset);
+    try{
+      const res=await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CONFIG.cloudName}/image/upload`,{method:'POST',body:fd});
+      const data=await res.json();
+      editCbSlotImgs[n]=data.secure_url;
+      const p=document.getElementById('edit-cb-slot-img-'+n);p.src=data.secure_url;p.style.display='block';
+      toast('Image uploaded!','success');
+    }catch(e){toast('Image upload failed.','error');}
+  };
 
   window.openEditMCQ=async function(qId,level,paper,type){
-    const col=type==='normal'
-      ?collection(db,'mcqs',level,'papers',paper,'questions')
-      :collection(db,'casebasedMCQs',level,'papers',paper,'questions');
+    editMCQState={level,paper,type};
+    editNmCorrect='';
+    editCbSlotCount=0;
+    Object.keys(editCbSlotImgs).forEach(k=>delete editCbSlotImgs[k]);
+    Object.keys(editCbSlotIds).forEach(k=>delete editCbSlotIds[k]);
+
+    document.getElementById('edit-nm-fields').style.display=type==='normal'?'block':'none';
+    document.getElementById('edit-cb-fields').style.display=type==='casebased'?'block':'none';
+    document.getElementById('edit-mcq-modal-title').textContent=
+      type==='normal'?'✏️ Edit Normal MCQ':'✏️ Edit Case Based MCQ';
+
+    // Reset passage image preview
+    const passImg=document.getElementById('edit-cb-pass-img');
+    if(passImg){passImg.src='';passImg.style.display='none';}
+    const nmImg=document.getElementById('edit-nm-q-img');
+    if(nmImg){nmImg.src='';nmImg.style.display='none';}
+
     try{
-      const snap=await getDoc(doc(col,qId));
-      if(!snap.exists()){toast('Question not found.','error');return;}
-      const q={id:snap.id,...snap.data()};
-      editMCQState={qId,level,paper,type,imgUrl:'',passImgUrl:''};
-
-      // Show correct panel, hide the other
-      document.getElementById('edit-nm-fields').style.display=type==='normal'?'block':'none';
-      document.getElementById('edit-cb-fields').style.display=type==='casebased'?'block':'none';
-      document.getElementById('edit-mcq-modal-title').textContent=
-        type==='normal'?'✏️ Edit Normal MCQ':'✏️ Edit Case Based MCQ';
-
-      // Reset all image previews
-      ['edit-nm-q-img','edit-cb-q-img','edit-cb-pass-img'].forEach(id=>{
-        const el=document.getElementById(id);if(el){el.src='';el.style.display='none';}
-      });
-
       if(type==='normal'){
+        // Normal: load single question
+        const snap=await getDoc(doc(collection(db,'mcqs',level,'papers',paper,'questions'),qId));
+        if(!snap.exists()){toast('Question not found.','error');return;}
+        const q={id:snap.id,...snap.data()};
+        editMCQState.qId=qId;
         editNmCorrect=q.correct||'';
         document.getElementById('edit-nm-chapter').value=q.chapterName||'';
         document.getElementById('edit-nm-marks').value=String(q.marks||1);
@@ -1087,43 +1296,49 @@
         document.getElementById('edit-nm-oc').value=q.optionC||'';
         document.getElementById('edit-nm-od').value=q.optionD||'';
         document.getElementById('edit-nm-explanation').value=q.explanation||'';
-        // Populate chapter datalist
         const dl=document.getElementById('edit-nm-chapter-list');
         dl.innerHTML=[...new Set(window._nmChapters||[])].map(c=>`<option value="${c}"/>`).join('');
-        // Show existing image
-        if(q.imageUrl){
-          const p=document.getElementById('edit-nm-q-img');p.src=q.imageUrl;p.style.display='block';
-          editMCQState.imgUrl=q.imageUrl;
-        }
-        // Highlight correct answer
+        if(q.imageUrl){nmImg.src=q.imageUrl;nmImg.style.display='block';editMCQState.imgUrl=q.imageUrl;}
         document.querySelectorAll('#edit-nm-correct-opts .correct-opt').forEach(el=>
           el.classList.toggle('selected', el.querySelector('input').value===editNmCorrect));
+
       } else {
-        editCbCorrect=q.correct||'';
-        document.getElementById('edit-cb-casename').value=q.caseName||'';
-        document.getElementById('edit-cb-marks').value=String(q.marks||1);
-        document.getElementById('edit-cb-passage').value=q.passage||'';
-        document.getElementById('edit-cb-question').value=q.question||'';
-        document.getElementById('edit-cb-oa').value=q.optionA||'';
-        document.getElementById('edit-cb-ob').value=q.optionB||'';
-        document.getElementById('edit-cb-oc').value=q.optionC||'';
-        document.getElementById('edit-cb-od').value=q.optionD||'';
-        document.getElementById('edit-cb-explanation').value=q.explanation||'';
-        // Populate case datalist
+        // Case Based: load the clicked question to get caseName, then load ALL questions of that case
+        const firstSnap=await getDoc(doc(collection(db,'casebasedMCQs',level,'papers',paper,'questions'),qId));
+        if(!firstSnap.exists()){toast('Question not found.','error');return;}
+        const firstQ=firstSnap.data();
+        const caseName=firstQ.caseName||'';
+        const passage=firstQ.passage||'';
+        const marks=firstQ.marks||1;
+
+        // Populate case header
+        document.getElementById('edit-cb-casename').value=caseName;
+        document.getElementById('edit-cb-marks').value=String(marks);
+        document.getElementById('edit-cb-passage').value=passage;
         const dl=document.getElementById('edit-cb-case-list');
         dl.innerHTML=[...new Set(window._cbCases||[])].map(c=>`<option value="${c}"/>`).join('');
-        // Show existing images
-        if(q.imageUrl){
-          const p=document.getElementById('edit-cb-q-img');p.src=q.imageUrl;p.style.display='block';
-          editMCQState.imgUrl=q.imageUrl;
-        }
-        if(q.passageImageUrl){
-          const p=document.getElementById('edit-cb-pass-img');p.src=q.passageImageUrl;p.style.display='block';
-          editMCQState.passImgUrl=q.passageImageUrl;
-        }
-        // Highlight correct answer
-        document.querySelectorAll('#edit-cb-correct-opts .correct-opt').forEach(el=>
-          el.classList.toggle('selected', el.querySelector('input').value===editCbCorrect));
+        if(firstQ.passageImageUrl){passImg.src=firstQ.passageImageUrl;passImg.style.display='block';}
+
+        // Load ALL questions for this case
+        const allSnap=await getDocs(
+          query(collection(db,'casebasedMCQs',level,'papers',paper,'questions'),orderBy('createdAt','asc'))
+        );
+        const caseQs=[];
+        allSnap.forEach(d=>{if(d.data().caseName===caseName)caseQs.push({id:d.id,...d.data()});});
+
+        // Build slots for all existing questions
+        const slotsContainer=document.getElementById('edit-cb-question-slots');
+        slotsContainer.innerHTML='';
+        caseQs.forEach(q=>{
+          editCbSlotCount++;
+          const n=editCbSlotCount;
+          editCbSlotIds[n]=q.id;  // existing doc
+          if(q.imageUrl) editCbSlotImgs[n]=q.imageUrl;
+          const div=document.createElement('div');
+          div.innerHTML=makeEditCbSlotHTML(n,q);
+          slotsContainer.appendChild(div.firstElementChild);
+        });
+        numberCbSlots('edit-cb-question-slots');
       }
 
       document.getElementById('edit-mcq-modal').classList.remove('hidden');
@@ -1132,19 +1347,22 @@
 
   window.closeEditMCQ=function(){
     document.getElementById('edit-mcq-modal').classList.add('hidden');
-    ['edit-nm-q-img','edit-cb-q-img','edit-cb-pass-img'].forEach(id=>{
+    document.getElementById('edit-cb-question-slots').innerHTML='';
+    ['edit-nm-q-img','edit-cb-pass-img'].forEach(id=>{
       const el=document.getElementById(id);if(el){el.src='';el.style.display='none';}
     });
-    editMCQState={};editNmCorrect='';editCbCorrect='';
+    editMCQState={};editNmCorrect='';editCbSlotCount=0;
+    Object.keys(editCbSlotImgs).forEach(k=>delete editCbSlotImgs[k]);
+    Object.keys(editCbSlotIds).forEach(k=>delete editCbSlotIds[k]);
   };
 
   window.selectEditCorrect=function(prefix,el,val){
     document.querySelectorAll(`#edit-${prefix}-correct-opts .correct-opt`).forEach(e=>e.classList.remove('selected'));
     el.classList.add('selected');
-    if(prefix==='nm') editNmCorrect=val; else editCbCorrect=val;
+    if(prefix==='nm') editNmCorrect=val;
   };
 
-  // Unified image uploader for edit modal — target: 'nm', 'cb-q', 'cb-pass'
+  // Image upload for edit passage and normal question
   window.uploadEditQImage=async function(event,target){
     const file=event.target.files[0];if(!file)return;
     if(file.size>5*1024*1024){toast('Max 5MB','error');return;}
@@ -1157,9 +1375,6 @@
       if(target==='nm'){
         editMCQState.imgUrl=url;
         const p=document.getElementById('edit-nm-q-img');p.src=url;p.style.display='block';
-      } else if(target==='cb-q'){
-        editMCQState.imgUrl=url;
-        const p=document.getElementById('edit-cb-q-img');p.src=url;p.style.display='block';
       } else if(target==='cb-pass'){
         editMCQState.passImgUrl=url;
         const p=document.getElementById('edit-cb-pass-img');p.src=url;p.style.display='block';
@@ -1171,48 +1386,77 @@
   };
 
   window.saveEditMCQ=async function(){
-    const {qId,level,paper,type}=editMCQState;
-    if(!qId){toast('No question loaded.','error');return;}
-    const isNm=type==='normal';
-    const px=isNm?'nm':'cb';
-    const correct=isNm?editNmCorrect:editCbCorrect;
+    const {level,paper,type}=editMCQState;
+    if(!level||!paper){toast('No question loaded.','error');return;}
 
-    const question=document.getElementById(`edit-${px}-question`).value.trim();
-    const oa=document.getElementById(`edit-${px}-oa`).value.trim();
-    const ob=document.getElementById(`edit-${px}-ob`).value.trim();
-    const oc=document.getElementById(`edit-${px}-oc`).value.trim();
-    const od=document.getElementById(`edit-${px}-od`).value.trim();
-    const explanation=document.getElementById(`edit-${px}-explanation`).value.trim();
-    const marks=parseInt(document.getElementById(`edit-${px}-marks`).value)||1;
-
-    if(!question){toast('Enter a question.','error');return;}
-    if(!oa||!ob||!oc||!od){toast('Fill all 4 options.','error');return;}
-    if(!correct){toast('Select the correct answer.','error');return;}
-
-    const updates={question,optionA:oa,optionB:ob,optionC:oc,optionD:od,correct,explanation,marks};
-    if(editMCQState.imgUrl) updates.imageUrl=editMCQState.imgUrl;
-
-    if(isNm){
+    if(type==='normal'){
+      // Single question update
+      const qId=editMCQState.qId;
+      const question=document.getElementById('edit-nm-question').value.trim();
+      const oa=document.getElementById('edit-nm-oa').value.trim();
+      const ob=document.getElementById('edit-nm-ob').value.trim();
+      const oc=document.getElementById('edit-nm-oc').value.trim();
+      const od=document.getElementById('edit-nm-od').value.trim();
+      const explanation=document.getElementById('edit-nm-explanation').value.trim();
+      const marks=parseInt(document.getElementById('edit-nm-marks').value)||1;
       const chapter=document.getElementById('edit-nm-chapter').value.trim();
+      if(!question){toast('Enter a question.','error');return;}
+      if(!oa||!ob||!oc||!od){toast('Fill all 4 options.','error');return;}
+      if(!editNmCorrect){toast('Select the correct answer.','error');return;}
       if(!chapter){toast('Enter chapter name.','error');return;}
-      updates.chapterName=chapter;
-    } else {
-      const caseName=document.getElementById('edit-cb-casename').value.trim();
-      if(!caseName){toast('Enter case study name.','error');return;}
-      updates.caseName=caseName;
-      updates.passage=document.getElementById('edit-cb-passage').value.trim();
-      if(editMCQState.passImgUrl) updates.passageImageUrl=editMCQState.passImgUrl;
-    }
+      const updates={question,optionA:oa,optionB:ob,optionC:oc,optionD:od,correct:editNmCorrect,
+        explanation,marks,chapterName:chapter};
+      if(editMCQState.imgUrl) updates.imageUrl=editMCQState.imgUrl;
+      try{
+        await updateDoc(doc(collection(db,'mcqs',level,'papers',paper,'questions'),qId),updates);
+        toast('MCQ updated! ✅','success');
+        closeEditMCQ();loadNormalMCQs();
+      }catch(e){toast('Update failed.','error');console.error(e);}
 
-    const col=isNm
-      ?collection(db,'mcqs',level,'papers',paper,'questions')
-      :collection(db,'casebasedMCQs',level,'papers',paper,'questions');
-    try{
-      await updateDoc(doc(col,qId),updates);
-      toast('MCQ updated! ✅','success');
-      closeEditMCQ();
-      isNm?loadNormalMCQs():loadCaseBased();
-    }catch(e){toast('Update failed.','error');console.error(e);}
+    } else {
+      // Case Based: update all existing slots + add new ones
+      const caseName=document.getElementById('edit-cb-casename').value.trim();
+      const passage=document.getElementById('edit-cb-passage').value.trim();
+      const marks=parseInt(document.getElementById('edit-cb-marks').value)||1;
+      if(!caseName){toast('Enter case study name.','error');return;}
+
+      const slots=document.querySelectorAll('#edit-cb-question-slots .cb-question-slot');
+      if(!slots.length){toast('Add at least one question.','error');return;}
+
+      const questions=[];
+      for(const slot of slots){
+        const n=slot.id.replace('edit-cb-slot-','');
+        const q=document.getElementById(`edit-cb-slot-q-${n}`)?.value.trim()||'';
+        const oa=document.getElementById(`edit-cb-slot-oa-${n}`)?.value.trim()||'';
+        const ob=document.getElementById(`edit-cb-slot-ob-${n}`)?.value.trim()||'';
+        const oc=document.getElementById(`edit-cb-slot-oc-${n}`)?.value.trim()||'';
+        const od=document.getElementById(`edit-cb-slot-od-${n}`)?.value.trim()||'';
+        const exp=document.getElementById(`edit-cb-slot-exp-${n}`)?.value.trim()||'';
+        const correct=document.querySelector(`#edit-cb-slot-correct-${n} .correct-opt.selected input`)?.value||'';
+        if(!q){toast('Fill question text in all slots.','error');return;}
+        if(!oa||!ob||!oc||!od){toast('Fill all 4 options in every question.','error');return;}
+        if(!correct){toast('Select correct answer in every question.','error');return;}
+        questions.push({n,docId:editCbSlotIds[n]||null,
+          data:{question:q,optionA:oa,optionB:ob,optionC:oc,optionD:od,correct,explanation:exp,
+            marks,caseName,passage,imageUrl:editCbSlotImgs[n]||''}});
+      }
+
+      try{
+        const col=collection(db,'casebasedMCQs',level,'papers',paper,'questions');
+        const batch=writeBatch(db);
+        questions.forEach(({docId,data:qData})=>{
+          const d={...qData};if(!d.imageUrl)delete d.imageUrl;
+          if(docId){
+            batch.update(doc(col,docId),d);
+          } else {
+            batch.set(doc(col),{...d,createdAt:serverTimestamp()});
+          }
+        });
+        await batch.commit();
+        toast('Case questions saved! ✅','success');
+        closeEditMCQ();loadCaseBased();
+      }catch(e){toast('Update failed.','error');console.error(e);}
+    }
   };
 
   // ── Delete Chapter / Case Study ────────────────────────────

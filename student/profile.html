@@ -155,6 +155,19 @@
             </div>
           </div>
 
+          <!-- App Update -->
+          <div class="card mt-16" id="update-card">
+            <h4 style="margin-bottom:4px;font-family:var(--font-heading);">🔄 App Update</h4>
+            <p style="font-size:12px;color:var(--text-muted);margin-bottom:14px;">Check if a newer version of StudyBuddy is available.</p>
+            <div id="update-status-box" style="display:none;border-radius:var(--radius-md);padding:10px 14px;font-size:13px;margin-bottom:12px;"></div>
+            <button class="btn btn-outline" id="btn-check-update" onclick="checkForUpdate()" style="width:100%;">
+              🔍 Check for Update
+            </button>
+            <button class="btn btn-primary" id="btn-apply-update" onclick="applyUpdate()" style="width:100%;margin-top:8px;display:none;">
+              ⚡ Update Now &amp; Reload
+            </button>
+          </div>
+
           <!-- Study Stats -->
           <div class="card mt-16">
             <h4 style="margin-bottom:14px;font-family:var(--font-heading);">📊 Study Stats</h4>
@@ -778,6 +791,94 @@
       console.error(e);
     }
   };
+
+  // ── App Update via Service Worker ────────────────────────────
+  let _waitingSW = null;
+
+  function setUpdateStatus(msg, type){
+    const box = document.getElementById('update-status-box');
+    box.style.display = 'block';
+    const styles = {
+      info:    { bg:'#EFF6FF', border:'#BFDBFE', color:'#1E40AF' },
+      success: { bg:'#F0FDF4', border:'#BBF7D0', color:'#166534' },
+      warning: { bg:'#FFFBEB', border:'#FCD34D', color:'#92400E' },
+      error:   { bg:'#FEF2F2', border:'#FECACA', color:'#991B1B' },
+    };
+    const s = styles[type] || styles.info;
+    box.style.background = s.bg;
+    box.style.border = '1px solid ' + s.border;
+    box.style.color = s.color;
+    box.innerHTML = msg;
+  }
+
+  window.checkForUpdate = async function(){
+    const btn = document.getElementById('btn-check-update');
+    btn.disabled = true;
+    btn.textContent = '⏳ Checking...';
+
+    if (!('serviceWorker' in navigator)) {
+      setUpdateStatus('⚠️ Service Workers are not supported in this browser.', 'warning');
+      btn.disabled = false; btn.textContent = '🔍 Check for Update';
+      return;
+    }
+
+    try {
+      const reg = await navigator.serviceWorker.getRegistration();
+      if (!reg) {
+        setUpdateStatus('ℹ️ No service worker registered yet. Refresh once then try again.', 'info');
+        btn.disabled = false; btn.textContent = '🔍 Check for Update';
+        return;
+      }
+
+      // Force the browser to re-fetch the SW file from server right now
+      await reg.update();
+
+      if (reg.waiting) {
+        _waitingSW = reg.waiting;
+        setUpdateStatus('🎉 <strong>New update available!</strong> Click "Update Now &amp; Reload" to apply it instantly.', 'success');
+        document.getElementById('btn-apply-update').style.display = 'block';
+      } else if (reg.installing) {
+        setUpdateStatus('⏳ New version is downloading… Wait a moment and check again.', 'info');
+      } else {
+        setUpdateStatus('✅ <strong>You\'re on the latest version.</strong> No updates found.', 'success');
+      }
+    } catch(e) {
+      setUpdateStatus('❌ Could not check — make sure you\'re connected to the internet.', 'error');
+      console.error(e);
+    }
+    btn.disabled = false; btn.textContent = '🔍 Check for Update';
+  };
+
+  window.applyUpdate = function(){
+    if (_waitingSW) {
+      _waitingSW.postMessage({ type: 'SKIP_WAITING' });
+    }
+    navigator.serviceWorker.addEventListener('controllerchange', () => window.location.reload());
+    setTimeout(() => window.location.reload(), 1500);
+  };
+
+  // Auto-detect if a background update finished while this page was open
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistration().then(reg => {
+      if (!reg) return;
+      reg.addEventListener('updatefound', () => {
+        const newSW = reg.installing;
+        newSW.addEventListener('statechange', () => {
+          if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
+            _waitingSW = newSW;
+            setUpdateStatus('🎉 <strong>Update downloaded!</strong> Click "Update Now &amp; Reload" to apply.', 'success');
+            document.getElementById('btn-apply-update').style.display = 'block';
+          }
+        });
+      });
+      // Also check immediately on page load if there's already a waiting SW
+      if (reg.waiting) {
+        _waitingSW = reg.waiting;
+        setUpdateStatus('🎉 <strong>Update ready to install!</strong> Click "Update Now &amp; Reload".', 'success');
+        document.getElementById('btn-apply-update').style.display = 'block';
+      }
+    });
+  }
 </script>
 
 <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>

@@ -377,14 +377,17 @@ function formatMarker(type, index){
 function marginForType(type){
   switch(type){
     case 'bullet': return 20;
-    case 'number': return 26;
-    case 'alpha':  return 30;
-    case 'roman':  return 36;
-    default: return 26;
+    case 'number': return 30;
+    case 'alpha':  return 32;
+    case 'roman':  return 42;
+    default: return 28;
   }
 }
 // Builds a real DOM node (not an HTML string) so it can be inserted precisely
 // as a sibling of the current item — avoids execCommand nesting it inside instead.
+// Uses a fixed-width marker column (inline-block + negative margin) rather than
+// text-indent, so the text after "(iv)" lines up with wrapped lines below it no
+// matter how wide the marker itself is.
 function buildListItemNode(type, index){
   const marker = formatMarker(type, index);
   const indent = marginForType(type);
@@ -392,8 +395,13 @@ function buildListItemNode(type, index){
   div.className = 'sb-li';
   div.style.margin = '2px 0';
   div.style.paddingLeft = indent + 'px';
-  div.style.textIndent = '-' + indent + 'px';
-  div.innerHTML = marker + '&nbsp;';
+  const span = document.createElement('span');
+  span.className = 'sb-li-marker';
+  span.style.display = 'inline-block';
+  span.style.width = indent + 'px';
+  span.style.marginLeft = '-' + indent + 'px';
+  span.innerHTML = marker + '&nbsp;';
+  div.appendChild(span);
   return div;
 }
 function placeCaretAtEnd(el){
@@ -737,10 +745,11 @@ function getCleanHTML(){
     while(block.firstChild) block.parentNode.insertBefore(block.firstChild, block);
     block.remove();
   }
-  // Unwrap SPAN/FONT wrappers
+  // Unwrap SPAN/FONT wrappers — except .sb-li-marker spans, which carry the
+  // fixed-width marker column that keeps wrapped lines aligned.
   guard = 0;
   let inline;
-  while((inline = clone.querySelector('span, font')) && guard < 4000){
+  while((inline = clone.querySelector('span:not(.sb-li-marker), font')) && guard < 4000){
     guard++;
     while(inline.firstChild) inline.parentNode.insertBefore(inline.firstChild, inline);
     inline.remove();
@@ -762,6 +771,10 @@ function getCleanHTML(){
       if(width) styleStr += 'width:' + width + ';';
       el.setAttribute('style', styleStr);
     } else if(el.tagName === 'DIV' && el.classList.contains('sb-li')){
+      const style = el.getAttribute('style') || '';
+      Array.from(el.attributes).forEach(a=>el.removeAttribute(a.name));
+      el.setAttribute('style', style);
+    } else if(el.tagName === 'SPAN' && el.classList.contains('sb-li-marker')){
       const style = el.getAttribute('style') || '';
       Array.from(el.attributes).forEach(a=>el.removeAttribute(a.name));
       el.setAttribute('style', style);

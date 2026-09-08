@@ -302,7 +302,8 @@ function insertText(str){
 
 // Enter -> always <br> (matches StudyBuddy's line-break style, no stray <div>/<p>).
 // If a list was started, Enter auto-continues it (like Word); Enter on an empty
-// list line ends the list. Tab -> inserts indentation instead of leaving the editor.
+// list line, or anywhere the caret is no longer inside a list item, ends the list.
+// Tab -> inserts indentation instead of leaving the editor.
 editor.addEventListener('keydown', (e)=>{
   if(e.key === 'Tab'){
     e.preventDefault();
@@ -313,19 +314,25 @@ editor.addEventListener('keydown', (e)=>{
     e.preventDefault();
     if(listMode){
       const currentDiv = getCurrentListDiv();
-      const currentMarker = formatMarker(listMode.type, listMode.current);
-      const currentText = currentDiv ? currentDiv.innerText.replace(/\u00A0/g,' ').trim() : '';
-      if(currentText === currentMarker){
-        // empty list item -> stop the list, like Word does on double-Enter
-        if(currentDiv){
+      if(!currentDiv){
+        // Caret isn't inside a list item anymore — stop treating Enter as list-continue.
+        listMode = null;
+        document.execCommand('insertHTML', false, '<br>');
+      } else {
+        const currentMarker = formatMarker(listMode.type, listMode.current);
+        const currentText = currentDiv.innerText.replace(/\u00A0/g,' ').trim();
+        if(currentText === currentMarker){
+          // Empty list item -> stop the list, like Word does on double-Enter
           currentDiv.removeAttribute('class');
           currentDiv.removeAttribute('style');
+          listMode = null;
+        } else {
+          const nextIndex = listMode.current + 1;
+          const newDiv = buildListItemNode(listMode.type, nextIndex);
+          currentDiv.parentNode.insertBefore(newDiv, currentDiv.nextSibling);
+          placeCaretAtEnd(newDiv);
+          listMode.current = nextIndex;
         }
-        listMode = null;
-      } else {
-        const nextIndex = listMode.current + 1;
-        document.execCommand('insertHTML', false, buildListItemHTML(listMode.type, nextIndex));
-        listMode.current = nextIndex;
       }
     } else {
       document.execCommand('insertHTML', false, '<br>');
@@ -376,15 +383,40 @@ function marginForType(type){
     default: return 26;
   }
 }
-function buildListItemHTML(type, index){
+// Builds a real DOM node (not an HTML string) so it can be inserted precisely
+// as a sibling of the current item — avoids execCommand nesting it inside instead.
+function buildListItemNode(type, index){
   const marker = formatMarker(type, index);
   const indent = marginForType(type);
-  return `<div class="sb-li" style="margin:2px 0;padding-left:${indent}px;text-indent:-${indent}px;">${marker}&nbsp;</div>`;
+  const div = document.createElement('div');
+  div.className = 'sb-li';
+  div.style.margin = '2px 0';
+  div.style.paddingLeft = indent + 'px';
+  div.style.textIndent = '-' + indent + 'px';
+  div.innerHTML = marker + '&nbsp;';
+  return div;
+}
+function placeCaretAtEnd(el){
+  const range = document.createRange();
+  range.selectNodeContents(el);
+  range.collapse(false);
+  const sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+}
+function insertNodeAtCaret(node){
+  const sel = window.getSelection();
+  if(!sel.rangeCount){ editor.appendChild(node); return; }
+  const range = sel.getRangeAt(0);
+  range.deleteContents();
+  range.insertNode(node);
 }
 function startList(type){
   editor.focus();
   restoreSelection();
-  document.execCommand('insertHTML', false, buildListItemHTML(type, 1));
+  const div = buildListItemNode(type, 1);
+  insertNodeAtCaret(div);
+  placeCaretAtEnd(div);
   listMode = { type, current: 1 };
   scheduleRefresh();
 }

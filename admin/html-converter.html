@@ -155,8 +155,13 @@
           <button class="tbtn" title="Subscript" onmousedown="event.preventDefault()" onclick="cmd('subscript')">x₂</button>
         </div>
         <div class="grp">
-          <button class="tbtn wide" title="Bulleted list" onmousedown="event.preventDefault()" onclick="cmd('insertUnorderedList')">• List</button>
-          <button class="tbtn wide" title="Numbered list" onmousedown="event.preventDefault()" onclick="cmd('insertOrderedList')">1. List</button>
+          <button class="tbtn wide" title="Bulleted list — press Enter to continue, Enter on empty line to stop" onmousedown="event.preventDefault()" onclick="startList('bullet')">• List</button>
+          <button class="tbtn wide" title="Numbered list 1. 2. 3. — auto-continues on Enter" onmousedown="event.preventDefault()" onclick="startList('number')">1. List</button>
+          <button class="tbtn wide" title="Lettered list (a) (b) (c) — auto-continues on Enter" onmousedown="event.preventDefault()" onclick="startList('alpha')">(a) List</button>
+          <button class="tbtn wide" title="Roman list (i) (ii) (iii) — auto-continues on Enter" onmousedown="event.preventDefault()" onclick="startList('roman')">(i) List</button>
+        </div>
+        <div class="grp">
+          <button class="tbtn" title="Insert tab / indent (or just press the Tab key)" onmousedown="event.preventDefault()" onclick="insertTab()">⇥</button>
         </div>
         <div class="grp">
           <button class="tbtn" title="Insert ₹" onmousedown="event.preventDefault()" onclick="insertText('₹')">₹</button>
@@ -183,6 +188,9 @@
         <button class="tbtn" onclick="mergeCells()">Merge cells</button>
         <button class="tbtn" onclick="splitCell()">Split cell</button>
         <button class="tbtn" onclick="toggleHeader()">Toggle header</button>
+        <button class="tbtn" onclick="adjustColumnWidth(-20)">Width −</button>
+        <button class="tbtn" onclick="adjustColumnWidth(20)">Width +</button>
+        <button class="tbtn" onclick="setColumnWidth()">Set width…</button>
         <button class="tbtn" onclick="deleteTable()">Delete table</button>
         <span class="note">Click a cell, then Shift+click another to select a range before merging</span>
       </div>
@@ -249,6 +257,7 @@ const tableToolbar = document.getElementById('table-toolbar');
 let savedRange = null;
 let anchorCell = null;
 let selectedCells = [];
+let listMode = null; // { type: 'bullet'|'number'|'alpha'|'roman', current: n }
 
 // ───────────────────────── Toast ─────────────────────────
 let toastTimer;
@@ -291,11 +300,34 @@ function insertText(str){
   scheduleRefresh();
 }
 
-// Enter key -> always insert <br> (matches StudyBuddy's line-break style, no stray <div>/<p>)
+// Enter -> always <br> (matches StudyBuddy's line-break style, no stray <div>/<p>).
+// If a list was started, Enter auto-continues it (like Word); Enter on an empty
+// list line ends the list. Tab -> inserts indentation instead of leaving the editor.
 editor.addEventListener('keydown', (e)=>{
+  if(e.key === 'Tab'){
+    e.preventDefault();
+    insertTab();
+    return;
+  }
   if(e.key === 'Enter'){
     e.preventDefault();
-    document.execCommand('insertHTML', false, '<br>');
+    if(listMode){
+      const lineText = getCurrentLineText();
+      const currentMarker = formatMarker(listMode.type, listMode.current);
+      if(lineText === currentMarker){
+        // empty list line -> stop the list, like Word does on double-Enter
+        document.execCommand('insertHTML', false, '<br>');
+        listMode = null;
+      } else {
+        const nextIndex = listMode.current + 1;
+        const nextMarker = formatMarker(listMode.type, nextIndex);
+        document.execCommand('insertHTML', false, '<br>' + nextMarker + '&nbsp;');
+        listMode.current = nextIndex;
+      }
+    } else {
+      document.execCommand('insertHTML', false, '<br>');
+    }
+    scheduleRefresh();
   }
 });
 
@@ -307,8 +339,63 @@ function scheduleRefresh(){
   refreshTimer = setTimeout(refreshOutput, 250);
 }
 
+// ───────────────────────── Word-like auto-continuing lists ─────────────────────────
+function toRoman(num){
+  const map = [[1000,'m'],[900,'cm'],[500,'d'],[400,'cd'],[100,'c'],[90,'xc'],[50,'l'],[40,'xl'],[10,'x'],[9,'ix'],[5,'v'],[4,'iv'],[1,'i']];
+  let res='';
+  map.forEach(([v,s])=>{ while(num>=v){ res+=s; num-=v; } });
+  return res;
+}
+function toAlpha(num){
+  let s='';
+  while(num>0){
+    num--;
+    s = String.fromCharCode(97 + (num%26)) + s;
+    num = Math.floor(num/26);
+  }
+  return s;
+}
+function formatMarker(type, index){
+  switch(type){
+    case 'bullet': return '•';
+    case 'number': return index + '.';
+    case 'alpha':  return '(' + toAlpha(index) + ')';
+    case 'roman':  return '(' + toRoman(index) + ')';
+    default: return '';
+  }
+}
+function startList(type){
+  editor.focus();
+  restoreSelection();
+  const marker = formatMarker(type, 1);
+  document.execCommand('insertHTML', false, '<br>' + marker + '&nbsp;');
+  listMode = { type, current: 1 };
+  scheduleRefresh();
+}
+// Plain text (marker included) of the current line, from the last <br> up to the cursor
+function getCurrentLineText(){
+  const sel = window.getSelection();
+  if(!sel.rangeCount) return '';
+  const range = sel.getRangeAt(0).cloneRange();
+  range.collapse(true);
+  const preRange = document.createRange();
+  preRange.selectNodeContents(editor);
+  preRange.setEnd(range.startContainer, range.startOffset);
+  const frag = preRange.cloneContents();
+  const div = document.createElement('div');
+  div.appendChild(frag);
+  const parts = div.innerHTML.split(/<br\s*\/?>/i);
+  return parts[parts.length-1].replace(/<[^>]+>/g,'').trim();
+}
+function insertTab(){
+  editor.focus();
+  document.execCommand('insertHTML', false, '&nbsp;&nbsp;&nbsp;&nbsp;');
+  scheduleRefresh();
+}
+
 // ───────────────────────── Table cell selection ─────────────────────────
 editor.addEventListener('mousedown', (e)=>{
+  listMode = null;
   const cell = e.target.closest('td, th');
   if(!cell || !editor.contains(cell)){
     clearCellSelection();
@@ -510,6 +597,34 @@ function splitCell(){
   scheduleRefresh();
   toast('Cell split');
 }
+function adjustColumnWidth(delta){
+  const cell = activeCell();
+  if(!cell){ toast('Click inside a table column first'); return; }
+  const table = cell.closest('table');
+  const cIdx = cell.cellIndex;
+  Array.from(table.rows).forEach(row=>{
+    const c = row.cells[cIdx];
+    if(!c) return;
+    let w = parseInt(c.style.width) || c.offsetWidth || 80;
+    w = Math.max(20, w + delta);
+    c.style.width = w + 'px';
+  });
+  scheduleRefresh();
+}
+function setColumnWidth(){
+  const cell = activeCell();
+  if(!cell){ toast('Click inside a table column first'); return; }
+  const current = cell.style.width || '';
+  const val = prompt('Column width (e.g. 120px or 20%)', current || '100px');
+  if(val === null) return;
+  const table = cell.closest('table');
+  const cIdx = cell.cellIndex;
+  Array.from(table.rows).forEach(row=>{
+    const c = row.cells[cIdx];
+    if(c) c.style.width = val.trim();
+  });
+  scheduleRefresh();
+}
 function toggleHeader(){
   const cells = selectedCells.length ? selectedCells.slice() : (anchorCell ? [anchorCell] : []);
   if(!cells.length){ toast('Click a cell first'); return; }
@@ -597,10 +712,13 @@ function getCleanHTML(){
       el.setAttribute('style','border-collapse:collapse;');
     } else if(el.tagName === 'TD' || el.tagName === 'TH'){
       const cs = el.getAttribute('colspan'), rs = el.getAttribute('rowspan');
+      const width = el.style.width;
       Array.from(el.attributes).forEach(a=>el.removeAttribute(a.name));
       if(cs && cs !== '1') el.setAttribute('colspan', cs);
       if(rs && rs !== '1') el.setAttribute('rowspan', rs);
-      el.setAttribute('style','padding:4px 8px;');
+      let styleStr = 'padding:4px 8px;';
+      if(width) styleStr += 'width:' + width + ';';
+      el.setAttribute('style', styleStr);
     } else {
       Array.from(el.attributes).forEach(a=>el.removeAttribute(a.name));
     }

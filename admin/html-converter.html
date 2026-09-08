@@ -312,16 +312,19 @@ editor.addEventListener('keydown', (e)=>{
   if(e.key === 'Enter'){
     e.preventDefault();
     if(listMode){
-      const lineText = getCurrentLineText();
+      const currentDiv = getCurrentListDiv();
       const currentMarker = formatMarker(listMode.type, listMode.current);
-      if(lineText === currentMarker){
-        // empty list line -> stop the list, like Word does on double-Enter
-        document.execCommand('insertHTML', false, '<br>');
+      const currentText = currentDiv ? currentDiv.innerText.replace(/\u00A0/g,' ').trim() : '';
+      if(currentText === currentMarker){
+        // empty list item -> stop the list, like Word does on double-Enter
+        if(currentDiv){
+          currentDiv.removeAttribute('class');
+          currentDiv.removeAttribute('style');
+        }
         listMode = null;
       } else {
         const nextIndex = listMode.current + 1;
-        const nextMarker = formatMarker(listMode.type, nextIndex);
-        document.execCommand('insertHTML', false, '<br>' + nextMarker + '&nbsp;');
+        document.execCommand('insertHTML', false, buildListItemHTML(listMode.type, nextIndex));
         listMode.current = nextIndex;
       }
     } else {
@@ -364,28 +367,34 @@ function formatMarker(type, index){
     default: return '';
   }
 }
+function marginForType(type){
+  switch(type){
+    case 'bullet': return 20;
+    case 'number': return 26;
+    case 'alpha':  return 30;
+    case 'roman':  return 36;
+    default: return 26;
+  }
+}
+function buildListItemHTML(type, index){
+  const marker = formatMarker(type, index);
+  const indent = marginForType(type);
+  return `<div class="sb-li" style="margin:2px 0;padding-left:${indent}px;text-indent:-${indent}px;">${marker}&nbsp;</div>`;
+}
 function startList(type){
   editor.focus();
   restoreSelection();
-  const marker = formatMarker(type, 1);
-  document.execCommand('insertHTML', false, '<br>' + marker + '&nbsp;');
+  document.execCommand('insertHTML', false, buildListItemHTML(type, 1));
   listMode = { type, current: 1 };
   scheduleRefresh();
 }
-// Plain text (marker included) of the current line, from the last <br> up to the cursor
-function getCurrentLineText(){
+// The .sb-li block the cursor is currently inside, if any
+function getCurrentListDiv(){
   const sel = window.getSelection();
-  if(!sel.rangeCount) return '';
-  const range = sel.getRangeAt(0).cloneRange();
-  range.collapse(true);
-  const preRange = document.createRange();
-  preRange.selectNodeContents(editor);
-  preRange.setEnd(range.startContainer, range.startOffset);
-  const frag = preRange.cloneContents();
-  const div = document.createElement('div');
-  div.appendChild(frag);
-  const parts = div.innerHTML.split(/<br\s*\/?>/i);
-  return parts[parts.length-1].replace(/<[^>]+>/g,'').trim();
+  if(!sel.rangeCount) return null;
+  let node = sel.getRangeAt(0).startContainer;
+  if(node.nodeType === 3) node = node.parentElement;
+  return node ? node.closest('.sb-li') : null;
 }
 function insertTab(){
   editor.focus();
@@ -685,10 +694,11 @@ function getCleanHTML(){
   const clone = editor.cloneNode(true);
   clone.querySelectorAll('.cell-selected').forEach(el=>el.classList.remove('cell-selected'));
 
-  // Unwrap block-level DIV/P into inline content followed by <br>
+  // Unwrap block-level DIV/P into inline content followed by <br> — except .sb-li
+  // list-item divs, which are kept as their own hanging-indent blocks.
   let guard = 0;
   let block;
-  while((block = clone.querySelector('div, p')) && guard < 4000){
+  while((block = clone.querySelector('div:not(.sb-li), p')) && guard < 4000){
     guard++;
     const br = document.createElement('br');
     block.after(br);
@@ -719,6 +729,10 @@ function getCleanHTML(){
       let styleStr = 'padding:4px 8px;';
       if(width) styleStr += 'width:' + width + ';';
       el.setAttribute('style', styleStr);
+    } else if(el.tagName === 'DIV' && el.classList.contains('sb-li')){
+      const style = el.getAttribute('style') || '';
+      Array.from(el.attributes).forEach(a=>el.removeAttribute(a.name));
+      el.setAttribute('style', style);
     } else {
       Array.from(el.attributes).forEach(a=>el.removeAttribute(a.name));
     }
@@ -733,6 +747,8 @@ function getCleanHTML(){
 }
 function prettyPrint(html){
   html = html.replace(/<br>/g, '<br>\n');
+  html = html.replace(/<div /g, '\n<div ');
+  html = html.replace(/<\/div>/g, '</div>\n');
   html = html.replace(/<table/g, '\n<table');
   html = html.replace(/<\/table>/g, '</table>\n');
   html = html.replace(/<tr>/g, ' <tr>\n');

@@ -300,45 +300,50 @@ function insertText(str){
   scheduleRefresh();
 }
 
-// Enter -> always <br> (matches StudyBuddy's line-break style, no stray <div>/<p>).
-// If a list was started, Enter auto-continues it (like Word); Enter on an empty
-// list line, or anywhere the caret is no longer inside a list item, ends the list.
 // Tab -> inserts indentation instead of leaving the editor.
 editor.addEventListener('keydown', (e)=>{
   if(e.key === 'Tab'){
     e.preventDefault();
     insertTab();
-    return;
   }
-  if(e.key === 'Enter'){
-    e.preventDefault();
-    if(listMode){
-      const currentDiv = getCurrentListDiv();
-      if(!currentDiv){
-        // Caret isn't inside a list item anymore — stop treating Enter as list-continue.
-        listMode = null;
-        document.execCommand('insertHTML', false, '<br>');
-      } else {
-        const currentMarker = formatMarker(listMode.type, listMode.current);
-        const currentText = currentDiv.innerText.replace(/\u00A0/g,' ').trim();
-        if(currentText === currentMarker){
-          // Empty list item -> stop the list, like Word does on double-Enter
-          currentDiv.removeAttribute('class');
-          currentDiv.removeAttribute('style');
-          listMode = null;
-        } else {
-          const nextIndex = listMode.current + 1;
-          const newDiv = buildListItemNode(listMode.type, nextIndex);
-          currentDiv.parentNode.insertBefore(newDiv, currentDiv.nextSibling);
-          placeCaretAtEnd(newDiv);
-          listMode.current = nextIndex;
-        }
-      }
-    } else {
+});
+
+// Enter -> always <br> (matches StudyBuddy's line-break style, no stray <div>/<p>).
+// If a list was started, Enter auto-continues it (like Word); Enter on an empty
+// list line, or anywhere the caret is no longer inside a list item, ends the list.
+// Hooked on 'beforeinput' rather than 'keydown' because some browsers still run
+// their default Enter behaviour even after a keydown preventDefault, which is
+// what let typed text fall through as a plain continuation line instead of a
+// new numbered item.
+editor.addEventListener('beforeinput', (e)=>{
+  if(e.inputType !== 'insertParagraph' && e.inputType !== 'insertLineBreak') return;
+  e.preventDefault();
+  if(listMode){
+    const currentDiv = getCurrentListDiv();
+    if(!currentDiv){
+      // Caret isn't inside a list item anymore — stop treating Enter as list-continue.
+      listMode = null;
       document.execCommand('insertHTML', false, '<br>');
+    } else {
+      const currentMarker = formatMarker(listMode.type, listMode.current);
+      const currentText = currentDiv.innerText.replace(/\u00A0/g,' ').trim();
+      if(currentText === currentMarker){
+        // Empty list item -> stop the list, like Word does on double-Enter
+        currentDiv.removeAttribute('class');
+        currentDiv.removeAttribute('style');
+        listMode = null;
+      } else {
+        const nextIndex = listMode.current + 1;
+        const newDiv = buildListItemNode(listMode.type, nextIndex);
+        currentDiv.parentNode.insertBefore(newDiv, currentDiv.nextSibling);
+        placeCaretAtEnd(newDiv);
+        listMode.current = nextIndex;
+      }
     }
-    scheduleRefresh();
+  } else {
+    document.execCommand('insertHTML', false, '<br>');
   }
+  scheduleRefresh();
 });
 
 editor.addEventListener('input', scheduleRefresh);
@@ -726,37 +731,34 @@ function looselyCleanPastedHTML(html){
       }
     });
   })(temp);
+  cleanElementTree(temp);
   return temp.innerHTML;
 }
 
-// ───────────────────────── Export / clean HTML ─────────────────────────
-function getCleanHTML(){
-  const clone = editor.cloneNode(true);
-  clone.querySelectorAll('.cell-selected').forEach(el=>el.classList.remove('cell-selected'));
-
-  // Unwrap block-level DIV/P into inline content followed by <br> — except .sb-li
-  // list-item divs, which are kept as their own hanging-indent blocks.
+// ───────────────────────── Shared normalization ─────────────────────────
+// Flattens DIV/P into inline content + <br>, unwraps SPAN/FONT, and strips
+// attributes down to the minimal safe set — except .sb-li list-item divs and
+// their .sb-li-marker spans, which keep the inline styles that make the
+// hanging indent work. Used both when exporting and when pasting, so pasted
+// content can never smuggle in a stray styled block that breaks a list item.
+function cleanElementTree(root){
   let guard = 0;
   let block;
-  while((block = clone.querySelector('div:not(.sb-li), p')) && guard < 4000){
+  while((block = root.querySelector('div:not(.sb-li), p')) && guard < 4000){
     guard++;
     const br = document.createElement('br');
     block.after(br);
     while(block.firstChild) block.parentNode.insertBefore(block.firstChild, block);
     block.remove();
   }
-  // Unwrap SPAN/FONT wrappers — except .sb-li-marker spans, which carry the
-  // fixed-width marker column that keeps wrapped lines aligned.
   guard = 0;
   let inline;
-  while((inline = clone.querySelector('span:not(.sb-li-marker), font')) && guard < 4000){
+  while((inline = root.querySelector('span:not(.sb-li-marker), font')) && guard < 4000){
     guard++;
     while(inline.firstChild) inline.parentNode.insertBefore(inline.firstChild, inline);
     inline.remove();
   }
-
-  // Normalize attributes
-  clone.querySelectorAll('*').forEach(el=>{
+  root.querySelectorAll('*').forEach(el=>{
     if(el.tagName === 'TABLE'){
       Array.from(el.attributes).forEach(a=>el.removeAttribute(a.name));
       el.setAttribute('border','1');
@@ -782,6 +784,13 @@ function getCleanHTML(){
       Array.from(el.attributes).forEach(a=>el.removeAttribute(a.name));
     }
   });
+}
+
+// ───────────────────────── Export / clean HTML ─────────────────────────
+function getCleanHTML(){
+  const clone = editor.cloneNode(true);
+  clone.querySelectorAll('.cell-selected').forEach(el=>el.classList.remove('cell-selected'));
+  cleanElementTree(clone);
 
   // Remove empty trailing <br> pile-ups and &nbsp;-only leftovers left over from unwraps
   let html = clone.innerHTML;

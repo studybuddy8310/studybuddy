@@ -1,0 +1,157 @@
+/* ============================================================
+   classroom.css
+   Styles for student/timer.html's "Classroom" page.
+   Uses the design tokens already defined in global.css.
+   Extra tokens (purple/orange/wood/sky colors) are scoped here
+   only, so they don't leak into the rest of the app.
+   ============================================================ */
+
+:root {
+  --cr-purple:       #7C4DFF;
+  --cr-purple-light: #F1EAFE;
+  --cr-orange:       #EA580C;
+  --cr-orange-light: #FFF1E7;
+  --cr-wood:         #C89B6B;
+  --cr-wood-dark:    #A87A4B;
+}
+
+/* ── Edit-link / mini buttons in the page hero ── */
+.edit-link { font-size:12px; color:var(--primary); font-weight:700; cursor:pointer; background:none; border:none; padding:0; }
+
+/* ── Normal Timer — compact card ── */
+.normal-timer-card { text-align:center; position:relative; margin-bottom:20px; }
+.uc-title { text-transform:uppercase; letter-spacing:2px; font-size:12px; color:var(--text-secondary); margin:0 0 12px; }
+.btn-expand { position:absolute; top:14px; right:14px; background:none; border:none; cursor:pointer; color:var(--text-muted); font-size:16px; padding:2px; }
+.btn-expand:hover { color:var(--text-primary); }
+.tw-tabs { display:inline-flex; background:var(--surface-2); border:1px solid var(--border); border-radius:20px; padding:3px; margin-bottom:6px; }
+.tw-tab { border:none; background:none; padding:6px 18px; border-radius:16px; font-size:12px; font-weight:700; color:var(--text-secondary); cursor:pointer; }
+.tw-tab.active { background:var(--surface); color:var(--primary); box-shadow:var(--shadow-sm); }
+
+/* Fullscreen focus-mode overlay — the Normal Timer card is moved into
+   #tw-overlay-body via JS (appendChild) rather than duplicated, so all
+   its state/listeners keep working unchanged. */
+.tw-overlay {
+  position:fixed; inset:0; background:var(--bg); display:none;
+  align-items:center; justify-content:center; z-index:500; padding:24px;
+}
+.tw-overlay.show { display:flex; }
+.tw-overlay .tw-collapse { position:fixed; top:22px; right:26px; font-size:20px; }
+#tw-overlay-body { width:100%; max-width:440px; }
+#tw-overlay-body .normal-timer-card { margin-bottom:0; }
+#tw-overlay-body .timer-digits { font-size:3rem; }
+
+/* ── Classroom card ── */
+.classroom-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-xl); overflow:hidden; margin-bottom:20px; }
+.scene-topbar { display:flex; align-items:center; justify-content:space-between; padding:12px 16px; border-bottom:1px solid var(--border); }
+.scene-topbar .room-name { font-size:13px; font-weight:700; display:flex; align-items:center; gap:8px; color:var(--text-primary); }
+.scene-topbar .count { font-size:12px; color:var(--text-secondary); font-weight:600; margin-left:6px; }
+.live-dot { width:7px; height:7px; border-radius:50%; background:var(--success); animation:cr-pulse 1.6s infinite; }
+@keyframes cr-pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+.room-timer-mini { font-family:monospace; font-size:13px; font-weight:700; color:var(--primary); display:flex; align-items:center; gap:4px; }
+
+/* ── Setup / re-entry screen ── */
+.setup-card { padding:28px 22px; text-align:center; }
+.setup-card h3 { margin:0 0 4px; font-size:17px; color:var(--text-primary); }
+.setup-card p { margin:0 0 16px; color:var(--text-secondary); font-size:13px; }
+.setup-card input[type=text] {
+  width:100%; max-width:280px; padding:11px 14px; border:1.5px solid var(--border); border-radius:var(--radius-md);
+  font-size:14px; text-align:center; outline:none; margin:0 auto 16px; display:block; background:var(--surface-2); color:var(--text-primary);
+}
+.setup-card input[type=text]:focus { border-color:var(--primary); }
+
+.avatar-grid { display:grid; grid-template-columns:repeat(8,1fr); gap:8px; max-width:520px; margin:0 auto 18px; max-height:220px; overflow-y:auto; padding:4px; }
+@media (max-width:640px) { .avatar-grid { grid-template-columns:repeat(6,1fr); } }
+@media (max-width:420px) { .avatar-grid { grid-template-columns:repeat(4,1fr); } }
+.avatar-opt { width:100%; aspect-ratio:1; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:20px; overflow:hidden;
+  cursor:pointer; border:2.5px solid var(--border); background:var(--surface-2); position:relative; }
+.avatar-opt img { width:100%; height:100%; object-fit:cover; display:block; }
+.avatar-opt.selected { border-color:var(--primary); box-shadow:0 0 0 3px var(--primary-light); }
+.avatar-opt .sel-check { position:absolute; top:2px; right:2px; width:16px; height:16px; border-radius:50%; background:var(--primary);
+  color:#fff; font-size:10px; display:none; align-items:center; justify-content:center; }
+.avatar-opt.selected .sel-check { display:flex; }
+
+.timer-icon-badge { border-radius:50%; overflow:hidden; margin:0 auto 12px; background:var(--primary-light); display:flex; align-items:center; justify-content:center; }
+.timer-icon-badge img { width:100%; height:100%; object-fit:cover; display:block; }
+
+/* ── The room scene ── */
+.scene {
+  position:relative; padding:30px 24px 40px; overflow:hidden;
+  background: linear-gradient(180deg, #6E5A46 0%, #7A6A54 30%, #8C7861 100%);
+  min-height:400px;
+}
+.scene-floor {
+  position:absolute; inset:0; z-index:0;
+  background:
+    repeating-linear-gradient(90deg, rgba(0,0,0,0.05) 0 2px, transparent 2px 64px),
+    linear-gradient(180deg, transparent 0%, transparent 55%, #9C8567 55%, #9C8567 100%);
+}
+.light-beam {
+  position:absolute; top:0; left:6%; width:150px; height:100%; z-index:0;
+  background:linear-gradient(115deg, rgba(255,255,255,0.14) 0%, transparent 40%);
+  pointer-events:none;
+}
+
+.wall-props { position:relative; z-index:1; display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:24px; }
+
+.window-frame { width:110px; height:124px; border-radius:8px; flex-shrink:0; position:relative; background:#EDE3CF; border:7px solid #EDE3CF; box-shadow:0 8px 18px rgba(0,0,0,0.3); }
+.sky { position:absolute; inset:0; border-radius:3px; overflow:hidden; transition:background 2.5s ease; }
+.sky .stars { position:absolute; inset:0; opacity:0; transition:opacity 2.5s ease; }
+.sky .star { position:absolute; width:2px; height:2px; background:#fff; border-radius:50%; animation:cr-twinkle 2.4s ease-in-out infinite; }
+@keyframes cr-twinkle { 0%,100%{opacity:.2} 50%{opacity:1} }
+.sky .celestial { position:absolute; width:16px; height:16px; border-radius:50%; transition:left 3s linear, top 3s linear, background 2.5s ease, box-shadow 2.5s ease; }
+.sky .horizon { position:absolute; left:0; right:0; bottom:0; height:32%; background:linear-gradient(180deg, rgba(58,110,60,0.85), #3A6E3C); }
+.window-mullions { position:absolute; inset:0; pointer-events:none; }
+.window-mullions::before, .window-mullions::after { content:''; position:absolute; background:#EDE3CF; }
+.window-mullions::before { left:50%; top:0; bottom:0; width:6px; transform:translateX(-50%); }
+.window-mullions::after { top:50%; left:0; right:0; height:6px; transform:translateY(-50%); }
+
+.board { flex:1; max-width:480px; background:#EDE6D8; border:10px solid #6B4A2C; border-radius:6px; box-shadow:0 8px 20px rgba(0,0,0,0.3); padding:20px 16px; text-align:center; align-self:flex-start; }
+.board h2 { margin:0; font-family:var(--font-heading); font-size:20px; letter-spacing:1px; color:var(--text-primary); text-decoration:underline; text-underline-offset:6px; }
+
+.wall-clock-wrap { width:86px; height:86px; flex-shrink:0; align-self:center; filter:drop-shadow(0 6px 10px rgba(0,0,0,0.35)); }
+.wall-clock-wrap svg { width:100%; height:100%; display:block; }
+.clock-tick { stroke:#222; }
+.clock-num { font-size:9px; font-weight:700; fill:var(--text-primary); font-family:var(--font-heading); }
+.clock-hh { stroke:#222; stroke-width:4; stroke-linecap:round; }
+.clock-mh { stroke:#444; stroke-width:2.6; stroke-linecap:round; }
+.clock-sh { stroke:var(--danger); stroke-width:1.4; stroke-linecap:round; }
+
+.desks-grid { position:relative; z-index:1; display:grid; grid-template-columns:repeat(4,1fr); gap:20px 14px; }
+@media (max-width:640px) { .desks-grid { grid-template-columns:repeat(2,1fr); } }
+.desk-slot { display:flex; flex-direction:column; align-items:center; min-height:110px; justify-content:flex-end; position:relative; }
+.desk { width:88%; height:32px; background:linear-gradient(180deg,var(--cr-wood),var(--cr-wood-dark)); border-radius:5px; box-shadow:0 5px 10px rgba(0,0,0,0.25); position:relative; }
+.desk::before, .desk::after { content:''; position:absolute; bottom:-14px; width:6px; height:16px; background:var(--cr-wood-dark); border-radius:0 0 3px 3px; }
+.desk::before { left:8px; } .desk::after { right:8px; }
+
+.avatar-seat { position:absolute; bottom:24px; display:flex; flex-direction:column; align-items:center; gap:5px; }
+.avatar-bob { animation:cr-bob 2.6s ease-in-out infinite; }
+@keyframes cr-bob { 0%,100%{ transform:translateY(0);} 50%{ transform:translateY(-3px);} }
+.nameplate { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:3px 9px; font-size:10.5px; font-weight:700;
+  white-space:nowrap; box-shadow:0 3px 8px rgba(0,0,0,0.15); display:flex; align-items:center; gap:5px; max-width:110px; }
+.nameplate .who { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:70px; color:var(--text-primary); }
+.status-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+.status-dot.live { animation:cr-pulse 1.8s infinite; }
+.avatar-face { width:44px; height:44px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:22px;
+  box-shadow:0 4px 10px rgba(0,0,0,0.25); border:3px solid var(--surface); position:relative; overflow:hidden; }
+.avatar-face img { width:100%; height:100%; object-fit:cover; display:block; }
+.avatar-face .fallback-initials { width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:800; color:#fff; }
+.avatar-seat.mine .avatar-face { box-shadow:0 0 0 3px var(--primary), 0 4px 10px rgba(0,0,0,0.25); }
+.target-bubble { position:absolute; top:-28px; left:50%; transform:translateX(-50%); background:var(--text-primary); color:#fff; font-size:9.5px;
+  padding:3px 8px; border-radius:8px; white-space:nowrap; max-width:130px; overflow:hidden; text-overflow:ellipsis; opacity:0; pointer-events:none; transition:opacity .15s; }
+.avatar-seat:hover .target-bubble { opacity:1; }
+
+/* ── Status bar ── */
+.statusbar { border-top:1px solid var(--border); padding:12px 16px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.statusbar-lbl { font-size:12px; color:var(--text-secondary); font-weight:700; }
+.statuschip { border:1.5px solid var(--border); background:var(--surface-2); border-radius:20px; padding:7px 13px; font-size:12px; font-weight:700; cursor:pointer; color:var(--text-secondary); transition:all .15s; }
+.statuschip:hover { border-color:var(--border-strong); }
+.statuschip[data-s="study"].active    { background:var(--success-light); color:var(--success); border-color:var(--success); }
+.statuschip[data-s="lecture"].active  { background:var(--info-light);    color:var(--info);    border-color:var(--info); }
+.statuschip[data-s="reading"].active  { background:var(--cr-purple-light); color:var(--cr-purple); border-color:var(--cr-purple); }
+.statuschip[data-s="revision"].active { background:var(--cr-orange-light); color:var(--cr-orange); border-color:var(--cr-orange); }
+.statuschip[data-s="break"].active    { background:var(--warning-light); color:#8A5F00; border-color:var(--warning); }
+.statusbar input[type=text] { flex:1; min-width:160px; border:1.5px solid var(--border); background:var(--surface-2); border-radius:10px; padding:8px 12px; font-size:12.5px; color:var(--text-primary); outline:none; }
+.statusbar input[type=text]:focus { border-color:var(--primary); }
+
+/* ── Recent Sessions badge for classroom-type sessions ── */
+.sess-type-badge.classroom { background:var(--primary-light); color:var(--primary); }

@@ -216,14 +216,5 @@ service cloud.firestore {
             delete: if isAdmin();
     }
 
-    // ── passwordResetOtps ─────────────────────────────────────
-    // passwordResetOtps/{uid} — written & read ONLY by Cloud
-    // Functions using the Admin SDK, which bypasses these rules
-    // entirely. This match exists just to make the intent explicit:
-    // no client (not even a signed-in one) may ever touch this data.
-    match /passwordResetOtps/{uid} {
-      allow read, write: if false;
-    }
-
   }
 }

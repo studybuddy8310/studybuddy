@@ -25,6 +25,25 @@ service cloud.firestore {
       return isApproved() && getUserData().role == 'superadmin';
     }
 
+    // ── emailLookup ───────────────────────────────────────────
+    // emailLookup/{lowercaseEmail} — a deliberately minimal, public
+    // -readable mirror of a few identity fields (name, DOB, phone —
+    // NEVER password, role, or anything else) used ONLY so a
+    // signed-out visitor on the Forgot Password page can confirm
+    // their own identity before we send them a reset email. Anyone
+    // can already tell whether an email is registered via the
+    // signup form's "already registered" message, so this doesn't
+    // expose anything new — it just lets that same check happen
+    // during password reset too.
+    // Only the account owner (or an admin, for the superadmin-edit
+    // feature) may write it, keeping it in sync with users/{uid}.
+    match /emailLookup/{emailId} {
+      allow get:   if true;
+      allow list:  if false;
+      allow write: if (isSignedIn() && request.auth.token.email.lower() == emailId)
+                   || isAdmin();
+    }
+
     // ── users ─────────────────────────────────────────────────
     // Public: anyone signed in can create their own user doc (signup)
     // Students: read/update own doc only

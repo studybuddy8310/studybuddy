@@ -131,7 +131,7 @@
         <!-- ────────────── FORGOT PASSWORD ─────────────────── -->
         <div id="tab-forgot" style="display:none;">
           <h2 class="auth-box-title">Reset your password</h2>
-          <p class="auth-box-sub" id="forgot-step-label">Step 1 of 5 — Your Name</p>
+          <p class="auth-box-sub" id="forgot-step-label">Step 1 of 4 — Your Name</p>
 
           <div id="forgot-error" class="form-error mb-16" style="display:none; font-size:14px; background:var(--danger-light); padding:10px 14px; border-radius:var(--radius-md);"></div>
 
@@ -403,18 +403,18 @@
        JAVASCRIPT
   ═══════════════════════════════════════════════════════════════ -->
   <script type="module">
-    import { auth, db, EMAILJS_CONFIG, functionsInstance } from './js/firebase-config.js';
+    import { auth, db, EMAILJS_CONFIG } from './js/firebase-config.js';
     import {
       signInWithEmailAndPassword,
       createUserWithEmailAndPassword,
-      onAuthStateChanged
+      onAuthStateChanged,
+      sendPasswordResetEmail,
+      confirmPasswordReset,
+      verifyPasswordResetCode
     } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
     import {
       doc, setDoc, getDoc, serverTimestamp, updateDoc, Timestamp
     } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-    import {
-      httpsCallable
-    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js";
 
     // Make auth available globally for the pending screen logout button
     window.auth = auth;
@@ -707,21 +707,22 @@
       }
     });
 
-    // ── Forgot Password (no OTP — step-by-step identity wizard) ─
-    let _fpData = {}; // collected across steps: firstName,lastName,dateOfBirth,phone,email
+    // ── Forgot Password (no OTP, no server — Firestore identity
+    // check + Firebase's own free password-reset email) ─────────
+    let _fpData = {}; // collected across steps: firstName,lastName,dateOfBirth,phone
     const FP_STEP_LABELS = {
-      1: 'Step 1 of 5 — Your Name',
-      2: 'Step 2 of 5 — Date of Birth',
-      3: 'Step 3 of 5 — Phone Number',
-      4: 'Step 4 of 5 — Email Address',
-      5: 'Step 5 of 5 — Set New Password',
+      1: 'Step 1 of 4 — Your Name',
+      2: 'Step 2 of 4 — Date of Birth',
+      3: 'Step 3 of 4 — Phone Number',
+      4: 'Step 4 of 4 — Email Address',
     };
 
     function resetForgotFlow() {
       document.getElementById('forgot-error').style.display = 'none';
-      for (let i = 1; i <= 5; i++) {
+      for (let i = 1; i <= 4; i++) {
         document.getElementById('fp-step-' + i).style.display = (i === 1 ? 'block' : 'none');
       }
+      document.getElementById('fp-step-5').style.display       = 'none';
       document.getElementById('fp-step-success').style.display = 'none';
       document.getElementById('forgot-back-link').style.display = 'block';
       document.getElementById('forgot-step-label').textContent = FP_STEP_LABELS[1];
@@ -730,8 +731,6 @@
       document.getElementById('fp-dob').value   = '';
       document.getElementById('fp-phone').value = '';
       document.getElementById('fp-email').value = '';
-      document.getElementById('fp-new-password').value     = '';
-      document.getElementById('fp-confirm-password').value = '';
       _fpData = {};
     }
 
@@ -742,14 +741,16 @@
     }
     function fpGoTo(step) {
       document.getElementById('forgot-error').style.display = 'none';
-      for (let i = 1; i <= 5; i++) {
+      for (let i = 1; i <= 4; i++) {
         document.getElementById('fp-step-' + i).style.display = (i === step ? 'block' : 'none');
       }
       document.getElementById('forgot-step-label').textContent = FP_STEP_LABELS[step];
     }
     window.fpPrevStep = function(step) { fpGoTo(step); };
 
-    // Step 1 → 2 → 3 → 4: just collect + validate, no server call yet
+    function norm(s) { return (s || '').toString().trim().toLowerCase(); }
+
+    // Step 1 → 2 → 3: just collect + validate, no server call yet
     window.fpNextStep = function(currentStep) {
       document.getElementById('forgot-error').style.display = 'none';
 
@@ -773,17 +774,53 @@
       }
     };
 
-    // Step 4 → 5: this is where we actually check the details against
-    // the database — done together with the password set (step 5) in
-    // ONE call to the Cloud Function, so we just move on to step 5 here.
-    window.fpVerifyAndContinue = function() {
+    // Step 4: check the collected details against the (deliberately
+    // minimal) emailLookup record for this email, then — only if
+    // everything matches — send Firebase's own free password reset
+    // email, which links back to THIS page to finish the job.
+    window.fpVerifyAndContinue = async function() {
       document.getElementById('forgot-error').style.display = 'none';
       const email = document.getElementById('fp-email').value.trim();
+      const btn   = document.getElementById('fp-verify-btn');
       if (!email) { fpShowError('❌ Please enter your registered email address.'); return; }
-      _fpData.email = email;
-      fpGoTo(5);
+
+      btn.disabled = true; btn.textContent = 'Verifying…';
+      try {
+        const lookupSnap = await getDoc(doc(db, 'emailLookup', email.toLowerCase()));
+        const GENERIC_ERR = '❌ We couldn\'t verify those details. Please check and try again.';
+
+        if (!lookupSnap.exists()) { fpShowError(GENERIC_ERR); btn.disabled=false; btn.textContent='Verify Details'; return; }
+        const L = lookupSnap.data();
+        const matches =
+          norm(L.firstName) === norm(_fpData.firstName) &&
+          norm(L.lastName)  === norm(_fpData.lastName)  &&
+          norm(L.phone)     === norm(_fpData.phone)     &&
+          (L.dateOfBirth || '') === (_fpData.dateOfBirth || '');
+
+        if (!matches) { fpShowError(GENERIC_ERR); btn.disabled=false; btn.textContent='Verify Details'; return; }
+
+        await sendPasswordResetEmail(auth, email, {
+          url: window.location.origin + window.location.pathname,
+        });
+
+        document.getElementById('fp-step-4').style.display = 'none';
+        document.getElementById('forgot-step-label').textContent = 'Check your email';
+        document.getElementById('fp-step-success').innerHTML = `
+          <div style="font-size:44px; margin-bottom:12px;">📧</div>
+          <h2 class="auth-box-title">Check your email</h2>
+          <p class="auth-box-sub mb-16">We've sent a password reset link to ${email}. Open it to set a new password.</p>
+          <button type="button" class="btn btn-primary btn-full btn-lg" onclick="switchTab('login')">Back to Login</button>`;
+        document.getElementById('fp-step-success').style.display  = 'block';
+        document.getElementById('forgot-back-link').style.display = 'none';
+      } catch (err) {
+        console.error(err);
+        fpShowError('❌ Something went wrong. Please try again.');
+      }
+      btn.disabled = false; btn.textContent = 'Verify Details';
     };
 
+    // Handles the link Firebase's reset email sends the user back to
+    // (this same page, with ?mode=resetPassword&oobCode=... in the URL)
     window.fpCompleteReset = async function() {
       const newPassword     = document.getElementById('fp-new-password').value;
       const confirmPassword = document.getElementById('fp-confirm-password').value;
@@ -800,22 +837,47 @@
         return;
       }
 
-      btn.disabled = true; btn.textContent = 'Verifying & saving…';
+      btn.disabled = true; btn.textContent = 'Saving…';
       try {
-        const resetFn = httpsCallable(functionsInstance, 'resetPasswordWithIdentityCheck');
-        await resetFn({ ..._fpData, newPassword });
+        await confirmPasswordReset(auth, _fpOobCode, newPassword);
 
-        document.getElementById('fp-step-5').style.display      = 'none';
+        document.getElementById('fp-step-5').style.display       = 'none';
+        document.getElementById('fp-step-success').innerHTML = `
+          <div style="font-size:44px; margin-bottom:12px;">✅</div>
+          <h2 class="auth-box-title">Password Reset Successfully!</h2>
+          <p class="auth-box-sub mb-16">You can now login with your new password.</p>
+          <button type="button" class="btn btn-primary btn-full btn-lg" onclick="switchTab('login')">Back to Login</button>`;
         document.getElementById('fp-step-success').style.display = 'block';
         document.getElementById('forgot-back-link').style.display = 'none';
       } catch (err) {
         console.error(err);
-        // A mismatch means something in steps 1-4 was wrong — send them back to step 1.
-        fpShowError('❌ ' + (err.message || 'We could not verify those details.') + ' Please start over.');
-        setTimeout(() => resetForgotFlow(), 2500);
+        fpShowError('❌ This reset link is invalid or has expired. Please request a new one.');
       }
       btn.disabled = false; btn.textContent = 'Set New Password';
     };
+
+    // On page load: if we arrived via the link in the reset email,
+    // skip straight to the "Set New Password" step.
+    let _fpOobCode = null;
+    (async function checkForResetLink() {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('mode') !== 'resetPassword' || !params.get('oobCode')) return;
+      _fpOobCode = params.get('oobCode');
+      try {
+        await verifyPasswordResetCode(auth, _fpOobCode);
+        switchTab('forgot');
+        for (let i = 1; i <= 4; i++) document.getElementById('fp-step-' + i).style.display = 'none';
+        document.getElementById('fp-step-success').style.display = 'none';
+        document.getElementById('fp-step-5').style.display = 'block';
+        document.getElementById('forgot-step-label').textContent = 'Set your new password';
+        document.getElementById('forgot-back-link').style.display = 'none';
+      } catch (err) {
+        switchTab('forgot');
+        fpShowError('❌ This reset link is invalid or has expired. Please request a new one.');
+      }
+      // Clean the oobCode out of the visible URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    })();
 
     // ── Signup Form ──────────────────────────────────────────
     document.getElementById('signup-form').addEventListener('submit', async (e) => {
@@ -915,6 +977,13 @@
           role,
           status:    _inviteValid ? 'approved' : (role === 'admin' ? 'pending' : 'pending'), // invite bypasses approval
           createdAt: serverTimestamp()
+        });
+
+        // Minimal public-readable identity record, used only so the
+        // Forgot Password page can confirm identity for this email
+        // before sending a reset link. Never contains the password.
+        await setDoc(doc(db, 'emailLookup', email.toLowerCase()), {
+          firstName, lastName, phone, dateOfBirth: dob,
         });
 
         // If joining via invite, mark token used

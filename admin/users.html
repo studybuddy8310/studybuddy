@@ -685,16 +685,24 @@
       return;
     }
     try {
+      const newEmail = document.getElementById('edit-u-email').value.trim();
       await updateDoc(doc(db, 'users', uid), {
         firstName:   document.getElementById('edit-u-first').value.trim(),
         lastName:    document.getElementById('edit-u-last').value.trim(),
         phone,
         dateOfBirth: document.getElementById('edit-u-dob').value || null,
-        email:       document.getElementById('edit-u-email').value.trim(),
+        email:       newEmail,
         course:      document.getElementById('edit-u-course').value,
         level:       document.getElementById('edit-u-level').value.trim(),
         status:      document.getElementById('edit-u-status').value,
       });
+      // Keep the Forgot Password identity-check record in sync
+      await setDoc(doc(db, 'emailLookup', newEmail.toLowerCase()), {
+        firstName:   document.getElementById('edit-u-first').value.trim(),
+        lastName:    document.getElementById('edit-u-last').value.trim(),
+        phone,
+        dateOfBirth: document.getElementById('edit-u-dob').value || null,
+      }).catch(() => {});
       showToast('Student details updated.', 'success');
       await loadAllUsers();
       document.getElementById('view-modal').classList.add('hidden');

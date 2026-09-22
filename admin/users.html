@@ -688,9 +688,13 @@
     const btn = document.getElementById('btn-backfill-lookup');
     btn.disabled = true; btn.textContent = 'Working…';
 
-    let created = 0, skipped = 0, failed = 0;
+    let created = 0, failed = 0;
+    const skippedNames = [];
     for (const u of allUsers) {
-      if (!u.email || !u.firstName || !u.phone) { skipped++; continue; }
+      if (!u.email || !u.firstName || !u.phone) {
+        skippedNames.push(`${u.firstName || '(no name)'} ${u.lastName || ''} — ${u.email || 'no email on file'}`.trim());
+        continue;
+      }
       try {
         await setDoc(doc(db, 'emailLookup', u.email.toLowerCase()), {
           firstName:   u.firstName || '',
@@ -708,12 +712,18 @@
     btn.disabled = false; btn.textContent = '🔄 Backfill Forgot-Password Records';
     showToast(
       `Done: ${created} updated` +
-      (skipped ? `, ${skipped} skipped (missing name/phone)` : '') +
+      (skippedNames.length ? `, ${skippedNames.length} skipped` : '') +
       (failed ? `, ${failed} failed` : '') + '.',
       failed ? 'error' : 'success'
     );
-    if (skipped > 0) {
-      showToast(`Students with a missing name/phone still need Date of Birth or other fields filled in individually.`, 'error');
+
+    if (skippedNames.length > 0) {
+      await Modal.alert(
+        `${skippedNames.length} student${skippedNames.length>1?'s':''} skipped`,
+        `These are missing a name, phone, or email on file, so no Forgot-Password record could be created for them. Open each one in the table and fill in the missing field(s):<br><br>` +
+        skippedNames.map(n => `• ${n}`).join('<br>'),
+        '⚠️'
+      );
     }
   };
 

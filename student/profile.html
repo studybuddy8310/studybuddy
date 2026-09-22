@@ -137,6 +137,10 @@
                 <span class="profile-info-val" id="pi-phone">—</span>
               </div>
               <div class="profile-info-row">
+                <span class="profile-info-label">🎂 Date of Birth</span>
+                <span class="profile-info-val" id="pi-dob">—</span>
+              </div>
+              <div class="profile-info-row">
                 <span class="profile-info-label">📚 Course</span>
                 <span class="profile-info-val" id="pi-course">—</span>
               </div>
@@ -198,6 +202,10 @@
             <div class="form-group">
               <label class="form-label">Phone Number</label>
               <input type="tel" id="edit-phone" class="form-input" placeholder="10-digit phone" maxlength="10"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Date of Birth</label>
+              <input type="date" id="edit-dob" class="form-input"/>
             </div>
             <!-- Read-only fields -->
             <div class="form-two-col mb-16">
@@ -457,6 +465,9 @@
     document.getElementById('profile-course-level').textContent=data.course+' — '+data.level;
     document.getElementById('pi-email').textContent=data.email||'—';
     document.getElementById('pi-phone').textContent=data.phone||'—';
+    document.getElementById('pi-dob').textContent=data.dateOfBirth
+      ? new Date(data.dateOfBirth+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'})
+      : '—';
     document.getElementById('pi-course').textContent=data.course||'—';
     document.getElementById('pi-level').textContent=data.level||'—';
     document.getElementById('pi-joined').textContent=data.createdAt
@@ -465,6 +476,7 @@
     document.getElementById('edit-first').value=data.firstName||'';
     document.getElementById('edit-last').value=data.lastName||'';
     document.getElementById('edit-phone').value=data.phone||'';
+    document.getElementById('edit-dob').value=data.dateOfBirth||'';
     document.getElementById('ro-email').textContent=data.email||'—';
     document.getElementById('ro-level').textContent=data.course+' — '+data.level;
     // Show group selector only for CA-Intermediate and CA-Final
@@ -496,9 +508,10 @@
     const firstName=document.getElementById('edit-first').value.trim();
     const lastName =document.getElementById('edit-last').value.trim();
     const phone    =document.getElementById('edit-phone').value.trim();
+    const dob      =document.getElementById('edit-dob').value;
     if(!firstName||!lastName){toast('Name cannot be empty.','error');return;}
     if(phone&&!/^\d{10}$/.test(phone)){toast('Phone must be 10 digits.','error');return;}
-    const updateData = { firstName, lastName, phone, updatedAt:serverTimestamp() };
+    const updateData = { firstName, lastName, phone, dateOfBirth: dob||null, updatedAt:serverTimestamp() };
     // Save group if selector is visible
     const groupWrap = document.getElementById('group-selector-wrap');
     if(groupWrap.style.display !== 'none'){
@@ -516,6 +529,9 @@
       document.getElementById('profile-avatar').textContent=(firstName[0]+lastName[0]).toUpperCase();
       document.getElementById('sidebar-avatar').textContent=(firstName[0]+lastName[0]).toUpperCase();
       document.getElementById('pi-phone').textContent=phone||'—';
+      document.getElementById('pi-dob').textContent=dob
+        ? new Date(dob+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'})
+        : '—';
     }catch(e){toast('Save failed.','error');}
     finally{btn.disabled=false;btn.innerHTML='💾 Save Changes';}
   };

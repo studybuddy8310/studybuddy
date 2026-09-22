@@ -128,6 +128,10 @@
           <option value="FRM-I">FRM Part I</option>
           <option value="FRM-II">FRM Part II</option>
         </select>
+        <button class="btn btn-outline hidden" id="btn-backfill-lookup" onclick="backfillEmailLookup()"
+          title="Creates the Forgot-Password identity record for any student who signed up before this feature existed">
+          🔄 Backfill Forgot-Password Records
+        </button>
       </div>
 
       <!-- Table -->
@@ -313,6 +317,9 @@
       window.location.href = '../index.html'; return;
     }
     currentUserRole = data.role;
+    if (currentUserRole === 'superadmin') {
+      document.getElementById('btn-backfill-lookup')?.classList.remove('hidden');
+    }
     document.getElementById('sidebar-avatar').textContent =
       (data.firstName[0]+data.lastName[0]).toUpperCase();
     document.getElementById('sidebar-name').textContent =
@@ -672,6 +679,41 @@
     } catch(e) {
       showToast('Failed. Try again.', 'error');
       console.error(e);
+    }
+  };
+
+  // ── Superadmin: Backfill emailLookup for pre-existing users ──
+  window.backfillEmailLookup = async function() {
+    if (currentUserRole !== 'superadmin') return;
+    const btn = document.getElementById('btn-backfill-lookup');
+    btn.disabled = true; btn.textContent = 'Working…';
+
+    let created = 0, skipped = 0, failed = 0;
+    for (const u of allUsers) {
+      if (!u.email || !u.firstName || !u.phone) { skipped++; continue; }
+      try {
+        await setDoc(doc(db, 'emailLookup', u.email.toLowerCase()), {
+          firstName:   u.firstName || '',
+          lastName:    u.lastName  || '',
+          phone:       u.phone     || '',
+          dateOfBirth: u.dateOfBirth || null,
+        });
+        created++;
+      } catch (e) {
+        console.error('Backfill failed for', u.email, e);
+        failed++;
+      }
+    }
+
+    btn.disabled = false; btn.textContent = '🔄 Backfill Forgot-Password Records';
+    showToast(
+      `Done: ${created} updated` +
+      (skipped ? `, ${skipped} skipped (missing name/phone)` : '') +
+      (failed ? `, ${failed} failed` : '') + '.',
+      failed ? 'error' : 'success'
+    );
+    if (skipped > 0) {
+      showToast(`Students with a missing name/phone still need Date of Birth or other fields filled in individually.`, 'error');
     }
   };
 

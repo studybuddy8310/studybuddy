@@ -17,22 +17,10 @@
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const logger = require("firebase-functions/logger");
 const admin = require("firebase-admin");
+const { sendPasswordResetOtpEmail, sendPasswordResetConfirmationEmail } = require("./utils/email");
 
 admin.initializeApp();
 const db = admin.firestore();
-
-// EmailJS credentials for SERVER-SIDE sending.
-// Create functions/.env with these two lines (see functions/.env.example):
-//   EMAILJS_SERVICE_ID=service_4xpjztg
-//   EMAILJS_TEMPLATE_ID=template_9hxgir7
-//   EMAILJS_PUBLIC_KEY=Wvfl_ifH3R6tzLn26
-//   EMAILJS_PRIVATE_KEY=<your EmailJS Private Key, from EmailJS Dashboard → Account → API Keys>
-// You must also enable "Allow non-browser (server) requests" for
-// this in your EmailJS account, or the send will be rejected.
-const EMAILJS_SERVICE_ID  = process.env.EMAILJS_SERVICE_ID  || "service_4xpjztg";
-const EMAILJS_TEMPLATE_ID = process.env.EMAILJS_TEMPLATE_ID || "template_9hxgir7";
-const EMAILJS_PUBLIC_KEY  = process.env.EMAILJS_PUBLIC_KEY  || "Wvfl_ifH3R6tzLn26";
-const EMAILJS_PRIVATE_KEY = process.env.EMAILJS_PRIVATE_KEY || "";
 
 const OTP_TTL_MS      = 10 * 60 * 1000;  // 10 minutes
 const RESET_TOKEN_TTL_MS = 10 * 60 * 1000;
@@ -41,30 +29,6 @@ const MAX_OTP_ATTEMPTS = 5;
 
 function norm(s) {
   return (s || "").toString().trim().toLowerCase();
-}
-
-async function sendEmail(toEmail, studentName, subject, message) {
-  const resp = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      service_id:  EMAILJS_SERVICE_ID,
-      template_id: EMAILJS_TEMPLATE_ID,
-      user_id:     EMAILJS_PUBLIC_KEY,
-      accessToken: EMAILJS_PRIVATE_KEY,
-      template_params: {
-        to_email:     toEmail,
-        student_name: studentName || "Student",
-        subject,
-        message,
-      },
-    }),
-  });
-  if (!resp.ok) {
-    const text = await resp.text().catch(() => "");
-    logger.error("EmailJS send failed", resp.status, text);
-    throw new HttpsError("internal", "Failed to send email. Please try again shortly.");
-  }
 }
 
 function genOtp() {
@@ -129,12 +93,7 @@ exports.requestPasswordResetOtp = onCall({ cors: true }, async (request) => {
     expiresAtMs: Date.now() + OTP_TTL_MS,
   });
 
-  await sendEmail(
-    u.email || email,
-    u.firstName,
-    "StudyBuddy — Password Reset OTP",
-    `Your OTP to reset your StudyBuddy password is:\n\n${otp}\n\nThis OTP is valid for 10 minutes. If you didn't request this, you can ignore this email.`
-  );
+  await sendPasswordResetOtpEmail(u.email || email, u.firstName, otp);
 
   return { ok: true };
 });
@@ -219,6 +178,13 @@ exports.completePasswordReset = onCall({ cors: true }, async (request) => {
 
   await admin.auth().updateUser(uid, { password: newPassword });
   await otpRef.delete();
+
+  // Best-effort confirmation email — don't fail the reset if this errors
+  try {
+    await sendPasswordResetConfirmationEmail(userRecord.email, userRecord.displayName || "Student");
+  } catch (e) {
+    logger.warn("Password reset confirmation email failed to send", e);
+  }
 
   return { ok: true };
 });

@@ -112,6 +112,9 @@
                   placeholder="Enter your password" required/>
                 <button type="button" class="btn-eye" onclick="togglePass('login-password', this)">👁</button>
               </div>
+              <div class="text-right mt-4">
+                <a href="#" style="font-size:12px;" onclick="switchTab('forgot')">Forgot password?</a>
+              </div>
             </div>
 
             <button type="submit" class="btn btn-primary btn-full btn-lg" id="login-btn">
@@ -125,7 +128,94 @@
           </p>
         </div>
 
-        <!-- ────────────── SIGNUP FORM ─────────────────────── -->
+        <!-- ────────────── FORGOT PASSWORD ─────────────────── -->
+        <div id="tab-forgot" style="display:none;">
+          <h2 class="auth-box-title">Reset your password</h2>
+          <p class="auth-box-sub">We'll verify your details, then let you set a new password</p>
+
+          <div id="forgot-error" class="form-error mb-16" style="display:none; font-size:14px; background:var(--danger-light); padding:10px 14px; border-radius:var(--radius-md);"></div>
+
+          <!-- Step 1: Identity -->
+          <div id="forgot-step-identity">
+            <div class="form-two-col" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+              <div class="form-group">
+                <label class="form-label">First Name</label>
+                <input type="text" id="fp-first" class="form-input" placeholder="First Name"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Last Name</label>
+                <input type="text" id="fp-last" class="form-input" placeholder="Last Name"/>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Date of Birth</label>
+              <input type="date" id="fp-dob" class="form-input"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Phone Number (10 digits)</label>
+              <input type="tel" id="fp-phone" class="form-input" maxlength="10" placeholder="Registered phone number"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Email Address</label>
+              <input type="email" id="fp-email" class="form-input" placeholder="Registered email address"/>
+            </div>
+            <button type="button" class="btn btn-primary btn-full btn-lg" id="fp-verify-btn" onclick="fpRequestOtp()">
+              Verify & Send OTP
+            </button>
+          </div>
+
+          <!-- Step 2: OTP -->
+          <div id="forgot-step-otp" style="display:none;">
+            <p class="fs-13 text-secondary mb-12">Enter the 6-digit OTP sent to your registered email.</p>
+            <div class="form-group">
+              <label class="form-label">OTP</label>
+              <input type="text" id="fp-otp" class="form-input" maxlength="6"
+                style="letter-spacing:4px; font-weight:700;" placeholder="Enter OTP"/>
+            </div>
+            <button type="button" class="btn btn-primary btn-full btn-lg" id="fp-otp-btn" onclick="fpVerifyOtp()">
+              Verify OTP
+            </button>
+            <p class="text-center mt-12 fs-13">
+              <a href="#" onclick="fpRequestOtp()">Resend OTP</a>
+            </p>
+          </div>
+
+          <!-- Step 3: New Password -->
+          <div id="forgot-step-password" style="display:none;">
+            <div class="form-group">
+              <label class="form-label">New Password</label>
+              <div class="input-password-wrap">
+                <input type="password" id="fp-new-password" class="form-input" placeholder="Minimum 8 characters"/>
+                <button type="button" class="btn-eye" onclick="togglePass('fp-new-password', this)">👁</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Confirm New Password</label>
+              <div class="input-password-wrap">
+                <input type="password" id="fp-confirm-password" class="form-input" placeholder="Re-enter new password"/>
+                <button type="button" class="btn-eye" onclick="togglePass('fp-confirm-password', this)">👁</button>
+              </div>
+            </div>
+            <button type="button" class="btn btn-primary btn-full btn-lg" id="fp-save-btn" onclick="fpCompleteReset()">
+              Set New Password
+            </button>
+          </div>
+
+          <!-- Step 4: Success -->
+          <div id="forgot-step-success" style="display:none; text-align:center;">
+            <div style="font-size:44px; margin-bottom:12px;">✅</div>
+            <h2 class="auth-box-title">Password Reset Successfully!</h2>
+            <p class="auth-box-sub mb-16">You can now login with your new password.</p>
+            <button type="button" class="btn btn-primary btn-full btn-lg" onclick="switchTab('login')">
+              Back to Login
+            </button>
+          </div>
+
+          <p class="text-center mt-16 fs-13 text-secondary" id="forgot-back-link">
+            <a href="#" onclick="switchTab('login')">← Back to Login</a>
+          </p>
+        </div>
+
         <div id="tab-signup" style="display:none;">
           <h2 class="auth-box-title">Create your account</h2>
           <p class="auth-box-sub">Join StudyBuddy and start your journey</p>
@@ -156,6 +246,12 @@
                 pattern="[0-9]{10}" required/>
             </div>
 
+            <!-- Date of Birth -->
+            <div class="form-group">
+              <label class="form-label">Date of Birth</label>
+              <input type="date" id="sig-dob" class="form-input" required/>
+            </div>
+
             <!-- Email + OTP -->
             <div class="form-group">
               <label class="form-label">Email Address</label>
@@ -176,6 +272,7 @@
               <div class="otp-timer" id="otp-timer"></div>
               <div class="otp-verified hidden" id="otp-verified">
                 ✅ Email verified successfully!
+                <a href="#" id="change-email-link" style="margin-left:8px; text-decoration:underline;">Change email</a>
               </div>
             </div>
 
@@ -306,7 +403,7 @@
        JAVASCRIPT
   ═══════════════════════════════════════════════════════════════ -->
   <script type="module">
-    import { auth, db, EMAILJS_CONFIG } from './js/firebase-config.js';
+    import { auth, db, EMAILJS_CONFIG, functionsInstance } from './js/firebase-config.js';
     import {
       signInWithEmailAndPassword,
       createUserWithEmailAndPassword,
@@ -315,14 +412,18 @@
     import {
       doc, setDoc, getDoc, serverTimestamp, updateDoc, Timestamp
     } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import {
+      httpsCallable
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js";
 
     // Make auth available globally for the pending screen logout button
     window.auth = auth;
 
     // ── Invite Token Detection ───────────────────────────────
     const _inviteToken = new URLSearchParams(window.location.search).get('invite');
-    let   _inviteValid = false;
-    let   _inviteRole  = null; // if set, pre-select role
+    let   _inviteValid   = false;
+    let   _inviteRole    = null;  // if set, pre-select role
+    let   _inviteSkipOtp = false; // if true, email OTP verification is skipped
 
     async function validateInviteToken() {
       if (!_inviteToken) return;
@@ -334,8 +435,9 @@
         if (inv.expiresAt && inv.expiresAt.toDate() < new Date()) return;
         if (inv.maxUses > 0 && inv.usedCount >= inv.maxUses) return;
         // Token is valid
-        _inviteValid = true;
-        _inviteRole  = inv.role || null;
+        _inviteValid   = true;
+        _inviteRole    = inv.role || null;
+        _inviteSkipOtp = inv.skipOtp === true;
         // Show a banner on the signup tab
         switchTab('signup');
         const banner = document.createElement('div');
@@ -349,6 +451,12 @@
           const roleSelect = document.getElementById('sig-role');
           if (roleSelect) roleSelect.value = _inviteRole;
           roleSelect.dispatchEvent(new Event('change'));
+        }
+        // Skip OTP verification if this invite allows it
+        if (_inviteSkipOtp) {
+          const otpSection = document.getElementById('otp-section');
+          otpSection.innerHTML = '<p>✅ Email verification not required for this invite link.</p>';
+          otpVerified = true;
         }
       } catch(e) {
         console.warn('Invite token validation error', e);
@@ -378,10 +486,12 @@
     window.switchTab = function(tab) {
       document.getElementById('tab-login').style.display  = tab === 'login'  ? 'block' : 'none';
       document.getElementById('tab-signup').style.display = tab === 'signup' ? 'block' : 'none';
+      document.getElementById('tab-forgot').style.display = tab === 'forgot' ? 'block' : 'none';
       document.getElementById('tab-pending').style.display= 'none';
       document.querySelectorAll('.auth-tab').forEach(t => {
         t.classList.toggle('active', t.dataset.tab === tab);
       });
+      if (tab === 'forgot') resetForgotFlow();
     };
     window.showTab = function(tab) { switchTab(tab); };
 
@@ -497,7 +607,29 @@
         document.getElementById('otp-timer').textContent   = '';
         document.getElementById('otp-verified').classList.remove('hidden');
         showToast('Email verified!', 'success');
+
+        // Lock the email field so it can't be swapped after verification
+        const emailInput = document.getElementById('sig-email');
+        emailInput.readOnly = true;
+        emailInput.classList.add('locked');
       }
+    });
+
+    // Allow explicitly unlocking the email field (resets verification state)
+    document.getElementById('change-email-link').addEventListener('click', function(e) {
+      e.preventDefault();
+      const emailInput = document.getElementById('sig-email');
+      emailInput.readOnly = false;
+      emailInput.classList.remove('locked');
+      emailInput.focus();
+
+      otpVerified  = false;
+      generatedOTP = null;
+      clearInterval(otpTimerInterval);
+      document.getElementById('otp-timer').textContent = '';
+      document.getElementById('otp-verified').classList.add('hidden');
+      document.getElementById('otp-input').value = '';
+      document.getElementById('btn-send-otp').textContent = 'Send OTP';
     });
 
     // ── Login Form ───────────────────────────────────────────
@@ -549,8 +681,10 @@
 
         // Route by role
         if (data.role === 'admin' || data.role === 'superadmin') {
+          updateDoc(doc(db, 'users', userCred.user.uid), { lastLogin: serverTimestamp() }).catch(() => {});
           window.location.href = 'admin/dashboard.html';
         } else {
+          updateDoc(doc(db, 'users', userCred.user.uid), { lastLogin: serverTimestamp() }).catch(() => {});
           window.location.href = 'student/dashboard.html';
         }
 
@@ -573,6 +707,124 @@
       }
     });
 
+    // ── Forgot Password ───────────────────────────────────────
+    let _fpResetToken = null;
+    let _fpVerifiedEmail = null;
+
+    function resetForgotFlow() {
+      document.getElementById('forgot-error').style.display = 'none';
+      document.getElementById('forgot-step-identity').style.display = 'block';
+      document.getElementById('forgot-step-otp').style.display      = 'none';
+      document.getElementById('forgot-step-password').style.display = 'none';
+      document.getElementById('forgot-step-success').style.display  = 'none';
+      document.getElementById('forgot-back-link').style.display     = 'block';
+      _fpResetToken    = null;
+      _fpVerifiedEmail = null;
+    }
+
+    function fpShowError(msg) {
+      const el = document.getElementById('forgot-error');
+      el.textContent   = msg;
+      el.style.display = 'block';
+    }
+
+    window.fpRequestOtp = async function() {
+      const firstName    = document.getElementById('fp-first').value.trim();
+      const lastName     = document.getElementById('fp-last').value.trim();
+      const dob          = document.getElementById('fp-dob').value;
+      const phone        = document.getElementById('fp-phone').value.trim();
+      const email        = document.getElementById('fp-email').value.trim();
+      const btn          = document.getElementById('fp-verify-btn');
+
+      document.getElementById('forgot-error').style.display = 'none';
+
+      if (!firstName || !lastName || !dob || !phone || !email) {
+        fpShowError('❌ Please fill in all fields.');
+        return;
+      }
+      if (!/^\d{10}$/.test(phone)) {
+        fpShowError('❌ Phone number must be exactly 10 digits.');
+        return;
+      }
+
+      btn.disabled = true; btn.textContent = 'Verifying…';
+      try {
+        const requestOtp = httpsCallable(functionsInstance, 'requestPasswordResetOtp');
+        await requestOtp({ firstName, lastName, dateOfBirth: dob, phone, email });
+
+        _fpVerifiedEmail = email;
+        showToast('OTP sent to your registered email.', 'success');
+        document.getElementById('forgot-step-identity').style.display = 'none';
+        document.getElementById('forgot-step-otp').style.display      = 'block';
+      } catch (err) {
+        console.error(err);
+        fpShowError('❌ ' + (err.message || 'We could not verify those details.'));
+      }
+      btn.disabled = false; btn.textContent = 'Verify & Send OTP';
+    };
+
+    window.fpVerifyOtp = async function() {
+      const otp = document.getElementById('fp-otp').value.trim();
+      const btn = document.getElementById('fp-otp-btn');
+
+      document.getElementById('forgot-error').style.display = 'none';
+
+      if (!/^\d{6}$/.test(otp)) {
+        fpShowError('❌ Please enter the 6-digit OTP.');
+        return;
+      }
+
+      btn.disabled = true; btn.textContent = 'Verifying…';
+      try {
+        const verifyOtp = httpsCallable(functionsInstance, 'verifyPasswordResetOtp');
+        const res = await verifyOtp({ email: _fpVerifiedEmail, otp });
+        _fpResetToken = res.data.resetToken;
+
+        showToast('OTP verified!', 'success');
+        document.getElementById('forgot-step-otp').style.display      = 'none';
+        document.getElementById('forgot-step-password').style.display = 'block';
+      } catch (err) {
+        console.error(err);
+        fpShowError('❌ ' + (err.message || 'Invalid or expired OTP.'));
+      }
+      btn.disabled = false; btn.textContent = 'Verify OTP';
+    };
+
+    window.fpCompleteReset = async function() {
+      const newPassword = document.getElementById('fp-new-password').value;
+      const confirmPassword = document.getElementById('fp-confirm-password').value;
+      const btn = document.getElementById('fp-save-btn');
+
+      document.getElementById('forgot-error').style.display = 'none';
+
+      if (newPassword.length < 8) {
+        fpShowError('❌ Password must be at least 8 characters.');
+        return;
+      }
+      if (newPassword !== confirmPassword) {
+        fpShowError('❌ Passwords do not match.');
+        return;
+      }
+
+      btn.disabled = true; btn.textContent = 'Saving…';
+      try {
+        const completeReset = httpsCallable(functionsInstance, 'completePasswordReset');
+        await completeReset({
+          email: _fpVerifiedEmail,
+          resetToken: _fpResetToken,
+          newPassword,
+        });
+
+        document.getElementById('forgot-step-password').style.display = 'none';
+        document.getElementById('forgot-step-success').style.display  = 'block';
+        document.getElementById('forgot-back-link').style.display     = 'none';
+      } catch (err) {
+        console.error(err);
+        fpShowError('❌ ' + (err.message || 'Could not reset password. Please start over.'));
+      }
+      btn.disabled = false; btn.textContent = 'Set New Password';
+    };
+
     // ── Signup Form ──────────────────────────────────────────
     document.getElementById('signup-form').addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -580,6 +832,7 @@
       const firstName  = document.getElementById('sig-first').value.trim();
       const lastName   = document.getElementById('sig-last').value.trim();
       const phone      = document.getElementById('sig-phone').value.trim();
+      const dob        = document.getElementById('sig-dob').value;
       const email      = document.getElementById('sig-email').value.trim();
       const course     = document.getElementById('sig-course').value;
       const role       = document.getElementById('sig-role').value;
@@ -600,7 +853,11 @@
         errorEl.textContent   = '❌ Phone number must be exactly 10 digits.';
         errorEl.style.display = 'block'; return;
       }
-      if (!otpVerified) {
+      if (!dob) {
+        errorEl.textContent   = '❌ Please enter your date of birth.';
+        errorEl.style.display = 'block'; return;
+      }
+      if (!otpVerified && !_inviteSkipOtp) {
         errorEl.textContent   = '❌ Please verify your email address with OTP first.';
         errorEl.style.display = 'block'; return;
       }
@@ -658,6 +915,7 @@
           firstName,
           lastName,
           phone,
+          dateOfBirth: dob,
           email,
           phoneEmail,   // stored for reference
           course,

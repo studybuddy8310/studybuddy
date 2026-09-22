@@ -144,6 +144,7 @@
               <th>Phone</th>
               <th>Course & Level</th>
               <th>Registered</th>
+              <th>Last Login</th>
               <th>Status</th>
               <th>Action</th>
             </tr>
@@ -195,6 +196,10 @@
               <option value="10">10 uses</option>
               <option value="0">Unlimited uses</option>
             </select>
+            <select id="invite-otp" class="form-select" style="width:auto; min-width:200px;">
+              <option value="required">✅ Require OTP Verification</option>
+              <option value="skip">🚫 Skip OTP Verification</option>
+            </select>
             <button class="btn btn-primary" onclick="generateInviteLink()">🔗 Generate Invite Link</button>
           </div>
         </div>
@@ -221,6 +226,7 @@
                 <th>Created</th>
                 <th>Expires</th>
                 <th>Uses</th>
+                <th>OTP</th>
                 <th>Status</th>
                 <th>Actions</th>
               </tr>
@@ -281,6 +287,7 @@
   let allUsers         = [];
   let currentTab       = 'pending';
   let currentRejectUid = null;
+  let currentUserRole  = null;
 
   // ── Toast ──────────────────────────────────────────────────
   function showToast(msg, type = 'info') {
@@ -305,6 +312,7 @@
     if (data.role !== 'admin' && data.role !== 'superadmin') {
       window.location.href = '../index.html'; return;
     }
+    currentUserRole = data.role;
     document.getElementById('sidebar-avatar').textContent =
       (data.firstName[0]+data.lastName[0]).toUpperCase();
     document.getElementById('sidebar-name').textContent =
@@ -384,6 +392,7 @@
     const role    = document.getElementById('invite-role').value;
     const expDays = parseInt(document.getElementById('invite-expiry').value);
     const maxUses = parseInt(document.getElementById('invite-uses').value);
+    const skipOtp = document.getElementById('invite-otp').value === 'skip';
 
     const token = crypto.randomUUID().replace(/-/g,'').substring(0,24);
     const now   = Date.now();
@@ -396,6 +405,7 @@
       maxUses:    maxUses, // 0 = unlimited
       usedCount:  0,
       active:     true,
+      skipOtp:    skipOtp,
     });
 
     const base = window.location.origin + window.location.pathname.replace('admin/users.html','');
@@ -450,6 +460,7 @@
         <td>${created}</td>
         <td>${expires}</td>
         <td>${uses}</td>
+        <td>${inv.skipOtp ? '🚫 Skipped' : '✅ Required'}</td>
         <td>${status}</td>
         <td>
           ${inv.active && !expired && !maxed
@@ -521,6 +532,9 @@
     filtered.forEach(u => {
       const date = u.createdAt
         ? u.createdAt.toDate().toLocaleDateString('en-IN') : '—';
+      const lastLoginStr = u.lastLogin
+        ? u.lastLogin.toDate().toLocaleString('en-IN', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' })
+        : '<span class="text-secondary" style="font-size:12px;">Never</span>';
       const ini  = ((u.firstName||'?')[0]+(u.lastName||'?')[0]).toUpperCase();
 
       // Status badge
@@ -588,6 +602,7 @@
           <td>${u.phone||'—'}</td>
           ${courseCol}
           <td class="text-secondary">${date}</td>
+          <td class="text-secondary" style="font-size:12px;">${lastLoginStr}</td>
           <td>${statusBadge}</td>
           <td>
             <div class="action-btns">
@@ -661,25 +676,109 @@
   };
 
   // ── View Student Modal ─────────────────────────────────────
+  // ── Superadmin: Save Full Edit ────────────────────────────
+  window.saveStudentEdits = async function(uid) {
+    if (currentUserRole !== 'superadmin') return;
+    const phone = document.getElementById('edit-u-phone').value.trim();
+    if (!/^\d{10}$/.test(phone)) {
+      showToast('Phone number must be exactly 10 digits.', 'error');
+      return;
+    }
+    try {
+      await updateDoc(doc(db, 'users', uid), {
+        firstName:   document.getElementById('edit-u-first').value.trim(),
+        lastName:    document.getElementById('edit-u-last').value.trim(),
+        phone,
+        dateOfBirth: document.getElementById('edit-u-dob').value || null,
+        email:       document.getElementById('edit-u-email').value.trim(),
+        course:      document.getElementById('edit-u-course').value,
+        level:       document.getElementById('edit-u-level').value.trim(),
+        status:      document.getElementById('edit-u-status').value,
+      });
+      showToast('Student details updated.', 'success');
+      await loadAllUsers();
+      document.getElementById('view-modal').classList.add('hidden');
+    } catch (err) {
+      console.error(err);
+      showToast('Failed to save changes.', 'error');
+    }
+  };
+
   window.viewStudent = async function(uid) {
     const u = allUsers.find(x => x.uid === uid);
     if (!u) return;
     const date = u.createdAt ? u.createdAt.toDate().toLocaleDateString('en-IN') : '—';
+    const lastLoginStr = u.lastLogin ? u.lastLogin.toDate().toLocaleString('en-IN') : 'Never logged in';
     const ini  = ((u.firstName||'?')[0]+(u.lastName||'?')[0]).toUpperCase();
+    const isSuper = currentUserRole === 'superadmin';
 
-    // Show modal immediately with basic info + loading spinner for progress
-    document.getElementById('view-content').innerHTML = `
-      <div style="display:flex; align-items:center; gap:16px; margin-bottom:24px;">
-        <div class="sidebar-avatar" style="width:56px;height:56px;font-size:22px;border-radius:16px;">${ini}</div>
-        <div>
-          <div style="font-size:18px;font-weight:700;">${u.firstName} ${u.lastName}</div>
-          <div class="text-secondary fs-13">${u.email}</div>
+    // Superadmin gets editable fields (including filling in a missing Date of Birth
+    // for accounts created before this field existed); regular admins get read-only info.
+    const fieldsHtml = isSuper ? `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">First Name</label>
+          <input type="text" id="edit-u-first" class="form-input" value="${u.firstName||''}"/>
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">Last Name</label>
+          <input type="text" id="edit-u-last" class="form-input" value="${u.lastName||''}"/>
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">Phone</label>
+          <input type="tel" id="edit-u-phone" class="form-input" maxlength="10" value="${u.phone||''}"/>
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">Date of Birth</label>
+          <input type="date" id="edit-u-dob" class="form-input" value="${u.dateOfBirth||''}"/>
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">Email <span style="font-weight:400;color:var(--text-muted);">(profile only — see note below)</span></label>
+          <input type="email" id="edit-u-email" class="form-input" value="${u.email||''}"/>
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">Course</label>
+          <select id="edit-u-course" class="form-select">
+            <option value="CA"  ${u.course==='CA'?'selected':''}>CA</option>
+            <option value="FRM" ${u.course==='FRM'?'selected':''}>FRM</option>
+            <option value="CFA" ${u.course==='CFA'?'selected':''}>CFA</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">Level</label>
+          <input type="text" id="edit-u-level" class="form-input" value="${u.level||''}"/>
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">Status</label>
+          <select id="edit-u-status" class="form-select">
+            <option value="pending"  ${u.status==='pending'?'selected':''}>Pending</option>
+            <option value="approved" ${u.status==='approved'?'selected':''}>Approved</option>
+            <option value="disabled" ${u.status==='disabled'?'selected':''}>Disabled</option>
+            <option value="rejected" ${u.status==='rejected'?'selected':''}>Rejected</option>
+          </select>
         </div>
       </div>
+      <div class="card" style="padding:14px;margin-bottom:20px;">
+        <div class="fs-12 text-muted">Last Login</div>
+        <div class="fw-600">${lastLoginStr}</div>
+      </div>
+      <p style="font-size:11px;color:var(--text-muted);margin:-12px 0 16px;">
+        ⚠️ Editing "Email" here only updates their StudyBuddy profile record — it does not change
+        their actual login email in Firebase Authentication. To change what they log in with,
+        they need to do that from their own account, or you need Firebase Admin access.
+      </p>
+      <button class="btn btn-primary" style="margin-bottom:20px;" onclick="saveStudentEdits('${uid}')">
+        💾 Save Changes
+      </button>
+    ` : `
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;">
         <div class="card" style="padding:14px;">
           <div class="fs-12 text-muted">Phone</div>
           <div class="fw-600">${u.phone||'—'}</div>
+        </div>
+        <div class="card" style="padding:14px;">
+          <div class="fs-12 text-muted">Date of Birth</div>
+          <div class="fw-600">${u.dateOfBirth||'—'}</div>
         </div>
         <div class="card" style="padding:14px;">
           <div class="fs-12 text-muted">Course</div>
@@ -694,6 +793,10 @@
           <div class="fw-600">${date}</div>
         </div>
         <div class="card" style="padding:14px;">
+          <div class="fs-12 text-muted">Last Login</div>
+          <div class="fw-600">${lastLoginStr}</div>
+        </div>
+        <div class="card" style="padding:14px;">
           <div class="fs-12 text-muted">Status</div>
           <div class="fw-600">${u.status||'—'}</div>
         </div>
@@ -702,6 +805,18 @@
           <div class="fw-600">${u.role||'—'}</div>
         </div>
       </div>
+    `;
+
+    // Show modal immediately with basic info + loading spinner for progress
+    document.getElementById('view-content').innerHTML = `
+      <div style="display:flex; align-items:center; gap:16px; margin-bottom:24px;">
+        <div class="sidebar-avatar" style="width:56px;height:56px;font-size:22px;border-radius:16px;">${ini}</div>
+        <div>
+          <div style="font-size:18px;font-weight:700;">${u.firstName} ${u.lastName}</div>
+          <div class="text-secondary fs-13">${u.email}</div>
+        </div>
+      </div>
+      ${fieldsHtml}
       <div id="student-progress-section">
         <div style="padding:20px;text-align:center;color:var(--text-muted);">⏳ Loading progress data...</div>
       </div>`;

@@ -196,6 +196,7 @@
   gap:     8px;
 }
 .otp-row .form-input { flex: 1; }
+.form-input.locked { background: #eef0f6; color: #666; cursor: not-allowed; }
 .btn-send-otp {
   white-space: nowrap;
   background:  var(--primary);

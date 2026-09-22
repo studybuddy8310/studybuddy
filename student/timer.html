@@ -3,9 +3,10 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>StudyBuddy — Study Timer</title>
+  <title>StudyBuddy — Classroom</title>
   <link rel="stylesheet" href="../css/global.css"/>
   <link rel="stylesheet" href="../css/student.css"/>
+  <link rel="stylesheet" href="../css/classroom.css"/>
   <style>
     /* ── Fixed viewport layout: page never grows beyond screen ── */
     .student-main { min-height:unset !important; height:100vh; overflow:hidden; }
@@ -225,6 +226,8 @@
     .sess-type-badge.timer     { background:var(--primary-light); color:var(--primary); }
     .sess-type-badge.stopwatch { background:rgba(0,201,167,0.12); color:var(--success); }
 
+    /* ── Classroom styles now live in css/classroom.css ── */
+
     /* ── Mobile optimisations ── */
     @media(max-width:960px){
       .timer-page { grid-template-columns:1fr; overflow-y:auto; }
@@ -260,7 +263,7 @@
       <a href="mcq.html"       class="nav-item"><span class="nav-item-icon">✏️</span> Practice MCQ</a>
       <a href="tests.html"     class="nav-item"><span class="nav-item-icon">📝</span> Mock Tests</a>
       <div class="nav-section-label">Tools</div>
-      <a href="timer.html"     class="nav-item active"><span class="nav-item-icon">⏱️</span> Study Timer</a>
+      <a href="timer.html"     class="nav-item active"><span class="nav-item-icon">🏫</span> Classroom</a>
       <a href="tips.html"      class="nav-item"><span class="nav-item-icon">💡</span> Tips & Ideas</a>
       <div class="nav-section-label">Account</div>
       <a href="profile.html"   class="nav-item"><span class="nav-item-icon">👤</span> My Profile</a>
@@ -284,9 +287,11 @@
           <span></span><span></span><span></span>
         </button>
         <div class="hero-title-wrap">
-          <h1>⏱️ Study Timer & Diary</h1>
-          <p>Track your study sessions and build your streak</p>
+          <h1>🏫 Classroom</h1>
+          <p>Study together, track every session, build your streak</p>
         </div>
+        <button class="btn btn-danger" id="btn-leave-top" style="display:none;margin-right:8px;">Leave 🚪</button>
+        <button class="edit-link" id="btn-edit-profile" style="display:none;margin-right:12px;">✏️ Avatar / Nickname</button>
         <a href="dashboard.html" class="hero-home-btn" id="hero-home" title="Home">🏠</a>
       </div>
 
@@ -306,91 +311,140 @@
             </div>
           </div>
 
-          <!-- Mode Tabs -->
-          <div class="mode-tabs">
-            <button class="mode-tab active" id="tab-timer-btn">⏳ Timer</button>
-            <button class="mode-tab"        id="tab-sw-btn">⏱️ Stopwatch</button>
-          </div>
-
-          <!-- ══ TIMER PANEL ══ -->
-          <div id="panel-timer">
-            <div class="timer-card">
-              <h3 style="font-family:var(--font-heading);margin-bottom:4px;">Study Session</h3>
-              <p class="text-secondary fs-13">Set time, add your tasks, then start!</p>
-              <div class="paper-row" style="margin-top:16px;">
-                <label>📚 Studying Which Paper?</label>
-                <select class="form-select" id="paper-select"><option value="General Study">General Study</option></select>
+          <!-- ══ NORMAL TIMER — compact card, expands to fullscreen focus mode ══ -->
+          <div id="normal-timer-slot">
+            <div id="normal-timer-wrap" class="timer-card normal-timer-card">
+              <button class="btn-expand" id="btn-expand-timer" title="Expand">⤢</button>
+              <h4 class="uc-title">Normal Timer</h4>
+              <div class="tw-tabs">
+                <button class="tw-tab active" id="tab-timer-btn">Timer</button>
+                <button class="tw-tab"        id="tab-sw-btn">Stopwatch</button>
               </div>
 
-              <!-- Clean clock display -->
-              <div class="clock-display">
-                <div class="timer-digits" id="timer-digits">00:00:00</div>
-                <div class="status-pill idle" id="timer-status-pill">
-                  <div class="status-dot"></div>
-                  <span id="timer-status-text">Set time below</span>
+              <!-- ══ TIMER PANEL ══ -->
+              <div id="panel-timer">
+                <div class="paper-row" style="margin-top:16px;">
+                  <label>📚 Studying Which Paper?</label>
+                  <select class="form-select" id="paper-select"><option value="General Study">General Study</option></select>
                 </div>
-              </div>
-
-              <!-- Thin progress bar -->
-              <div class="timer-progress-wrap">
-                <div class="timer-progress-track">
-                  <div class="timer-progress-fill" id="timer-progress"></div>
+                <div class="clock-display">
+                  <div class="timer-digits" id="timer-digits">00:00:00</div>
+                  <div class="status-pill idle" id="timer-status-pill">
+                    <div class="status-dot"></div>
+                    <span id="timer-status-text">Set time below</span>
+                  </div>
                 </div>
+                <div class="timer-progress-wrap">
+                  <div class="timer-progress-track"><div class="timer-progress-fill" id="timer-progress"></div></div>
+                </div>
+                <div class="set-time-row">
+                  <div class="time-inp-group"><label>Hours</label><input type="number" id="inp-h" min="0" max="12" value="1"/></div>
+                  <span class="time-colon">:</span>
+                  <div class="time-inp-group"><label>Mins</label><input type="number" id="inp-m" min="0" max="59" value="30"/></div>
+                </div>
+                <div class="presets" id="presets-row">
+                  <button class="preset-btn" data-h="0" data-m="30">30m</button>
+                  <button class="preset-btn" data-h="1" data-m="0">1h</button>
+                  <button class="preset-btn" data-h="1" data-m="30">1.5h</button>
+                  <button class="preset-btn" data-h="2" data-m="0">2h</button>
+                  <button class="preset-btn" data-h="3" data-m="0">3h</button>
+                </div>
+                <div class="timer-controls">
+                  <button class="btn-ctrl btn-reset" id="btn-reset" title="Reset">↺</button>
+                  <button class="btn-ctrl btn-play"  id="btn-play"  title="Start">▶</button>
+                  <button class="btn-ctrl btn-stop"  id="btn-stop"  title="Stop & Save" style="display:none;">⏹</button>
+                </div>
+                <div class="draft-indicator" id="t-draft-ind"><div class="draft-dot"></div> Draft saved</div>
               </div>
 
-              <div class="set-time-row">
-                <div class="time-inp-group"><label>Hours</label><input type="number" id="inp-h" min="0" max="12" value="1"/></div>
-                <span class="time-colon">:</span>
-                <div class="time-inp-group"><label>Mins</label><input type="number" id="inp-m" min="0" max="59" value="30"/></div>
+              <!-- ══ STOPWATCH PANEL ══ -->
+              <div id="panel-stopwatch" style="display:none;">
+                <div class="paper-row" style="margin-top:16px;">
+                  <label>📚 Studying Which Paper?</label>
+                  <select class="form-select" id="sw-paper-select"><option value="General Study">General Study</option></select>
+                </div>
+                <div class="clock-display">
+                  <div class="timer-digits" id="sw-digits">00:00:00</div>
+                  <div class="status-pill idle" id="sw-status-pill">
+                    <div class="status-dot"></div>
+                    <span id="sw-status-text">Press ▶ to begin</span>
+                  </div>
+                </div>
+                <div class="timer-controls">
+                  <button class="btn-ctrl btn-reset" id="sw-btn-reset" title="Reset">↺</button>
+                  <button class="btn-ctrl btn-play"  id="sw-btn-play"  title="Start">▶</button>
+                  <button class="btn-ctrl btn-stop"  id="sw-btn-stop"  title="Stop & Save" style="display:none;">⏹</button>
+                </div>
+                <div class="draft-indicator" id="sw-draft-ind"><div class="draft-dot"></div> Draft saved</div>
               </div>
-              <div class="presets" id="presets-row">
-                <button class="preset-btn" data-h="0" data-m="30">30m</button>
-                <button class="preset-btn" data-h="1" data-m="0">1h</button>
-                <button class="preset-btn" data-h="1" data-m="30">1.5h</button>
-                <button class="preset-btn" data-h="2" data-m="0">2h</button>
-                <button class="preset-btn" data-h="3" data-m="0">3h</button>
-              </div>
-              <div class="timer-controls">
-                <button class="btn-ctrl btn-reset" id="btn-reset" title="Reset">↺</button>
-                <button class="btn-ctrl btn-play"  id="btn-play"  title="Start">▶</button>
-                <button class="btn-ctrl btn-stop"  id="btn-stop"  title="Stop & Save" style="display:none;">⏹</button>
-              </div>
-              <div class="draft-indicator" id="t-draft-ind"><div class="draft-dot"></div> Draft saved</div>
             </div>
           </div>
 
-          <!-- ══ STOPWATCH PANEL ══ -->
-          <div id="panel-stopwatch" style="display:none;">
-            <div class="timer-card">
-              <h3 style="font-family:var(--font-heading);margin-bottom:4px;">Stopwatch Session</h3>
-              <p class="text-secondary fs-13">Start studying — stop when you're done!</p>
-              <div class="paper-row" style="margin-top:16px;">
-                <label>📚 Studying Which Paper?</label>
-                <select class="form-select" id="sw-paper-select"><option value="General Study">General Study</option></select>
-              </div>
+          <!-- Fullscreen focus-mode target — Normal Timer card is moved in here on expand -->
+          <div class="tw-overlay" id="tw-overlay">
+            <button class="btn-expand tw-collapse" id="btn-collapse-timer" title="Collapse">⤡</button>
+            <div id="tw-overlay-body"></div>
+          </div>
 
-              <!-- Clean clock display -->
-              <div class="clock-display">
-                <div class="timer-digits" id="sw-digits">00:00:00</div>
-                <div class="status-pill idle" id="sw-status-pill">
-                  <div class="status-dot"></div>
-                  <span id="sw-status-text">Press ▶ to begin</span>
+          <!-- ══ CLASSROOM ══ -->
+          <div class="classroom-card" id="classroom-card">
+            <div class="scene-topbar">
+              <div class="room-name"><div class="live-dot"></div> Classroom <span id="classroom-count-text" class="count">0 online</span></div>
+              <div class="room-timer-mini" id="room-timer-mini" style="display:none;">⏱ <span id="room-timer-mini-val">00:00</span></div>
+            </div>
+
+            <!-- Avatar/nickname setup or "welcome back" -->
+            <div id="setup-card" class="setup-card">
+              <div id="entry-first-time">
+                <h3>🎭 Set up how others see you</h3>
+                <p>Pick an avatar and a nickname for the classroom — you can change these anytime.</p>
+                <input type="text" id="inp-nickname" placeholder="Your nickname" maxlength="16"/>
+                <div class="avatar-grid" id="avatar-grid"></div>
+                <button class="btn btn-primary" id="btn-save-setup">Save & Join Classroom 🚪</button>
+              </div>
+              <div id="entry-returning" style="display:none;">
+                <div class="timer-icon-badge" id="returning-avatar" style="width:60px;height:60px;font-size:28px;"></div>
+                <h3>Welcome back<span id="returning-name"></span>!</h3>
+                <p id="returning-total-wrap">You've logged <b id="returning-total">0m</b> in the classroom today.</p>
+                <button class="btn btn-primary" id="btn-rejoin">🚪 Rejoin Classroom</button>
+              </div>
+            </div>
+
+            <!-- The room scene itself -->
+            <div id="scene-card" style="display:none;">
+              <div class="scene">
+                <div class="scene-floor"></div>
+                <div class="light-beam"></div>
+                <div class="wall-props">
+                  <div class="window-frame">
+                    <div class="sky" id="sky">
+                      <div class="celestial" id="celestial"></div>
+                      <div class="stars" id="stars-wrap"></div>
+                      <div class="horizon"></div>
+                    </div>
+                    <div class="window-mullions"></div>
+                  </div>
+                  <div class="board"><h2>STUDY HALL</h2></div>
+                  <div class="wall-clock-wrap" id="wall-clock-svg"></div>
                 </div>
+                <div class="desks-grid" id="desks-grid"></div>
               </div>
-
-              <div class="timer-controls">
-                <button class="btn-ctrl btn-reset" id="sw-btn-reset" title="Reset">↺</button>
-                <button class="btn-ctrl btn-play"  id="sw-btn-play"  title="Start">▶</button>
-                <button class="btn-ctrl btn-stop"  id="sw-btn-stop"  title="Stop & Save" style="display:none;">⏹</button>
+              <div class="statusbar" id="statusbar">
+                <span class="statusbar-lbl">Status:</span>
+                <button class="statuschip active" data-s="study">📖 Studying</button>
+                <button class="statuschip" data-s="lecture">🎧 Watching Lecture</button>
+                <button class="statuschip" data-s="reading">📚 Reading</button>
+                <button class="statuschip" data-s="revision">🔁 Revising</button>
+                <button class="statuschip" data-s="break">☕ On Break</button>
+                <input type="text" id="inp-target" placeholder="What are you studying?"/>
               </div>
-              <div class="draft-indicator" id="sw-draft-ind"><div class="draft-dot"></div> Draft saved</div>
             </div>
           </div>
 
-          <!-- Diary -->
+          <!-- Targets — this is your existing Session Diary, just relocated & relabeled -->
           <div class="diary-section">
-            <div class="diary-title">📓 Session Diary</div>
-            <div class="diary-sub">Add what you plan to study. Mark done when stopping.</div>
+            <div class="diary-title">🎯 Targets</div>
+            <div class="diary-sub">Add what you plan to study. Tick off when done.</div>
             <div class="todo-add-row">
               <input type="text" id="todo-input" class="form-input" placeholder="Add a task e.g. Ind AS 2 — Chapter notes"/>
               <button class="btn btn-primary btn-sm" id="btn-add-todo">+ Add</button>
@@ -441,7 +495,7 @@
   import { onAuthStateChanged, signOut }
     from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
   import { doc, getDoc, addDoc, collection, getDocs,
-    setDoc, deleteDoc, serverTimestamp, orderBy, query, limit }
+    setDoc, updateDoc, deleteDoc, onSnapshot, serverTimestamp, orderBy, query, limit }
     from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
   // ─────────────────────────────────────────
@@ -455,7 +509,7 @@
   // ─────────────────────────────────────────
   //  STATE
   // ─────────────────────────────────────────
-  let uid = null, userLevel = null, userGroup = null;
+  let uid = null, userLevel = null, userGroup = null, myName = 'You';
   let todos       = [];
   let currentMode = 'timer';
 
@@ -711,6 +765,345 @@
   }
 
   // ─────────────────────────────────────────
+  //  VIRTUAL CLASSROOM
+  // ─────────────────────────────────────────
+  const CLASSROOM_HEARTBEAT_MS = 25000; // how often we refresh our own presence liveness
+  const AVATAR_COUNT = 33;
+  const AVATARS = Array.from({length:AVATAR_COUNT}, (_,i) => `avatar${String(i+1).padStart(2,'0')}.png`);
+  const AVATAR_FALLBACK_COLORS = ['#FDE7EA','#E7F0FD','#FFF3D6','#E9F9EE','#F1EAFE','#FFE8DC','#E4F7F9','#F4E9FF'];
+  const AVATAR_INITIAL_COLORS  = ['#2D5BE3','#7C4DFF','#FF8C42','#00C9A7','#FF4757','#0EA5E9','#8B5CF6','#F59E0B'];
+  const CLASSROOM_STATUSES = {
+    study:    { label:'Studying',        emoji:'📖', color:'var(--success)' },
+    lecture:  { label:'Watching Lecture',emoji:'🎧', color:'var(--info)' },
+    reading:  { label:'Reading',         emoji:'📚', color:'var(--cr-purple, #7C4DFF)' },
+    revision: { label:'Revising',        emoji:'🔁', color:'var(--cr-orange, #EA580C)' },
+    break:    { label:'On Break',        emoji:'☕', color:'var(--warning)' }
+  };
+
+  function escapeHtml(s) { const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+  function initialsFor(name) { const p=(name||'?').trim().split(' ').filter(Boolean); return ((p[0]?.[0]||'')+(p[1]?.[0]||'')).toUpperCase()||'?'; }
+  function colorForSeed(seed) { let h=0; const s=seed||'?'; for(let i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))>>>0; return AVATAR_INITIAL_COLORS[h%AVATAR_INITIAL_COLORS.length]; }
+  // Real avatar files live at /assets/avatars/avatar01.png … avatar33.png in your project.
+  // If one is missing, this falls back to a colored initials circle instead of a broken image.
+  function avatarMediaHtml(file, name) {
+    const initials = initialsFor(name);
+    const bg = colorForSeed(name || file);
+    return `<img src="../assets/avatars/${file||'avatar01.png'}" alt="${escapeHtml(name||'avatar')}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div class="fallback-initials" style="display:none;background:${bg};">${initials}</div>`;
+  }
+
+  let me = { nickname:'', avatar:'' };
+  let classroomJoined      = false;
+  let classroomStatus      = 'study';
+  let classroomTarget      = '';
+  let classroomStartTime   = null;
+  let classroomElapsed     = 0;
+  let classroomTickInt     = null;
+  let classroomHeartbeat   = null;
+  let classroomUnsub       = null;
+  let selectedAvatar       = null;
+
+  const avatarGrid = document.getElementById('avatar-grid');
+  AVATARS.forEach((file,i) => {
+    const el = document.createElement('div');
+    el.className = 'avatar-opt';
+    el.innerHTML = `<img src="../assets/avatars/${file}" alt="${file}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                     <div class="fallback-initials" style="display:none;background:${AVATAR_FALLBACK_COLORS[i%AVATAR_FALLBACK_COLORS.length]};color:#8A5F00;">${i+1}</div>
+                     <span class="sel-check">✓</span>`;
+    el.addEventListener('click', () => {
+      document.querySelectorAll('.avatar-opt').forEach(x=>x.classList.remove('selected'));
+      el.classList.add('selected');
+      selectedAvatar = file;
+    });
+    avatarGrid.appendChild(el);
+  });
+
+  // Sums today's already-saved classroom sessions — this is what makes "today's
+  // classroom time" persist across leave/rejoin, with zero extra state to manage:
+  // each Leave already saves a normal timerSessions entry (sessionType:'classroom').
+  async function classroomMinutesToday() {
+    try {
+      const today = getStudyDay();
+      const snap = await getDocs(collection(db,'timerSessions',uid,'sessions'));
+      let secs = 0;
+      snap.forEach(d => { const s=d.data(); if (s.studyDay===today && s.sessionType==='classroom') secs += (s.duration||0); });
+      return secs;
+    } catch(e) { return 0; }
+  }
+
+  async function openEntryScreen(forceEdit) {
+    document.getElementById('setup-card').style.display = 'block';
+    document.getElementById('scene-card').style.display = 'none';
+    document.getElementById('btn-leave-top').style.display = 'none';
+    document.getElementById('room-timer-mini').style.display = 'none';
+
+    const hasProfile = !!me.nickname && !forceEdit;
+    document.getElementById('entry-first-time').style.display = hasProfile ? 'none' : 'block';
+    document.getElementById('entry-returning').style.display  = hasProfile ? 'block' : 'none';
+
+    if (hasProfile) {
+      document.getElementById('returning-avatar').innerHTML = avatarMediaHtml(me.avatar, me.nickname);
+      document.getElementById('returning-name').textContent = `, ${me.nickname}`;
+      const secs = await classroomMinutesToday();
+      document.getElementById('returning-total').textContent = `${Math.round(secs/60)}m`;
+    } else {
+      document.getElementById('inp-nickname').value = me.nickname || '';
+      selectedAvatar = me.avatar || null;
+      document.querySelectorAll('.avatar-opt').forEach(x=>x.classList.remove('selected'));
+      if (me.avatar) { const idx = AVATARS.indexOf(me.avatar); if (idx>=0) avatarGrid.children[idx].classList.add('selected'); }
+    }
+  }
+
+  document.getElementById('btn-save-setup').addEventListener('click', async () => {
+    const name = document.getElementById('inp-nickname').value.trim();
+    if (!name) { const el=document.getElementById('inp-nickname'); el.focus(); el.style.borderColor='var(--danger)'; return; }
+    if (!selectedAvatar) { avatarGrid.style.outline='2px solid var(--danger)'; setTimeout(()=>avatarGrid.style.outline='',1200); return; }
+    me.nickname = name; me.avatar = selectedAvatar;
+    try { await setDoc(doc(db,'users',uid), { classroomNickname:name, classroomAvatar:selectedAvatar }, { merge:true }); }
+    catch(e) { toast('Could not save your profile — try again.','error'); return; }
+    enterClassroom();
+  });
+  document.getElementById('btn-rejoin').addEventListener('click', enterClassroom);
+  document.getElementById('btn-edit-profile').addEventListener('click', () => openEntryScreen(true));
+
+  function enterClassroom() {
+    document.getElementById('setup-card').style.display = 'none';
+    document.getElementById('scene-card').style.display = 'block';
+    document.getElementById('btn-edit-profile').style.display = 'inline-block';
+    buildClockSVG(); applySky(); buildStars();
+    doJoin();
+  }
+
+  // Pass a joinedAtMs to RESUME an existing presence doc (crash recovery) instead
+  // of starting a brand-new session — elapsed is derived from the original joinedAt,
+  // so nothing studied before the crash is lost.
+  async function doJoin(resumeFromJoinedAtMs) {
+    classroomJoined    = true;
+    classroomStatus    = resumeFromJoinedAtMs ? classroomStatus : 'study';
+    classroomTarget    = resumeFromJoinedAtMs ? classroomTarget : '';
+    classroomStartTime = resumeFromJoinedAtMs ? new Date(resumeFromJoinedAtMs) : new Date();
+    classroomElapsed   = resumeFromJoinedAtMs ? Math.max(0, Math.floor((Date.now()-resumeFromJoinedAtMs)/1000)) : 0;
+
+    document.getElementById('btn-leave-top').style.display = 'inline-flex';
+    document.getElementById('room-timer-mini').style.display = 'flex';
+    document.querySelectorAll('.statuschip').forEach(b=>b.classList.toggle('active', b.dataset.s===classroomStatus));
+    document.getElementById('inp-target').value = classroomTarget;
+
+    try {
+      await setDoc(doc(db,'classroomPresence',uid), {
+        name: me.nickname, avatar: me.avatar, initials: initialsFor(me.nickname),
+        status: classroomStatus, target: classroomTarget,
+        joinedAt: resumeFromJoinedAtMs ? new Date(resumeFromJoinedAtMs) : serverTimestamp(),
+        lastActive: serverTimestamp()
+      });
+    } catch(e) { toast('Could not join classroom right now.','error'); classroomJoined=false; return; }
+
+    if (classroomHeartbeat) clearInterval(classroomHeartbeat);
+    classroomHeartbeat = setInterval(()=>{
+      updateDoc(doc(db,'classroomPresence',uid), { lastActive: serverTimestamp() }).catch(()=>{});
+    }, CLASSROOM_HEARTBEAT_MS);
+
+    if (classroomTickInt) clearInterval(classroomTickInt);
+    classroomTickInt = setInterval(() => {
+      if (classroomStatus !== 'break') classroomElapsed++;
+      updateRoomTimerMini();
+    }, 1000);
+    updateRoomTimerMini();
+    initClassroomListener();
+    if (!resumeFromJoinedAtMs) toast('Joined the classroom 🏫','success');
+    else toast(`Resumed — ${fmtTime(classroomElapsed)} carried over`,'success');
+  }
+
+  function updateRoomTimerMini() {
+    const m = String(Math.floor(classroomElapsed/60)).padStart(2,'0');
+    const s = String(classroomElapsed%60).padStart(2,'0');
+    document.getElementById('room-timer-mini-val').textContent = `${m}:${s}`;
+  }
+
+  document.getElementById('btn-leave-top').addEventListener('click', async () => {
+    const elapsed = classroomElapsed;
+    classroomJoined = false;
+    if (classroomTickInt)   { clearInterval(classroomTickInt);   classroomTickInt=null; }
+    if (classroomHeartbeat) { clearInterval(classroomHeartbeat); classroomHeartbeat=null; }
+    if (classroomUnsub)     { classroomUnsub(); classroomUnsub=null; }
+    document.getElementById('btn-leave-top').style.display = 'none';
+    document.getElementById('room-timer-mini').style.display = 'none';
+    try { await deleteDoc(doc(db,'classroomPresence',uid)); } catch(e) {}
+
+    if (elapsed >= 10) {
+      await showCompletionModal(elapsed, 'Classroom', 'classroom'); // saves via the same pipeline as Timer/Stopwatch
+    }
+    location.href = 'dashboard.html';
+  });
+
+  async function setClassroomStatus(status) {
+    if (!CLASSROOM_STATUSES[status] || status===classroomStatus) return;
+    classroomStatus = status;
+    document.querySelectorAll('.statuschip').forEach(b => b.classList.toggle('active', b.dataset.s===status));
+    try { await updateDoc(doc(db,'classroomPresence',uid), { status, lastActive: serverTimestamp() }); } catch(e) {}
+  }
+  document.querySelectorAll('.statuschip').forEach(btn => btn.addEventListener('click', () => setClassroomStatus(btn.dataset.s)));
+  document.getElementById('inp-target').addEventListener('change', async e => {
+    classroomTarget = e.target.value.trim();
+    try { await updateDoc(doc(db,'classroomPresence',uid), { target: classroomTarget, lastActive: serverTimestamp() }); } catch(e) {}
+  });
+
+  function initClassroomListener() {
+    if (classroomUnsub) classroomUnsub();
+    classroomUnsub = onSnapshot(collection(db,'classroomPresence'), snap => {
+      const members = [];
+      snap.forEach(d => { if (d.id !== uid) members.push({ id:d.id, ...d.data() }); });
+      if (classroomJoined) members.unshift({ id:uid, name:me.nickname, avatar:me.avatar, status:classroomStatus, target:classroomTarget });
+      document.getElementById('classroom-count-text').textContent = `${members.length} online`;
+      renderDesks(members);
+    }, () => { /* offline/permission — classroom is non-critical, fail silently */ });
+  }
+
+  function renderDesks(members) {
+    const TOTAL_SEATS = 12;
+    const grid = document.getElementById('desks-grid');
+    grid.innerHTML = '';
+    for (let i=0; i<TOTAL_SEATS; i++) {
+      const slot = document.createElement('div'); slot.className = 'desk-slot';
+      const occ = members[i];
+      if (occ) {
+        const st = CLASSROOM_STATUSES[occ.status] || CLASSROOM_STATUSES.study;
+        const seat = document.createElement('div');
+        seat.className = 'avatar-seat' + (occ.id===uid ? ' mine' : '');
+        seat.innerHTML = `
+          ${occ.target ? `<div class="target-bubble">🎯 ${escapeHtml(occ.target)}</div>` : ''}
+          <div class="nameplate"><span class="status-dot live" style="background:${st.color}"></span><span class="who">${occ.id===uid ? 'You' : escapeHtml(occ.name||'Student')}</span></div>
+          <div class="avatar-face avatar-bob">${avatarMediaHtml(occ.avatar, occ.id===uid ? me.nickname : occ.name)}</div>
+        `;
+        slot.appendChild(seat);
+      }
+      const desk = document.createElement('div'); desk.className = 'desk';
+      slot.appendChild(desk);
+      grid.appendChild(slot);
+    }
+  }
+
+  // ── Wall clock (real SVG, ticks with actual system time) ──
+  function buildClockSVG() {
+    const wrap = document.getElementById('wall-clock-svg');
+    if (wrap.dataset.built) { tickWallClock(); return; }
+    wrap.dataset.built = '1';
+    const ticks = [];
+    for (let i=0;i<60;i++){
+      const isHour = i%5===0, a=i*6;
+      const r1 = isHour?39:43, r2=46;
+      const x1=(50+r1*Math.sin(a*Math.PI/180)).toFixed(1), y1=(50-r1*Math.cos(a*Math.PI/180)).toFixed(1);
+      const x2=(50+r2*Math.sin(a*Math.PI/180)).toFixed(1), y2=(50-r2*Math.cos(a*Math.PI/180)).toFixed(1);
+      ticks.push(`<line class="clock-tick" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke-width="${isHour?2:0.8}"/>`);
+    }
+    const numerals = [12,1,2,3,4,5,6,7,8,9,10,11].map((n,i) => {
+      const a=i*30, x=(50+32*Math.sin(a*Math.PI/180)).toFixed(1), y=(50-32*Math.cos(a*Math.PI/180)+3).toFixed(1);
+      return `<text class="clock-num" x="${x}" y="${y}" text-anchor="middle">${n}</text>`;
+    }).join('');
+    wrap.innerHTML = `
+      <svg viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="47" fill="#fff" stroke="#222" stroke-width="5"/>
+        ${ticks.join('')}${numerals}
+        <line id="clock-hh" class="clock-hh" x1="50" y1="50" x2="50" y2="29"/>
+        <line id="clock-mh" class="clock-mh" x1="50" y1="50" x2="50" y2="19"/>
+        <line id="clock-sh" class="clock-sh" x1="50" y1="50" x2="50" y2="16"/>
+        <circle cx="50" cy="50" r="3" fill="#222"/>
+      </svg>`;
+    tickWallClock();
+    setInterval(tickWallClock, 1000);
+  }
+  function tickWallClock() {
+    const now = new Date();
+    const s = now.getSeconds(), m = now.getMinutes()+s/60, h = (now.getHours()%12)+m/60;
+    const hh=document.getElementById('clock-hh'), mh=document.getElementById('clock-mh'), sh=document.getElementById('clock-sh');
+    if (hh) hh.setAttribute('transform', `rotate(${h*30} 50 50)`);
+    if (mh) mh.setAttribute('transform', `rotate(${m*6} 50 50)`);
+    if (sh) sh.setAttribute('transform', `rotate(${s*6} 50 50)`);
+  }
+
+  // ── Window sky — sun/moon/stars, matching the viewer's own system clock ──
+  const SKY_GRADIENTS = {
+    day:     'linear-gradient(180deg,#8EC9F5 0%,#CDEBFF 70%,#E9F7FF 100%)',
+    sunrise: 'linear-gradient(180deg,#FFD9A0 0%,#FFB199 45%,#FF8FA3 100%)',
+    sunset:  'linear-gradient(180deg,#3E3A6E 0%,#B4548C 45%,#FF9E6D 100%)',
+    night:   'linear-gradient(180deg,#0B1230 0%,#1B2A52 60%,#26325E 100%)'
+  };
+  function skyPhase(hour) {
+    if (hour>=5 && hour<7) return 'sunrise';
+    if (hour>=7 && hour<17) return 'day';
+    if (hour>=17 && hour<20) return 'sunset';
+    return 'night';
+  }
+  function arcPos(progress) {
+    progress = Math.max(0, Math.min(1, progress));
+    return { left: 10 + progress*80, top: 68 - 46*Math.sin(progress*Math.PI) };
+  }
+  function buildStars() {
+    const wrap = document.getElementById('stars-wrap');
+    if (wrap.children.length) return;
+    for (let i=0;i<12;i++){
+      const s = document.createElement('div'); s.className='star';
+      s.style.left = (Math.random()*94+2)+'%';
+      s.style.top  = (Math.random()*55+3)+'%';
+      s.style.animationDelay = (Math.random()*2.4)+'s';
+      wrap.appendChild(s);
+    }
+  }
+  function applySky() {
+    const now = new Date();
+    const hour = now.getHours() + now.getMinutes()/60;
+    const phase = skyPhase(hour);
+    document.getElementById('sky').style.background = SKY_GRADIENTS[phase];
+    document.getElementById('stars-wrap').style.opacity = phase==='night' ? '1' : (phase==='sunset' ? '.35' : '0');
+
+    const cel = document.getElementById('celestial');
+    let pos, isSun = true;
+    if (phase==='day')          { pos = arcPos((hour-7)/10); }
+    else if (phase==='sunrise') { const p=(hour-5)/2;  pos = { left:12+p*18, top:78-p*26 }; }
+    else if (phase==='sunset')  { const p=(hour-17)/3; pos = { left:70+p*18, top:52+p*26 }; }
+    else { isSun = false; const nh = hour>=20 ? hour-20 : hour+4; pos = arcPos(nh/9); }
+
+    cel.style.left = pos.left+'%'; cel.style.top = pos.top+'%';
+    cel.style.background = isSun
+      ? 'radial-gradient(circle at 35% 35%, #FFF6D0, #FFC94D 70%)'
+      : 'radial-gradient(circle at 35% 35%, #FFFFFF, #D7DEE8 70%)';
+    cel.style.boxShadow = isSun ? '0 0 18px rgba(255,201,77,0.7)' : '0 0 12px rgba(255,255,255,0.55)';
+  }
+  setInterval(() => { if (document.getElementById('sky')) applySky(); }, 60000);
+
+  // ── Crash recovery: if a presence doc is still there when we load the page,
+  // the last session didn't close cleanly (tab crash / phone killed the app / etc).
+  // Offer to rejoin, resuming elapsed time from the original joinedAt.
+  async function checkClassroomCrashRecovery() {
+    try {
+      const snap = await getDoc(doc(db,'classroomPresence',uid));
+      if (!snap.exists()) { openEntryScreen(false); return; }
+      const d = snap.data();
+      const joinedMs = d.joinedAt?.toMillis?.() || Date.now();
+      const mins = Math.max(1, Math.round((Date.now()-joinedMs)/60000));
+      const resume = await Modal.confirm(
+        'Resume Classroom?',
+        `Looks like your last classroom session (~${mins}m so far) didn't close properly. Rejoin where you left off?`,
+        'Rejoin'
+      );
+      if (resume) {
+        classroomStatus = d.status || 'study';
+        classroomTarget = d.target || '';
+        document.getElementById('setup-card').style.display = 'none';
+        document.getElementById('scene-card').style.display = 'block';
+        document.getElementById('btn-edit-profile').style.display = 'inline-block';
+        buildClockSVG(); applySky(); buildStars();
+        doJoin(joinedMs);
+      } else {
+        await deleteDoc(doc(db,'classroomPresence',uid));
+        openEntryScreen(false);
+      }
+    } catch(e) { openEntryScreen(false); }
+  }
+
+  window.addEventListener('pagehide', () => { if (classroomJoined) deleteDoc(doc(db,'classroomPresence',uid)).catch(()=>{}); });
+
+  // ─────────────────────────────────────────
   //  AUTH
   // ─────────────────────────────────────────
   onAuthStateChanged(auth, async (user) => {
@@ -720,16 +1113,21 @@
     const data = snap.data();
     if (data.role!=='student'||data.status!=='approved') { location.href='../index.html'; return; }
     uid=user.uid; userLevel=data.level; userGroup=data.group||null;
+    myName = data.firstName+' '+data.lastName;
+    me.nickname = data.classroomNickname || myName;
+    me.avatar   = data.classroomAvatar   || AVATARS[0];
     document.getElementById('sidebar-avatar').textContent = (data.firstName[0]+data.lastName[0]).toUpperCase();
-    document.getElementById('sidebar-name').textContent   = data.firstName+' '+data.lastName;
+    document.getElementById('sidebar-name').textContent   = myName;
     document.getElementById('sb-course').textContent      = data.course;
     document.getElementById('sb-level').textContent       = data.level;
     document.getElementById('page-loader').classList.add('hidden');
     loadPapers(); loadStreak(); loadToday(); loadWeekly(); loadDiaryHistory();
     checkForDraft();
+    checkClassroomCrashRecovery();
   });
 
   document.getElementById('btn-logout').addEventListener('click', async () => {
+    if (classroomJoined) { try { await deleteDoc(doc(db,'classroomPresence',uid)); } catch(e) {} }
     await clearDraft(); await signOut(auth); location.href='../index.html';
   });
 
@@ -738,6 +1136,14 @@
   // ─────────────────────────────────────────
   document.getElementById('tab-timer-btn').addEventListener('click', ()=>switchMode('timer'));
   document.getElementById('tab-sw-btn').addEventListener('click',    ()=>switchMode('stopwatch'));
+  document.getElementById('btn-expand-timer').addEventListener('click', () => {
+    document.getElementById('tw-overlay-body').appendChild(document.getElementById('normal-timer-wrap'));
+    document.getElementById('tw-overlay').classList.add('show');
+  });
+  document.getElementById('btn-collapse-timer').addEventListener('click', () => {
+    document.getElementById('normal-timer-slot').appendChild(document.getElementById('normal-timer-wrap'));
+    document.getElementById('tw-overlay').classList.remove('show');
+  });
   document.getElementById('btn-hamburger').addEventListener('click', toggleSidebar);
   document.getElementById('sidebar-overlay').addEventListener('click', closeSidebar);
   document.getElementById('btn-resume-draft').addEventListener('click', resumeDraft);
@@ -843,6 +1249,8 @@
         const cc=pct===100?'var(--success)':pct>=50?'var(--warning)':'var(--danger)';
         const tb=s.sessionType==='stopwatch'
           ?'<span class="sess-type-badge stopwatch">⏱ Stopwatch</span>'
+          :s.sessionType==='classroom'
+          ?'<span class="sess-type-badge classroom">🏫 Classroom</span>'
           :'<span class="sess-type-badge timer">⏳ Timer</span>';
         return`<div class="diary-day-item" id="dhi-${i}">
           <div class="diary-day-header">
@@ -913,7 +1321,7 @@
         <span style="font-size:13px;color:#2C2C54;">${t.text}</span>
       </label>`).join('');
     await Modal.custom({
-      icon: mode==='stopwatch'?'⏱️':'📓',
+      icon: mode==='stopwatch'?'⏱️':mode==='classroom'?'🏫':'📓',
       title: 'Session Complete!',
       body: `<div style="text-align:left;">
         <p style="font-size:13px;color:#64748B;margin-bottom:12px;">
@@ -931,7 +1339,8 @@
   async function saveSession(elapsed, paper, mode) {
     if (elapsed<10) return;
     try {
-      const studyDay=getStudyDay(mode==='stopwatch'?(swStartTime||new Date()):(startTime||new Date()));
+      const refTime = mode==='stopwatch' ? (swStartTime||new Date()) : mode==='classroom' ? (classroomStartTime||new Date()) : (startTime||new Date());
+      const studyDay=getStudyDay(refTime);
       await addDoc(collection(db,'timerSessions',uid,'sessions'),{
         paperName:paper, duration:elapsed, studyDay,
         todos:todos.map(t=>({text:t.text,done:t.done})),

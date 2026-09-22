@@ -523,6 +523,10 @@
     btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Saving...';
     try{
       await updateDoc(doc(db,'users',currentUser.uid), updateData);
+      // Keep the Forgot Password identity-check record in sync
+      await setDoc(doc(db,'emailLookup', (userData?.email||currentUser.email||'').toLowerCase()), {
+        firstName, lastName, phone, dateOfBirth: dob||null,
+      }).catch(()=>{});
       toast('Profile updated! ✅','success');
       document.getElementById('profile-name').textContent=firstName+' '+lastName;
       document.getElementById('sidebar-name').textContent=firstName+' '+lastName;

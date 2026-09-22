@@ -9,6 +9,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth }       from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore }  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFunctions }  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js";
 
 // ── Firebase Config ──────────────────────────────────────────
 const firebaseConfig = {
@@ -24,6 +25,7 @@ const app = initializeApp(firebaseConfig);
 
 export const auth = getAuth(app);
 export const db   = getFirestore(app);
+export const functionsInstance = getFunctions(app);
 
 // ── EmailJS Config ────────────────────────────────────────────
 // One universal template handles ALL emails (OTP, approval,

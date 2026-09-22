@@ -131,57 +131,57 @@
         <!-- ────────────── FORGOT PASSWORD ─────────────────── -->
         <div id="tab-forgot" style="display:none;">
           <h2 class="auth-box-title">Reset your password</h2>
-          <p class="auth-box-sub">We'll verify your details, then let you set a new password</p>
+          <p class="auth-box-sub" id="forgot-step-label">Step 1 of 5 — Your Name</p>
 
           <div id="forgot-error" class="form-error mb-16" style="display:none; font-size:14px; background:var(--danger-light); padding:10px 14px; border-radius:var(--radius-md);"></div>
 
-          <!-- Step 1: Identity -->
-          <div id="forgot-step-identity">
-            <div class="form-two-col" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
-              <div class="form-group">
-                <label class="form-label">First Name</label>
-                <input type="text" id="fp-first" class="form-input" placeholder="First Name"/>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Last Name</label>
-                <input type="text" id="fp-last" class="form-input" placeholder="Last Name"/>
-              </div>
+          <!-- Step 1: Name -->
+          <div id="fp-step-1">
+            <div class="form-group">
+              <label class="form-label">First Name</label>
+              <input type="text" id="fp-first" class="form-input" placeholder="First Name"/>
             </div>
+            <div class="form-group">
+              <label class="form-label">Last Name</label>
+              <input type="text" id="fp-last" class="form-input" placeholder="Last Name"/>
+            </div>
+            <button type="button" class="btn btn-primary btn-full btn-lg" onclick="fpNextStep(1)">Next</button>
+          </div>
+
+          <!-- Step 2: DOB -->
+          <div id="fp-step-2" style="display:none;">
             <div class="form-group">
               <label class="form-label">Date of Birth</label>
               <input type="date" id="fp-dob" class="form-input"/>
             </div>
+            <button type="button" class="btn btn-primary btn-full btn-lg" onclick="fpNextStep(2)">Next</button>
+            <p class="text-center mt-12 fs-13"><a href="#" onclick="fpPrevStep(1)">← Back</a></p>
+          </div>
+
+          <!-- Step 3: Phone -->
+          <div id="fp-step-3" style="display:none;">
             <div class="form-group">
               <label class="form-label">Phone Number (10 digits)</label>
               <input type="tel" id="fp-phone" class="form-input" maxlength="10" placeholder="Registered phone number"/>
             </div>
+            <button type="button" class="btn btn-primary btn-full btn-lg" onclick="fpNextStep(3)">Next</button>
+            <p class="text-center mt-12 fs-13"><a href="#" onclick="fpPrevStep(2)">← Back</a></p>
+          </div>
+
+          <!-- Step 4: Email -->
+          <div id="fp-step-4" style="display:none;">
             <div class="form-group">
               <label class="form-label">Email Address</label>
               <input type="email" id="fp-email" class="form-input" placeholder="Registered email address"/>
             </div>
-            <button type="button" class="btn btn-primary btn-full btn-lg" id="fp-verify-btn" onclick="fpRequestOtp()">
-              Verify & Send OTP
+            <button type="button" class="btn btn-primary btn-full btn-lg" id="fp-verify-btn" onclick="fpVerifyAndContinue()">
+              Verify Details
             </button>
+            <p class="text-center mt-12 fs-13"><a href="#" onclick="fpPrevStep(3)">← Back</a></p>
           </div>
 
-          <!-- Step 2: OTP -->
-          <div id="forgot-step-otp" style="display:none;">
-            <p class="fs-13 text-secondary mb-12">Enter the 6-digit OTP sent to your registered email.</p>
-            <div class="form-group">
-              <label class="form-label">OTP</label>
-              <input type="text" id="fp-otp" class="form-input" maxlength="6"
-                style="letter-spacing:4px; font-weight:700;" placeholder="Enter OTP"/>
-            </div>
-            <button type="button" class="btn btn-primary btn-full btn-lg" id="fp-otp-btn" onclick="fpVerifyOtp()">
-              Verify OTP
-            </button>
-            <p class="text-center mt-12 fs-13">
-              <a href="#" onclick="fpRequestOtp()">Resend OTP</a>
-            </p>
-          </div>
-
-          <!-- Step 3: New Password -->
-          <div id="forgot-step-password" style="display:none;">
+          <!-- Step 5: New Password -->
+          <div id="fp-step-5" style="display:none;">
             <div class="form-group">
               <label class="form-label">New Password</label>
               <div class="input-password-wrap">
@@ -201,8 +201,8 @@
             </button>
           </div>
 
-          <!-- Step 4: Success -->
-          <div id="forgot-step-success" style="display:none; text-align:center;">
+          <!-- Step 6: Success -->
+          <div id="fp-step-success" style="display:none; text-align:center;">
             <div style="font-size:44px; margin-bottom:12px;">✅</div>
             <h2 class="auth-box-title">Password Reset Successfully!</h2>
             <p class="auth-box-sub mb-16">You can now login with your new password.</p>
@@ -707,19 +707,32 @@
       }
     });
 
-    // ── Forgot Password ───────────────────────────────────────
-    let _fpResetToken = null;
-    let _fpVerifiedEmail = null;
+    // ── Forgot Password (no OTP — step-by-step identity wizard) ─
+    let _fpData = {}; // collected across steps: firstName,lastName,dateOfBirth,phone,email
+    const FP_STEP_LABELS = {
+      1: 'Step 1 of 5 — Your Name',
+      2: 'Step 2 of 5 — Date of Birth',
+      3: 'Step 3 of 5 — Phone Number',
+      4: 'Step 4 of 5 — Email Address',
+      5: 'Step 5 of 5 — Set New Password',
+    };
 
     function resetForgotFlow() {
       document.getElementById('forgot-error').style.display = 'none';
-      document.getElementById('forgot-step-identity').style.display = 'block';
-      document.getElementById('forgot-step-otp').style.display      = 'none';
-      document.getElementById('forgot-step-password').style.display = 'none';
-      document.getElementById('forgot-step-success').style.display  = 'none';
-      document.getElementById('forgot-back-link').style.display     = 'block';
-      _fpResetToken    = null;
-      _fpVerifiedEmail = null;
+      for (let i = 1; i <= 5; i++) {
+        document.getElementById('fp-step-' + i).style.display = (i === 1 ? 'block' : 'none');
+      }
+      document.getElementById('fp-step-success').style.display = 'none';
+      document.getElementById('forgot-back-link').style.display = 'block';
+      document.getElementById('forgot-step-label').textContent = FP_STEP_LABELS[1];
+      document.getElementById('fp-first').value = '';
+      document.getElementById('fp-last').value  = '';
+      document.getElementById('fp-dob').value   = '';
+      document.getElementById('fp-phone').value = '';
+      document.getElementById('fp-email').value = '';
+      document.getElementById('fp-new-password').value     = '';
+      document.getElementById('fp-confirm-password').value = '';
+      _fpData = {};
     }
 
     function fpShowError(msg) {
@@ -727,71 +740,52 @@
       el.textContent   = msg;
       el.style.display = 'block';
     }
+    function fpGoTo(step) {
+      document.getElementById('forgot-error').style.display = 'none';
+      for (let i = 1; i <= 5; i++) {
+        document.getElementById('fp-step-' + i).style.display = (i === step ? 'block' : 'none');
+      }
+      document.getElementById('forgot-step-label').textContent = FP_STEP_LABELS[step];
+    }
+    window.fpPrevStep = function(step) { fpGoTo(step); };
 
-    window.fpRequestOtp = async function() {
-      const firstName    = document.getElementById('fp-first').value.trim();
-      const lastName     = document.getElementById('fp-last').value.trim();
-      const dob          = document.getElementById('fp-dob').value;
-      const phone        = document.getElementById('fp-phone').value.trim();
-      const email        = document.getElementById('fp-email').value.trim();
-      const btn          = document.getElementById('fp-verify-btn');
-
+    // Step 1 → 2 → 3 → 4: just collect + validate, no server call yet
+    window.fpNextStep = function(currentStep) {
       document.getElementById('forgot-error').style.display = 'none';
 
-      if (!firstName || !lastName || !dob || !phone || !email) {
-        fpShowError('❌ Please fill in all fields.');
-        return;
+      if (currentStep === 1) {
+        const firstName = document.getElementById('fp-first').value.trim();
+        const lastName  = document.getElementById('fp-last').value.trim();
+        if (!firstName || !lastName) { fpShowError('❌ Please enter your first and last name.'); return; }
+        _fpData.firstName = firstName;
+        _fpData.lastName  = lastName;
+        fpGoTo(2);
+      } else if (currentStep === 2) {
+        const dob = document.getElementById('fp-dob').value;
+        if (!dob) { fpShowError('❌ Please enter your date of birth.'); return; }
+        _fpData.dateOfBirth = dob;
+        fpGoTo(3);
+      } else if (currentStep === 3) {
+        const phone = document.getElementById('fp-phone').value.trim();
+        if (!/^\d{10}$/.test(phone)) { fpShowError('❌ Phone number must be exactly 10 digits.'); return; }
+        _fpData.phone = phone;
+        fpGoTo(4);
       }
-      if (!/^\d{10}$/.test(phone)) {
-        fpShowError('❌ Phone number must be exactly 10 digits.');
-        return;
-      }
-
-      btn.disabled = true; btn.textContent = 'Verifying…';
-      try {
-        const requestOtp = httpsCallable(functionsInstance, 'requestPasswordResetOtp');
-        await requestOtp({ firstName, lastName, dateOfBirth: dob, phone, email });
-
-        _fpVerifiedEmail = email;
-        showToast('OTP sent to your registered email.', 'success');
-        document.getElementById('forgot-step-identity').style.display = 'none';
-        document.getElementById('forgot-step-otp').style.display      = 'block';
-      } catch (err) {
-        console.error(err);
-        fpShowError('❌ ' + (err.message || 'We could not verify those details.'));
-      }
-      btn.disabled = false; btn.textContent = 'Verify & Send OTP';
     };
 
-    window.fpVerifyOtp = async function() {
-      const otp = document.getElementById('fp-otp').value.trim();
-      const btn = document.getElementById('fp-otp-btn');
-
+    // Step 4 → 5: this is where we actually check the details against
+    // the database — done together with the password set (step 5) in
+    // ONE call to the Cloud Function, so we just move on to step 5 here.
+    window.fpVerifyAndContinue = function() {
       document.getElementById('forgot-error').style.display = 'none';
-
-      if (!/^\d{6}$/.test(otp)) {
-        fpShowError('❌ Please enter the 6-digit OTP.');
-        return;
-      }
-
-      btn.disabled = true; btn.textContent = 'Verifying…';
-      try {
-        const verifyOtp = httpsCallable(functionsInstance, 'verifyPasswordResetOtp');
-        const res = await verifyOtp({ email: _fpVerifiedEmail, otp });
-        _fpResetToken = res.data.resetToken;
-
-        showToast('OTP verified!', 'success');
-        document.getElementById('forgot-step-otp').style.display      = 'none';
-        document.getElementById('forgot-step-password').style.display = 'block';
-      } catch (err) {
-        console.error(err);
-        fpShowError('❌ ' + (err.message || 'Invalid or expired OTP.'));
-      }
-      btn.disabled = false; btn.textContent = 'Verify OTP';
+      const email = document.getElementById('fp-email').value.trim();
+      if (!email) { fpShowError('❌ Please enter your registered email address.'); return; }
+      _fpData.email = email;
+      fpGoTo(5);
     };
 
     window.fpCompleteReset = async function() {
-      const newPassword = document.getElementById('fp-new-password').value;
+      const newPassword     = document.getElementById('fp-new-password').value;
       const confirmPassword = document.getElementById('fp-confirm-password').value;
       const btn = document.getElementById('fp-save-btn');
 
@@ -806,21 +800,19 @@
         return;
       }
 
-      btn.disabled = true; btn.textContent = 'Saving…';
+      btn.disabled = true; btn.textContent = 'Verifying & saving…';
       try {
-        const completeReset = httpsCallable(functionsInstance, 'completePasswordReset');
-        await completeReset({
-          email: _fpVerifiedEmail,
-          resetToken: _fpResetToken,
-          newPassword,
-        });
+        const resetFn = httpsCallable(functionsInstance, 'resetPasswordWithIdentityCheck');
+        await resetFn({ ..._fpData, newPassword });
 
-        document.getElementById('forgot-step-password').style.display = 'none';
-        document.getElementById('forgot-step-success').style.display  = 'block';
-        document.getElementById('forgot-back-link').style.display     = 'none';
+        document.getElementById('fp-step-5').style.display      = 'none';
+        document.getElementById('fp-step-success').style.display = 'block';
+        document.getElementById('forgot-back-link').style.display = 'none';
       } catch (err) {
         console.error(err);
-        fpShowError('❌ ' + (err.message || 'Could not reset password. Please start over.'));
+        // A mismatch means something in steps 1-4 was wrong — send them back to step 1.
+        fpShowError('❌ ' + (err.message || 'We could not verify those details.') + ' Please start over.');
+        setTimeout(() => resetForgotFlow(), 2500);
       }
       btn.disabled = false; btn.textContent = 'Set New Password';
     };

@@ -15,12 +15,23 @@
 // ============================================================
 
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const { defineSecret } = require("firebase-functions/params");
 const logger = require("firebase-functions/logger");
 const admin = require("firebase-admin");
 const { sendPasswordResetOtpEmail, sendPasswordResetConfirmationEmail } = require("./utils/email");
 
 admin.initializeApp();
 const db = admin.firestore();
+
+// The EmailJS Private Key is a real secret — it is NEVER stored in this
+// repo (not in .env, not anywhere). It lives only in Google Cloud Secret
+// Manager. Set it once with:
+//   firebase functions:secrets:set EMAILJS_PRIVATE_KEY
+// Each function below that sends email declares { secrets: [emailjsPrivateKey] },
+// which makes Firebase inject it as process.env.EMAILJS_PRIVATE_KEY for
+// that function's execution only — utils/email.js reads it the same way
+// it always did, no code change needed there.
+const emailjsPrivateKey = defineSecret("EMAILJS_PRIVATE_KEY");
 
 const OTP_TTL_MS      = 10 * 60 * 1000;  // 10 minutes
 const RESET_TOKEN_TTL_MS = 10 * 60 * 1000;
@@ -40,7 +51,7 @@ function genToken() {
 }
 
 // ── 1. Verify identity, then generate + email an OTP ─────────
-exports.requestPasswordResetOtp = onCall({ cors: true }, async (request) => {
+exports.requestPasswordResetOtp = onCall({ cors: true, secrets: [emailjsPrivateKey] }, async (request) => {
   const { firstName, lastName, dateOfBirth, phone, email } = request.data || {};
 
   if (!firstName || !lastName || !dateOfBirth || !phone || !email) {
@@ -144,7 +155,7 @@ exports.verifyPasswordResetOtp = onCall({ cors: true }, async (request) => {
 });
 
 // ── 3. Spend the reset token to actually set the new password ─
-exports.completePasswordReset = onCall({ cors: true }, async (request) => {
+exports.completePasswordReset = onCall({ cors: true, secrets: [emailjsPrivateKey] }, async (request) => {
   const { email, resetToken, newPassword } = request.data || {};
   if (!email || !resetToken || !newPassword) {
     throw new HttpsError("invalid-argument", "Missing required fields.");

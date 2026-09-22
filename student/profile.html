@@ -326,6 +326,41 @@
             </button>
           </div>
 
+          <!-- Feedback -->
+          <div class="edit-section">
+            <h3>💬 Feedback</h3>
+            <p class="text-secondary fs-14 mb-16">
+              Facing an issue, or have an idea to make StudyBuddy better? Let us know.
+            </p>
+            <div class="form-group mb-12">
+              <label class="form-label">Category</label>
+              <select id="fb-category" class="form-select">
+                <option value="Suggestion">💡 Suggestion</option>
+                <option value="Bug Report">🐞 Bug Report</option>
+                <option value="Content Issue">📚 Content Issue</option>
+                <option value="Other">📝 Other</option>
+              </select>
+            </div>
+            <div class="form-group mb-12">
+              <label class="form-label">Your Rating (Optional)</label>
+              <div id="fb-star-row" style="display:flex; gap:6px; font-size:24px; cursor:pointer;">
+                <span class="fb-star" data-val="1">☆</span>
+                <span class="fb-star" data-val="2">☆</span>
+                <span class="fb-star" data-val="3">☆</span>
+                <span class="fb-star" data-val="4">☆</span>
+                <span class="fb-star" data-val="5">☆</span>
+              </div>
+            </div>
+            <div class="form-group mb-16">
+              <label class="form-label">Message</label>
+              <textarea id="fb-message" class="form-input" rows="4"
+                placeholder="Tell us what's on your mind..." style="resize:vertical;"></textarea>
+            </div>
+            <button class="btn btn-primary" id="btn-submit-feedback" onclick="submitFeedback()">
+              📤 Submit Feedback
+            </button>
+          </div>
+
           <div class="edit-section" style="border-color:rgba(255,71,87,0.3);">
             <h3 style="color:var(--danger);">⚠️ Account</h3>
 
@@ -702,6 +737,52 @@
       statusEl.innerHTML = `<div style="background:var(--danger-light);color:#8A0018;padding:10px 14px;border-radius:var(--radius-md);font-size:13px;">❌ Failed to submit. Please try again.</div>`;
     }
     btn.disabled = false; btn.textContent = '📤 Submit Course Change Request';
+  };
+
+  // ── Feedback ─────────────────────────────────────────────
+  let _fbRating = 0;
+  document.getElementById('fb-star-row').addEventListener('click', (e) => {
+    const star = e.target.closest('.fb-star');
+    if (!star) return;
+    _fbRating = parseInt(star.dataset.val);
+    document.querySelectorAll('.fb-star').forEach(s => {
+      s.textContent = parseInt(s.dataset.val) <= _fbRating ? '★' : '☆';
+    });
+  });
+
+  window.submitFeedback = async function() {
+    const category = document.getElementById('fb-category').value;
+    const message  = document.getElementById('fb-message').value.trim();
+    const btn      = document.getElementById('btn-submit-feedback');
+
+    if (!message) {
+      toast('Please write a message before submitting.', 'error');
+      return;
+    }
+
+    btn.disabled = true; btn.textContent = 'Submitting…';
+    try {
+      const user = auth.currentUser;
+      await addDoc(collection(db, 'feedback'), {
+        uid:        user.uid,
+        name:       `${userData?.firstName || ''} ${userData?.lastName || ''}`.trim(),
+        email:      userData?.email || user.email || '',
+        category,
+        rating:     _fbRating || null,
+        message,
+        status:     'new',
+        createdAt:  serverTimestamp(),
+      });
+
+      toast('Thank you! Your feedback has been submitted.', 'success');
+      document.getElementById('fb-message').value = '';
+      _fbRating = 0;
+      document.querySelectorAll('.fb-star').forEach(s => s.textContent = '☆');
+    } catch (err) {
+      console.error(err);
+      toast('Failed to submit feedback. Please try again.', 'error');
+    }
+    btn.disabled = false; btn.textContent = '📤 Submit Feedback';
   };
 
   window.logoutAll=async function(){

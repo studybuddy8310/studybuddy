@@ -152,15 +152,6 @@ service cloud.firestore {
       allow read, write: if isSelf(userId);
     }
 
-    // ── classroomPresence ────────────────────────────────────
-    // classroomPresence/{userId}  (live "who's studying now" for the Virtual Classroom)
-    // All approved users: read (to see who's in the room)
-    // Students: create/update/delete own presence doc only
-    match /classroomPresence/{userId} {
-      allow read:   if isApproved();
-      allow write:  if isSelf(userId);
-    }
-
     // ── streaks ───────────────────────────────────────────────
     // streaks/{userId}
     // Students: read/write own only
@@ -211,6 +202,27 @@ service cloud.firestore {
     // Admins: read all, delete after processing
     match /clearRequests/{userId} {
       allow read, write: if isSelf(userId) || isAdmin();
+    }
+
+    // ── feedback ──────────────────────────────────────────────
+    // feedback/{feedbackId}
+    // Students: create own feedback + read own
+    // Admins: read all, update (mark reviewed), delete
+    match /feedback/{feedbackId} {
+      allow create: if isStudent() && request.resource.data.uid == request.auth.uid;
+      allow read:   if isAdmin()
+                    || (isStudent() && resource.data.uid == request.auth.uid);
+      allow update,
+            delete: if isAdmin();
+    }
+
+    // ── passwordResetOtps ─────────────────────────────────────
+    // passwordResetOtps/{uid} — written & read ONLY by Cloud
+    // Functions using the Admin SDK, which bypasses these rules
+    // entirely. This match exists just to make the intent explicit:
+    // no client (not even a signed-in one) may ever touch this data.
+    match /passwordResetOtps/{uid} {
+      allow read, write: if false;
     }
 
   }

@@ -8,19 +8,13 @@
   <link rel="stylesheet" href="../css/student.css"/>
   <link rel="stylesheet" href="../css/classroom.css"/>
   <style>
-    /* ── Fixed viewport layout: page never grows beyond screen ── */
-    .student-main { min-height:unset !important; height:100vh; overflow:hidden; }
-    .page-content  { height:100%; overflow:hidden; display:flex; flex-direction:column; box-sizing:border-box; }
-    .page-hero     { flex-shrink:0; }
-    .timer-page    { display:grid; grid-template-columns:1fr 360px; gap:24px; align-items:start;
-                     flex:1; min-height:0; overflow:hidden; }
-    /* Left column: scrollable if content overflows */
-    .timer-page > div:first-child { overflow-y:auto; height:100%; padding-right:4px; }
-    /* Right panel: fixed column, only Recent Sessions list scrolls */
-    .right-panel   { display:flex; flex-direction:column; gap:16px; height:100%; overflow:hidden; }
-    .diary-history { display:flex; flex-direction:column; flex:1; min-height:0;
-                     background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:18px; overflow:hidden; }
-    #diary-history-list { flex:1; overflow-y:auto; min-height:0; }
+    /* ── Classroom-first layout: normal page scroll, Classroom full width up top ── */
+    .timer-page { display:flex; flex-direction:column; gap:22px; }
+    .timer-page-cols { display:grid; grid-template-columns:1fr 360px; gap:24px; align-items:start; }
+    .right-panel   { display:flex; flex-direction:column; gap:16px; }
+    .diary-history { display:flex; flex-direction:column;
+                     background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:18px; }
+    #diary-history-list { max-height:320px; overflow-y:auto; }
 
     /* ── Mode Tabs ── */
     .mode-tabs {
@@ -230,10 +224,7 @@
 
     /* ── Mobile optimisations ── */
     @media(max-width:960px){
-      .timer-page { grid-template-columns:1fr; overflow-y:auto; }
-      .timer-page > div:first-child { overflow-y:visible; height:auto; }
-      .right-panel { height:auto; overflow:visible; }
-      .diary-history { flex:unset; min-height:unset; }
+      .timer-page-cols { grid-template-columns:1fr; }
       #diary-history-list { max-height:280px; }
       .timer-digits { font-size:3.2rem; }
       .btn-play  { width:72px; height:72px; font-size:28px; }
@@ -296,6 +287,62 @@
       </div>
 
       <div class="timer-page">
+        <!-- CLASSROOM — full width, always the first thing you see -->
+        <div class="classroom-card" id="classroom-card">
+            <div class="scene-topbar">
+              <div class="room-name"><div class="live-dot"></div> Classroom <span id="classroom-count-text" class="count">0 online</span></div>
+              <div class="room-timer-mini" id="room-timer-mini" style="display:none;">⏱ <span id="room-timer-mini-val">00:00</span></div>
+            </div>
+
+            <!-- Avatar/nickname setup or "welcome back" -->
+            <div id="setup-card" class="setup-card">
+              <div id="entry-first-time">
+                <h3>🎭 Set up how others see you</h3>
+                <p>Pick an avatar and a nickname for the classroom — you can change these anytime.</p>
+                <input type="text" id="inp-nickname" placeholder="Your nickname" maxlength="16"/>
+                <div class="avatar-grid" id="avatar-grid"></div>
+                <button class="btn btn-primary" id="btn-save-setup">Save & Join Classroom 🚪</button>
+              </div>
+              <div id="entry-returning" style="display:none;">
+                <div class="timer-icon-badge" id="returning-avatar" style="width:60px;height:60px;font-size:28px;"></div>
+                <h3>Welcome back<span id="returning-name"></span>!</h3>
+                <p id="returning-total-wrap">You've logged <b id="returning-total">0m</b> in the classroom today.</p>
+                <button class="btn btn-primary" id="btn-rejoin">🚪 Rejoin Classroom</button>
+              </div>
+            </div>
+
+            <!-- The room scene itself -->
+            <div id="scene-card" style="display:none;">
+              <div class="scene">
+                <div class="scene-floor"></div>
+                <div class="light-beam"></div>
+                <div class="wall-props">
+                  <div class="window-frame">
+                    <div class="sky" id="sky">
+                      <div class="celestial" id="celestial"></div>
+                      <div class="stars" id="stars-wrap"></div>
+                      <div class="horizon"></div>
+                    </div>
+                    <div class="window-mullions"></div>
+                  </div>
+                  <div class="board"><h2>STUDY HALL</h2></div>
+                  <div class="wall-clock-wrap" id="wall-clock-svg"></div>
+                </div>
+                <div class="desks-grid" id="desks-grid"></div>
+              </div>
+              <div class="statusbar" id="statusbar">
+                <span class="statusbar-lbl">Status:</span>
+                <button class="statuschip active" data-s="study">📖 Studying</button>
+                <button class="statuschip" data-s="lecture">🎧 Watching Lecture</button>
+                <button class="statuschip" data-s="reading">📚 Reading</button>
+                <button class="statuschip" data-s="revision">🔁 Revising</button>
+                <button class="statuschip" data-s="break">☕ On Break</button>
+                <input type="text" id="inp-target" placeholder="What are you studying?"/>
+              </div>
+            </div>
+          </div>
+
+        <div class="timer-page-cols">
         <!-- LEFT -->
         <div>
           <!-- Resume Banner -->
@@ -387,59 +434,7 @@
           </div>
 
           <!-- ══ CLASSROOM ══ -->
-          <div class="classroom-card" id="classroom-card">
-            <div class="scene-topbar">
-              <div class="room-name"><div class="live-dot"></div> Classroom <span id="classroom-count-text" class="count">0 online</span></div>
-              <div class="room-timer-mini" id="room-timer-mini" style="display:none;">⏱ <span id="room-timer-mini-val">00:00</span></div>
-            </div>
-
-            <!-- Avatar/nickname setup or "welcome back" -->
-            <div id="setup-card" class="setup-card">
-              <div id="entry-first-time">
-                <h3>🎭 Set up how others see you</h3>
-                <p>Pick an avatar and a nickname for the classroom — you can change these anytime.</p>
-                <input type="text" id="inp-nickname" placeholder="Your nickname" maxlength="16"/>
-                <div class="avatar-grid" id="avatar-grid"></div>
-                <button class="btn btn-primary" id="btn-save-setup">Save & Join Classroom 🚪</button>
-              </div>
-              <div id="entry-returning" style="display:none;">
-                <div class="timer-icon-badge" id="returning-avatar" style="width:60px;height:60px;font-size:28px;"></div>
-                <h3>Welcome back<span id="returning-name"></span>!</h3>
-                <p id="returning-total-wrap">You've logged <b id="returning-total">0m</b> in the classroom today.</p>
-                <button class="btn btn-primary" id="btn-rejoin">🚪 Rejoin Classroom</button>
-              </div>
-            </div>
-
-            <!-- The room scene itself -->
-            <div id="scene-card" style="display:none;">
-              <div class="scene">
-                <div class="scene-floor"></div>
-                <div class="light-beam"></div>
-                <div class="wall-props">
-                  <div class="window-frame">
-                    <div class="sky" id="sky">
-                      <div class="celestial" id="celestial"></div>
-                      <div class="stars" id="stars-wrap"></div>
-                      <div class="horizon"></div>
-                    </div>
-                    <div class="window-mullions"></div>
-                  </div>
-                  <div class="board"><h2>STUDY HALL</h2></div>
-                  <div class="wall-clock-wrap" id="wall-clock-svg"></div>
-                </div>
-                <div class="desks-grid" id="desks-grid"></div>
-              </div>
-              <div class="statusbar" id="statusbar">
-                <span class="statusbar-lbl">Status:</span>
-                <button class="statuschip active" data-s="study">📖 Studying</button>
-                <button class="statuschip" data-s="lecture">🎧 Watching Lecture</button>
-                <button class="statuschip" data-s="reading">📚 Reading</button>
-                <button class="statuschip" data-s="revision">🔁 Revising</button>
-                <button class="statuschip" data-s="break">☕ On Break</button>
-                <input type="text" id="inp-target" placeholder="What are you studying?"/>
-              </div>
-            </div>
-          </div>
+          
 
           <!-- Targets — this is your existing Session Diary, just relocated & relabeled -->
           <div class="diary-section">
@@ -483,6 +478,7 @@
             <div id="diary-history-list"><div style="text-align:center;padding:14px;color:var(--text-muted);font-size:13px;">No sessions yet</div></div>
           </div>
         </div>
+        </div><!-- /timer-page-cols -->
       </div>
     </div>
   </main>
@@ -783,12 +779,26 @@
   function escapeHtml(s) { const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
   function initialsFor(name) { const p=(name||'?').trim().split(' ').filter(Boolean); return ((p[0]?.[0]||'')+(p[1]?.[0]||'')).toUpperCase()||'?'; }
   function colorForSeed(seed) { let h=0; const s=seed||'?'; for(let i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))>>>0; return AVATAR_INITIAL_COLORS[h%AVATAR_INITIAL_COLORS.length]; }
-  // Real avatar files live at /assets/avatars/avatar01.png … avatar33.png in your project.
-  // If one is missing, this falls back to a colored initials circle instead of a broken image.
-  function avatarMediaHtml(file, name) {
+  // Real avatar files live at ../assets/avatars/avatar01.png … avatar33.png in your
+  // project, each already a full "character sitting at a desk" illustration.
+  // ../assets/avatars/bench.png is the empty-desk artwork, used both for unoccupied
+  // seats and as the fallback background if a specific avatar file is still missing.
+  function seatTileHtml(file, name) {
     const initials = initialsFor(name);
     const bg = colorForSeed(name || file);
-    return `<img src="../assets/avatars/${file||'avatar01.png'}" alt="${escapeHtml(name||'avatar')}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+    return `<img class="seat-tile-img" src="../assets/avatars/${file||'avatar01.png'}" alt="${escapeHtml(name||'avatar')}"
+              onerror="this.onerror=null;this.src='../assets/avatars/bench.png';this.nextElementSibling.style.display='flex';">
+            <div class="fallback-initials-badge" style="display:none;background:${bg};">${initials}</div>`;
+  }
+  function seatTileEmptyHtml() {
+    return `<img class="seat-tile-img" src="../assets/avatars/bench.png" alt="empty desk" style="opacity:.7;">`;
+  }
+  // Small circular thumbnail used in the avatar picker grid and the "welcome back" badge.
+  function avatarThumbHtml(file, name) {
+    const initials = initialsFor(name);
+    const bg = colorForSeed(name || file);
+    return `<img src="../assets/avatars/${file||'avatar01.png'}" alt="${escapeHtml(name||'avatar')}" style="object-position:top;"
+              onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
             <div class="fallback-initials" style="display:none;background:${bg};">${initials}</div>`;
   }
 
@@ -807,7 +817,7 @@
   AVATARS.forEach((file,i) => {
     const el = document.createElement('div');
     el.className = 'avatar-opt';
-    el.innerHTML = `<img src="../assets/avatars/${file}" alt="${file}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+    el.innerHTML = `<img src="../assets/avatars/${file}" alt="${file}" style="object-position:top;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                      <div class="fallback-initials" style="display:none;background:${AVATAR_FALLBACK_COLORS[i%AVATAR_FALLBACK_COLORS.length]};color:#8A5F00;">${i+1}</div>
                      <span class="sel-check">✓</span>`;
     el.addEventListener('click', () => {
@@ -842,7 +852,7 @@
     document.getElementById('entry-returning').style.display  = hasProfile ? 'block' : 'none';
 
     if (hasProfile) {
-      document.getElementById('returning-avatar').innerHTML = avatarMediaHtml(me.avatar, me.nickname);
+      document.getElementById('returning-avatar').innerHTML = avatarThumbHtml(me.avatar, me.nickname);
       document.getElementById('returning-name').textContent = `, ${me.nickname}`;
       const secs = await classroomMinutesToday();
       document.getElementById('returning-total').textContent = `${Math.round(secs/60)}m`;
@@ -960,7 +970,7 @@
   }
 
   function renderDesks(members) {
-    const TOTAL_SEATS = 12;
+    const TOTAL_SEATS = 18; // 3 rows of 6 — a fuller-feeling room now that Classroom is full width
     const grid = document.getElementById('desks-grid');
     grid.innerHTML = '';
     for (let i=0; i<TOTAL_SEATS; i++) {
@@ -969,16 +979,18 @@
       if (occ) {
         const st = CLASSROOM_STATUSES[occ.status] || CLASSROOM_STATUSES.study;
         const seat = document.createElement('div');
-        seat.className = 'avatar-seat' + (occ.id===uid ? ' mine' : '');
+        seat.className = 'avatar-seat avatar-bob' + (occ.id===uid ? ' mine' : '');
+        const showSparkle = occ.status === 'study';
         seat.innerHTML = `
           ${occ.target ? `<div class="target-bubble">🎯 ${escapeHtml(occ.target)}</div>` : ''}
           <div class="nameplate"><span class="status-dot live" style="background:${st.color}"></span><span class="who">${occ.id===uid ? 'You' : escapeHtml(occ.name||'Student')}</span></div>
-          <div class="avatar-face avatar-bob">${avatarMediaHtml(occ.avatar, occ.id===uid ? me.nickname : occ.name)}</div>
+          ${seatTileHtml(occ.avatar, occ.id===uid ? me.nickname : occ.name)}
+          ${showSparkle ? `<span class="sparkle">✨</span>` : ''}
         `;
         slot.appendChild(seat);
+      } else {
+        slot.innerHTML = seatTileEmptyHtml();
       }
-      const desk = document.createElement('div'); desk.className = 'desk';
-      slot.appendChild(desk);
       grid.appendChild(slot);
     }
   }

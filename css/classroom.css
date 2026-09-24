@@ -47,7 +47,9 @@
 .scene-topbar .count { font-size:12px; color:var(--text-secondary); font-weight:600; margin-left:6px; }
 .live-dot { width:7px; height:7px; border-radius:50%; background:var(--success); animation:cr-pulse 1.6s infinite; }
 @keyframes cr-pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
-.room-timer-mini { font-family:monospace; font-size:13px; font-weight:700; color:var(--primary); display:flex; align-items:center; gap:4px; }
+/* .room-timer-mini now lives in classroom.html's own <style> block — it needed a
+   display:none default (toggled by JS) that this old version didn't have, so this
+   duplicate was removed to avoid the two definitions drifting out of sync. */
 
 /* ── Setup / re-entry screen ── */
 .setup-card { padding:28px 22px; text-align:center; }
@@ -128,8 +130,8 @@
 .seat-tile-img { width:100%; max-width:190px; height:170px; object-fit:contain; object-position:bottom center; display:block; }
 
 .avatar-seat { position:relative; display:flex; flex-direction:column; align-items:center; }
-.avatar-bob { animation:cr-bob 2.6s ease-in-out infinite; }
-@keyframes cr-bob { 0%,100%{ transform:translateY(0);} 50%{ transform:translateY(-3px);} }
+/* Note: seats no longer bob up/down (removed per feedback — the desk looked like
+   it was floating). Only .sparkle still moves; see its keyframes below. */
 .avatar-seat.mine .seat-tile-img { filter:drop-shadow(0 0 0 3px var(--primary)) drop-shadow(0 4px 10px rgba(0,0,0,0.3)); }
 
 .nameplate { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:3px 9px; font-size:10.5px; font-weight:700;

@@ -88,7 +88,7 @@
       <a href="mcq.html"      class="nav-item"><span class="nav-item-icon">✏️</span> Practice MCQ</a>
       <a href="tests.html"    class="nav-item"><span class="nav-item-icon">📝</span> Mock Tests</a>
       <div class="nav-section-label">Tools</div>
-      <a href="timer.html"    class="nav-item"><span class="nav-item-icon">🏫</span> Classroom</a>
+      <a href="classroom.html"    class="nav-item"><span class="nav-item-icon">🏫</span> Classroom</a>
       <a href="tips.html"     class="nav-item"><span class="nav-item-icon">💡</span> Tips & Ideas</a>
       <div class="nav-section-label">Account</div>
       <a href="profile.html"  class="nav-item active"><span class="nav-item-icon">👤</span> My Profile</a>
@@ -135,10 +135,6 @@
               <div class="profile-info-row">
                 <span class="profile-info-label">📱 Phone</span>
                 <span class="profile-info-val" id="pi-phone">—</span>
-              </div>
-              <div class="profile-info-row">
-                <span class="profile-info-label">🎂 Date of Birth</span>
-                <span class="profile-info-val" id="pi-dob">—</span>
               </div>
               <div class="profile-info-row">
                 <span class="profile-info-label">📚 Course</span>
@@ -202,10 +198,6 @@
             <div class="form-group">
               <label class="form-label">Phone Number</label>
               <input type="tel" id="edit-phone" class="form-input" placeholder="10-digit phone" maxlength="10"/>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Date of Birth</label>
-              <input type="date" id="edit-dob" class="form-input"/>
             </div>
             <!-- Read-only fields -->
             <div class="form-two-col mb-16">
@@ -282,6 +274,32 @@
             </button>
           </div>
 
+          <!-- Feedback -->
+          <div class="edit-section">
+            <h3>💬 Feedback</h3>
+            <p class="text-secondary fs-14 mb-16">
+              Found a bug, have an idea, or just want to tell us something? We read every message.
+            </p>
+            <div id="feedback-status" style="display:none;margin-bottom:12px;"></div>
+            <div class="form-group">
+              <label class="form-label">What's this about?</label>
+              <select id="feedback-category" class="form-select">
+                <option value="Bug Report">🐛 Bug Report</option>
+                <option value="Feature Request">💡 Feature Request</option>
+                <option value="General Feedback" selected>💬 General Feedback</option>
+                <option value="Other">📌 Other</option>
+              </select>
+            </div>
+            <div class="form-group mb-16">
+              <label class="form-label">Your Message</label>
+              <textarea id="feedback-message" class="form-input" rows="4"
+                placeholder="Tell us what's on your mind..." style="resize:vertical;"></textarea>
+            </div>
+            <button class="btn btn-primary" id="btn-submit-feedback" onclick="submitFeedback()">
+              📤 Send Feedback
+            </button>
+          </div>
+
           <!-- Danger Zone -->
           <!-- ── Request to Clear Data ── -->
           <div class="edit-section" style="border-color:rgba(245,158,11,0.4);">
@@ -331,41 +349,6 @@
               style="background:#FEF3C7;color:#92400E;border:1px solid #FCD34D;font-weight:600;"
               onclick="submitClearRequest()">
               📤 Submit Request
-            </button>
-          </div>
-
-          <!-- Feedback -->
-          <div class="edit-section">
-            <h3>💬 Feedback</h3>
-            <p class="text-secondary fs-14 mb-16">
-              Facing an issue, or have an idea to make StudyBuddy better? Let us know.
-            </p>
-            <div class="form-group mb-12">
-              <label class="form-label">Category</label>
-              <select id="fb-category" class="form-select">
-                <option value="Suggestion">💡 Suggestion</option>
-                <option value="Bug Report">🐞 Bug Report</option>
-                <option value="Content Issue">📚 Content Issue</option>
-                <option value="Other">📝 Other</option>
-              </select>
-            </div>
-            <div class="form-group mb-12">
-              <label class="form-label">Your Rating (Optional)</label>
-              <div id="fb-star-row" style="display:flex; gap:6px; font-size:24px; cursor:pointer;">
-                <span class="fb-star" data-val="1">☆</span>
-                <span class="fb-star" data-val="2">☆</span>
-                <span class="fb-star" data-val="3">☆</span>
-                <span class="fb-star" data-val="4">☆</span>
-                <span class="fb-star" data-val="5">☆</span>
-              </div>
-            </div>
-            <div class="form-group mb-16">
-              <label class="form-label">Message</label>
-              <textarea id="fb-message" class="form-input" rows="4"
-                placeholder="Tell us what's on your mind..." style="resize:vertical;"></textarea>
-            </div>
-            <button class="btn btn-primary" id="btn-submit-feedback" onclick="submitFeedback()">
-              📤 Submit Feedback
             </button>
           </div>
 
@@ -465,9 +448,6 @@
     document.getElementById('profile-course-level').textContent=data.course+' — '+data.level;
     document.getElementById('pi-email').textContent=data.email||'—';
     document.getElementById('pi-phone').textContent=data.phone||'—';
-    document.getElementById('pi-dob').textContent=data.dateOfBirth
-      ? new Date(data.dateOfBirth+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'})
-      : '—';
     document.getElementById('pi-course').textContent=data.course||'—';
     document.getElementById('pi-level').textContent=data.level||'—';
     document.getElementById('pi-joined').textContent=data.createdAt
@@ -476,7 +456,6 @@
     document.getElementById('edit-first').value=data.firstName||'';
     document.getElementById('edit-last').value=data.lastName||'';
     document.getElementById('edit-phone').value=data.phone||'';
-    document.getElementById('edit-dob').value=data.dateOfBirth||'';
     document.getElementById('ro-email').textContent=data.email||'—';
     document.getElementById('ro-level').textContent=data.course+' — '+data.level;
     // Show group selector only for CA-Intermediate and CA-Final
@@ -508,10 +487,9 @@
     const firstName=document.getElementById('edit-first').value.trim();
     const lastName =document.getElementById('edit-last').value.trim();
     const phone    =document.getElementById('edit-phone').value.trim();
-    const dob      =document.getElementById('edit-dob').value;
     if(!firstName||!lastName){toast('Name cannot be empty.','error');return;}
     if(phone&&!/^\d{10}$/.test(phone)){toast('Phone must be 10 digits.','error');return;}
-    const updateData = { firstName, lastName, phone, dateOfBirth: dob||null, updatedAt:serverTimestamp() };
+    const updateData = { firstName, lastName, phone, updatedAt:serverTimestamp() };
     // Save group if selector is visible
     const groupWrap = document.getElementById('group-selector-wrap');
     if(groupWrap.style.display !== 'none'){
@@ -523,19 +501,12 @@
     btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Saving...';
     try{
       await updateDoc(doc(db,'users',currentUser.uid), updateData);
-      // Keep the Forgot Password identity-check record in sync
-      await setDoc(doc(db,'emailLookup', (userData?.email||currentUser.email||'').toLowerCase()), {
-        firstName, lastName, phone, dateOfBirth: dob||null,
-      }).catch(()=>{});
       toast('Profile updated! ✅','success');
       document.getElementById('profile-name').textContent=firstName+' '+lastName;
       document.getElementById('sidebar-name').textContent=firstName+' '+lastName;
       document.getElementById('profile-avatar').textContent=(firstName[0]+lastName[0]).toUpperCase();
       document.getElementById('sidebar-avatar').textContent=(firstName[0]+lastName[0]).toUpperCase();
       document.getElementById('pi-phone').textContent=phone||'—';
-      document.getElementById('pi-dob').textContent=dob
-        ? new Date(dob+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'})
-        : '—';
     }catch(e){toast('Save failed.','error');}
     finally{btn.disabled=false;btn.innerHTML='💾 Save Changes';}
   };
@@ -759,52 +730,6 @@
     btn.disabled = false; btn.textContent = '📤 Submit Course Change Request';
   };
 
-  // ── Feedback ─────────────────────────────────────────────
-  let _fbRating = 0;
-  document.getElementById('fb-star-row').addEventListener('click', (e) => {
-    const star = e.target.closest('.fb-star');
-    if (!star) return;
-    _fbRating = parseInt(star.dataset.val);
-    document.querySelectorAll('.fb-star').forEach(s => {
-      s.textContent = parseInt(s.dataset.val) <= _fbRating ? '★' : '☆';
-    });
-  });
-
-  window.submitFeedback = async function() {
-    const category = document.getElementById('fb-category').value;
-    const message  = document.getElementById('fb-message').value.trim();
-    const btn      = document.getElementById('btn-submit-feedback');
-
-    if (!message) {
-      toast('Please write a message before submitting.', 'error');
-      return;
-    }
-
-    btn.disabled = true; btn.textContent = 'Submitting…';
-    try {
-      const user = auth.currentUser;
-      await addDoc(collection(db, 'feedback'), {
-        uid:        user.uid,
-        name:       `${userData?.firstName || ''} ${userData?.lastName || ''}`.trim(),
-        email:      userData?.email || user.email || '',
-        category,
-        rating:     _fbRating || null,
-        message,
-        status:     'new',
-        createdAt:  serverTimestamp(),
-      });
-
-      toast('Thank you! Your feedback has been submitted.', 'success');
-      document.getElementById('fb-message').value = '';
-      _fbRating = 0;
-      document.querySelectorAll('.fb-star').forEach(s => s.textContent = '☆');
-    } catch (err) {
-      console.error(err);
-      toast('Failed to submit feedback. Please try again.', 'error');
-    }
-    btn.disabled = false; btn.textContent = '📤 Submit Feedback';
-  };
-
   window.logoutAll=async function(){
     const yes=await Modal.confirm('Logout?','Are you sure you want to logout from StudyBuddy?','Logout');
     if(!yes)return;
@@ -890,6 +815,48 @@
       btn.disabled = false;
       btn.textContent = '📤 Submit Request';
       console.error(e);
+    }
+  };
+
+  window.submitFeedback = async function() {
+    const category = document.getElementById('feedback-category').value;
+    const message  = document.getElementById('feedback-message').value.trim();
+    if (!message) { toast('Please write a message before sending.','error'); return; }
+
+    const btn = document.getElementById('btn-submit-feedback');
+    btn.disabled = true; btn.textContent = '⏳ Sending...';
+
+    try {
+      await addDoc(collection(db,'studentFeedback'), {
+        uid:          currentUser.uid,
+        studentName:  (userData.firstName||'')+' '+(userData.lastName||''),
+        studentEmail: userData.email||'',
+        category,
+        message,
+        status:       'new',
+        submittedAt:  serverTimestamp()
+      });
+
+      // Best-effort email notify — feedback is still saved even if this fails
+      try {
+        await emailjs.send(EMAILJS_CONFIG.serviceId, EMAILJS_CONFIG.templateId, {
+          to_email:     'studybuddy8310@gmail.com',
+          student_name: 'Admin',
+          subject:      `StudyBuddy — ${category} from ${userData.firstName||''} ${userData.lastName||''}`,
+          message:      `A student sent feedback.\n\nStudent: ${userData.firstName||''} ${userData.lastName||''}\nEmail: ${userData.email||''}\nCategory: ${category}\n\nMessage:\n${message}\n\n— StudyBuddy System`
+        }, EMAILJS_CONFIG.publicKey);
+      } catch(mailErr) { console.warn('Feedback email notify failed:', mailErr); }
+
+      const statusEl = document.getElementById('feedback-status');
+      statusEl.style.display = 'block';
+      statusEl.innerHTML = `<div style="background:var(--success-light);color:#006B55;padding:10px 14px;border-radius:var(--radius-md);font-size:13px;">✅ Thanks! Your feedback has been sent.</div>`;
+      document.getElementById('feedback-message').value = '';
+      toast('Feedback sent — thank you! 🙏','success');
+    } catch(e) {
+      console.error(e);
+      toast('Could not send feedback. Try again.','error');
+    } finally {
+      btn.disabled = false; btn.textContent = '📤 Send Feedback';
     }
   };
 

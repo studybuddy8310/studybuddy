@@ -330,20 +330,7 @@
             <!-- The room scene itself -->
             <div id="scene-card" style="display:none;">
               <div class="scene">
-                <div class="scene-floor"></div>
-                <div class="light-beam"></div>
-                <div class="wall-props">
-                  <div class="window-frame">
-                    <div class="sky" id="sky">
-                      <div class="celestial" id="celestial"></div>
-                      <div class="stars" id="stars-wrap"></div>
-                      <div class="horizon"></div>
-                    </div>
-                    <div class="window-mullions"></div>
-                  </div>
-                  <div class="board"><h2>STUDY HALL</h2></div>
-                  <div class="wall-clock-wrap" id="wall-clock-svg"></div>
-                </div>
+                <div class="wall-clock-wrap" id="wall-clock-svg"></div>
                 <div class="desks-grid" id="desks-grid"></div>
               </div>
               <div class="statusbar" id="statusbar">
@@ -942,7 +929,7 @@
     document.getElementById('btn-edit-profile').style.display = 'inline-flex';
     document.getElementById('btn-open-timer').style.display = 'inline-flex';
     document.getElementById('btn-open-targets').style.display = 'inline-flex';
-    buildClockSVG(); applySky(); buildStars();
+    buildClockSVG();
     doJoin();
   }
 
@@ -1057,6 +1044,16 @@
     }
   }
 
+  // ── Room background — swaps Day.png / Night.png to match the viewer's system clock ──
+  function applyClassroomBackground() {
+    const hour = new Date().getHours();
+    const isNight = (hour >= 19 || hour < 6); // 7pm–6am = Night.png, else Day.png
+    const sceneEl = document.querySelector('.scene');
+    if (sceneEl) sceneEl.style.backgroundImage = `url('../assets/classrooms/${isNight ? 'Night' : 'Day'}.png')`;
+  }
+  applyClassroomBackground();
+  setInterval(applyClassroomBackground, 60000); // recheck every minute in case the tab stays open across the day/night boundary
+
   // ── Wall clock (real SVG, ticks with actual system time) ──
   function buildClockSVG() {
     const wrap = document.getElementById('wall-clock-svg');
@@ -1095,56 +1092,6 @@
     if (hh) requestAnimationFrame(tickWallClock); // stops itself if the clock element is ever removed
   }
 
-  // ── Window sky — sun/moon/stars, matching the viewer's own system clock ──
-  const SKY_GRADIENTS = {
-    day:     'linear-gradient(180deg,#8EC9F5 0%,#CDEBFF 70%,#E9F7FF 100%)',
-    sunrise: 'linear-gradient(180deg,#FFD9A0 0%,#FFB199 45%,#FF8FA3 100%)',
-    sunset:  'linear-gradient(180deg,#3E3A6E 0%,#B4548C 45%,#FF9E6D 100%)',
-    night:   'linear-gradient(180deg,#0B1230 0%,#1B2A52 60%,#26325E 100%)'
-  };
-  function skyPhase(hour) {
-    if (hour>=5 && hour<7) return 'sunrise';
-    if (hour>=7 && hour<17) return 'day';
-    if (hour>=17 && hour<20) return 'sunset';
-    return 'night';
-  }
-  function arcPos(progress) {
-    progress = Math.max(0, Math.min(1, progress));
-    return { left: 10 + progress*80, top: 68 - 46*Math.sin(progress*Math.PI) };
-  }
-  function buildStars() {
-    const wrap = document.getElementById('stars-wrap');
-    if (wrap.children.length) return;
-    for (let i=0;i<12;i++){
-      const s = document.createElement('div'); s.className='star';
-      s.style.left = (Math.random()*94+2)+'%';
-      s.style.top  = (Math.random()*55+3)+'%';
-      s.style.animationDelay = (Math.random()*2.4)+'s';
-      wrap.appendChild(s);
-    }
-  }
-  function applySky() {
-    const now = new Date();
-    const hour = now.getHours() + now.getMinutes()/60;
-    const phase = skyPhase(hour);
-    document.getElementById('sky').style.background = SKY_GRADIENTS[phase];
-    document.getElementById('stars-wrap').style.opacity = phase==='night' ? '1' : (phase==='sunset' ? '.35' : '0');
-
-    const cel = document.getElementById('celestial');
-    let pos, isSun = true;
-    if (phase==='day')          { pos = arcPos((hour-7)/10); }
-    else if (phase==='sunrise') { const p=(hour-5)/2;  pos = { left:12+p*18, top:78-p*26 }; }
-    else if (phase==='sunset')  { const p=(hour-17)/3; pos = { left:70+p*18, top:52+p*26 }; }
-    else { isSun = false; const nh = hour>=20 ? hour-20 : hour+4; pos = arcPos(nh/9); }
-
-    cel.style.left = pos.left+'%'; cel.style.top = pos.top+'%';
-    cel.style.background = isSun
-      ? 'radial-gradient(circle at 35% 35%, #FFF6D0, #FFC94D 70%)'
-      : 'radial-gradient(circle at 35% 35%, #FFFFFF, #D7DEE8 70%)';
-    cel.style.boxShadow = isSun ? '0 0 18px rgba(255,201,77,0.7)' : '0 0 12px rgba(255,255,255,0.55)';
-  }
-  setInterval(() => { if (document.getElementById('sky')) applySky(); }, 60000);
-
   // ── Crash recovery: if a presence doc is still there when we load the page,
   // the last session didn't close cleanly (tab crash / phone killed the app / etc).
   // Offer to rejoin, resuming elapsed time from the original joinedAt.
@@ -1168,7 +1115,7 @@
         document.getElementById('btn-edit-profile').style.display = 'inline-flex';
         document.getElementById('btn-open-timer').style.display = 'inline-flex';
         document.getElementById('btn-open-targets').style.display = 'inline-flex';
-        buildClockSVG(); applySky(); buildStars();
+        buildClockSVG();
         doJoin(joinedMs);
       } else {
         await deleteDoc(doc(db,'classroomPresence',uid));

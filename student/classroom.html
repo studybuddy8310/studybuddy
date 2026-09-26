@@ -955,7 +955,11 @@
         joinedAt: resumeFromJoinedAtMs ? new Date(resumeFromJoinedAtMs) : serverTimestamp(),
         lastActive: serverTimestamp()
       });
-    } catch(e) { toast('Could not join classroom right now.','error'); classroomJoined=false; return; }
+    } catch(e) {
+      console.error('classroomPresence join failed:', e);
+      toast(`Could not join classroom: ${e.code || e.message || e}`, 'error');
+      classroomJoined=false; return;
+    }
 
     if (classroomHeartbeat) clearInterval(classroomHeartbeat);
     classroomHeartbeat = setInterval(()=>{

@@ -76,41 +76,28 @@
 .timer-icon-badge img { width:100%; height:100%; object-fit:cover; display:block; }
 
 /* ── The room scene ── */
+/* Two photos now: assets/classrooms/Day.png and assets/classrooms/Night.png.
+   JS swaps between them based on the viewer's system clock (see
+   applyClassroomBackground() below) — Day.png here is just the CSS fallback
+   in case JS hasn't run yet. aspect-ratio locks the crop so the whole room
+   (window, board, shelf) always shows fully, never cropped, at any card
+   width — it scales as one image instead of being cut off sideways. */
 .scene {
-  position:relative; padding:30px 24px 40px; overflow:hidden;
-  background: linear-gradient(180deg, #6E5A46 0%, #7A6A54 30%, #8C7861 100%);
-  min-height:400px;
-}
-.scene-floor {
-  position:absolute; inset:0; z-index:0;
-  background:
-    repeating-linear-gradient(90deg, rgba(0,0,0,0.05) 0 2px, transparent 2px 64px),
-    linear-gradient(180deg, transparent 0%, transparent 55%, #9C8567 55%, #9C8567 100%);
-}
-.light-beam {
-  position:absolute; top:0; left:6%; width:150px; height:100%; z-index:0;
-  background:linear-gradient(115deg, rgba(255,255,255,0.14) 0%, transparent 40%);
-  pointer-events:none;
+  position:relative; overflow:hidden;
+  background-image:url('../assets/classrooms/Day.png');
+  background-size:cover; background-position:center top;
+  aspect-ratio: 1536 / 1024;
+  transition: background-image .6s ease;
+  padding: 56% 5% 4%; /* pushes the desks-grid down onto the wood floor area of the photo */
 }
 
-.wall-props { position:relative; z-index:1; display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:24px; }
-
-.window-frame { width:110px; height:124px; border-radius:8px; flex-shrink:0; position:relative; background:#EDE3CF; border:7px solid #EDE3CF; box-shadow:0 8px 18px rgba(0,0,0,0.3); }
-.sky { position:absolute; inset:0; border-radius:3px; overflow:hidden; transition:background 2.5s ease; }
-.sky .stars { position:absolute; inset:0; opacity:0; transition:opacity 2.5s ease; }
-.sky .star { position:absolute; width:2px; height:2px; background:#fff; border-radius:50%; animation:cr-twinkle 2.4s ease-in-out infinite; }
-@keyframes cr-twinkle { 0%,100%{opacity:.2} 50%{opacity:1} }
-.sky .celestial { position:absolute; width:16px; height:16px; border-radius:50%; transition:left 3s linear, top 3s linear, background 2.5s ease, box-shadow 2.5s ease; }
-.sky .horizon { position:absolute; left:0; right:0; bottom:0; height:32%; background:linear-gradient(180deg, rgba(58,110,60,0.85), #3A6E3C); }
-.window-mullions { position:absolute; inset:0; pointer-events:none; }
-.window-mullions::before, .window-mullions::after { content:''; position:absolute; background:#EDE3CF; }
-.window-mullions::before { left:50%; top:0; bottom:0; width:6px; transform:translateX(-50%); }
-.window-mullions::after { top:50%; left:0; right:0; height:6px; transform:translateY(-50%); }
-
-.board { flex:1; max-width:480px; background:#EDE6D8; border:10px solid #6B4A2C; border-radius:6px; box-shadow:0 8px 20px rgba(0,0,0,0.3); padding:20px 16px; text-align:center; align-self:flex-start; }
-.board h2 { margin:0; font-family:var(--font-heading); font-size:20px; letter-spacing:1px; color:var(--text-primary); text-decoration:underline; text-underline-offset:6px; }
-
-.wall-clock-wrap { width:86px; height:86px; flex-shrink:0; align-self:center; filter:drop-shadow(0 6px 10px rgba(0,0,0,0.35)); }
+/* Neither photo has a clock baked in on purpose — this is the real, ticking
+   clock, positioned on the blank wall between the board and the bookshelf.
+   Nudge top/right a few % if it doesn't line up exactly against your photos. */
+.wall-clock-wrap {
+  position:absolute; top:11%; right:19%; width:7%; aspect-ratio:1;
+  filter:drop-shadow(0 4px 8px rgba(0,0,0,0.35)); z-index:2;
+}
 .wall-clock-wrap svg { width:100%; height:100%; display:block; }
 .clock-tick { stroke:#222; }
 .clock-num { font-size:9px; font-weight:700; fill:var(--text-primary); font-family:var(--font-heading); }
@@ -118,7 +105,7 @@
 .clock-mh { stroke:#444; stroke-width:2.6; stroke-linecap:round; }
 .clock-sh { stroke:var(--danger); stroke-width:1.4; stroke-linecap:round; }
 
-.desks-grid { position:relative; z-index:1; display:grid; grid-template-columns:repeat(6,1fr); gap:16px 10px; align-items:end; }
+.desks-grid { position:relative; z-index:1; display:grid; grid-template-columns:repeat(6,1fr); gap:14px 8px; align-items:end; }
 @media (max-width:960px) { .desks-grid { grid-template-columns:repeat(4,1fr); } }
 @media (max-width:640px) { .desks-grid { grid-template-columns:repeat(3,1fr); } }
 @media (max-width:420px) { .desks-grid { grid-template-columns:repeat(2,1fr); } }
@@ -147,6 +134,7 @@
   font-size:16px; font-weight:800; color:#fff; box-shadow:0 3px 8px rgba(0,0,0,0.3); border:2px solid var(--surface); }
 
 .sparkle { position:absolute; top:6px; right:12px; font-size:15px; animation:cr-twinkle 1.8s ease-in-out infinite; pointer-events:none; z-index:2; }
+@keyframes cr-twinkle { 0%,100%{ opacity:0; transform:scale(.5) translateY(0);} 50%{ opacity:1; transform:scale(1.1) translateY(-4px);} }
 
 .target-bubble { position:absolute; top:-2px; left:50%; transform:translateX(-50%); background:var(--text-primary); color:#fff; font-size:9.5px;
   padding:3px 8px; border-radius:8px; white-space:nowrap; max-width:140px; overflow:hidden; text-overflow:ellipsis; opacity:0; pointer-events:none; transition:opacity .15s; z-index:3; }

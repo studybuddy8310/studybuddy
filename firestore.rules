@@ -171,6 +171,16 @@ service cloud.firestore {
       allow read, write: if isSelf(userId);
     }
 
+    // ── classroomPresence ─────────────────────────────────────
+    // classroomPresence/{userId} — live "who's studying now" for the
+    // Classroom page (join/leave, status, target, heartbeat).
+    // All approved users: read (to see who's in the room)
+    // Students: create/update/delete own presence doc only
+    match /classroomPresence/{userId} {
+      allow read:  if isApproved();
+      allow write: if isSelf(userId);
+    }
+
     // ── streaks ───────────────────────────────────────────────
     // streaks/{userId}
     // Students: read/write own only

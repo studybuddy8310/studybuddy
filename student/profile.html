@@ -827,7 +827,7 @@
     btn.disabled = true; btn.textContent = '⏳ Sending...';
 
     try {
-      await addDoc(collection(db,'studentFeedback'), {
+      await addDoc(collection(db,'feedback'), {
         uid:          currentUser.uid,
         studentName:  (userData.firstName||'')+' '+(userData.lastName||''),
         studentEmail: userData.email||'',

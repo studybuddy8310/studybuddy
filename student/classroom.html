@@ -44,6 +44,8 @@
     .chat-msg.mine .chat-name { text-align:right; }
     .chat-bubble { background:var(--surface-2); border-radius:14px; padding:7px 12px; font-size:12.5px; max-width:220px; word-wrap:break-word; }
     .chat-msg.mine .chat-bubble { background:var(--primary-light); }
+    .chat-time { font-size:9.5px; color:var(--text-muted); margin-top:2px; }
+    .chat-msg.mine .chat-time { text-align:right; }
     .chat-input-row { display:flex; gap:8px; }
     .chat-input-row input { flex:1; border:1.5px solid var(--border); border-radius:20px; padding:9px 14px; font-size:12.5px; outline:none; }
     .chat-input-row input:focus { border-color:var(--primary); }
@@ -1067,41 +1069,75 @@
     try { await updateDoc(doc(db,'classroomPresence',uid), { target: classroomTarget, lastActive: serverTimestamp() }); } catch(e) {}
   });
 
+  // How "online" is decided: every joined student's presence doc gets its
+  // lastActive field refreshed every CLASSROOM_HEARTBEAT_MS (25s) — see
+  // doJoin()'s heartbeat interval. A doc simply existing is NOT enough to
+  // count as online: if lastActive hasn't been touched in a while (tab
+  // crashed, lost network, force-closed — the "Leave" button's deleteDoc
+  // never ran), we now treat it as stale and hide it, instead of showing a
+  // ghost student as online forever. Re-checked every 30s independent of
+  // Firestore pushing new data, so a ghost disappears for everyone even if
+  // nothing else in the room changes.
+  const CLASSROOM_STALE_MS = 90000; // ~3.6x the heartbeat interval
+  let lastPresenceDocs = [];
+
   function initClassroomListener() {
     if (classroomUnsub) classroomUnsub();
     classroomUnsub = onSnapshot(collection(db,'classroomPresence'), snap => {
-      const members = [];
-      snap.forEach(d => { if (d.id !== uid) members.push({ id:d.id, ...d.data() }); });
-      if (classroomJoined) members.unshift({ id:uid, name:me.nickname, avatar:me.avatar, status:classroomStatus, target:classroomTarget });
-      document.getElementById('classroom-count-text').textContent = `${members.length} online`;
-      renderDesks(members);
+      lastPresenceDocs = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+      renderFilteredPresence();
     }, () => { /* offline/permission — classroom is non-critical, fail silently */ });
   }
 
+  function renderFilteredPresence() {
+    const now = Date.now();
+    const members = lastPresenceDocs.filter(m => {
+      if (m.id === uid) return false; // "me" is added back in below, from live local state
+      const lastActiveMs = m.lastActive?.toMillis ? m.lastActive.toMillis() : now;
+      return (now - lastActiveMs) <= CLASSROOM_STALE_MS;
+    });
+    if (classroomJoined) members.unshift({ id:uid, name:me.nickname, avatar:me.avatar, status:classroomStatus, target:classroomTarget });
+    document.getElementById('classroom-count-text').textContent = `${members.length} online`;
+    renderDesks(members);
+  }
+  setInterval(() => { if (lastPresenceDocs.length) renderFilteredPresence(); }, 30000);
+
   function renderDesks(members) {
-    const TOTAL_SEATS = 18; // 3 rows of 6 — a fuller-feeling room now that Classroom is full width
+    // 3 rows, front-to-back — occupied seats fill the front row first (biggest,
+    // closest to you), matching how the reference room actually reads.
+    const ROWS = [
+      { cls: 'row-front',  count: 6 },
+      { cls: 'row-middle', count: 6 },
+      { cls: 'row-back',   count: 6 }
+    ];
     const grid = document.getElementById('desks-grid');
     grid.innerHTML = '';
-    for (let i=0; i<TOTAL_SEATS; i++) {
-      const slot = document.createElement('div'); slot.className = 'desk-slot';
-      const occ = members[i];
-      if (occ) {
-        const st = CLASSROOM_STATUSES[occ.status] || CLASSROOM_STATUSES.study;
-        const seat = document.createElement('div');
-        seat.className = 'avatar-seat' + (occ.id===uid ? ' mine' : '');
-        const showSparkle = occ.status === 'study';
-        seat.innerHTML = `
-          ${occ.target ? `<div class="target-bubble">🎯 ${escapeHtml(occ.target)}</div>` : ''}
-          <div class="nameplate"><span class="status-dot live" style="background:${st.color}"></span><span class="who">${occ.id===uid ? 'You' : escapeHtml(occ.name||'Student')}</span></div>
-          ${seatTileHtml(occ.avatar, occ.id===uid ? me.nickname : occ.name)}
-          ${showSparkle ? `<span class="sparkle">✨</span>` : ''}
-        `;
-        slot.appendChild(seat);
-      } else {
-        slot.innerHTML = seatTileEmptyHtml();
+    let idx = 0;
+    ROWS.forEach(rowDef => {
+      const rowEl = document.createElement('div');
+      rowEl.className = 'desk-row ' + rowDef.cls;
+      for (let c=0; c<rowDef.count; c++) {
+        const slot = document.createElement('div'); slot.className = 'desk-slot';
+        const occ = members[idx]; idx++;
+        if (occ) {
+          const st = CLASSROOM_STATUSES[occ.status] || CLASSROOM_STATUSES.study;
+          const seat = document.createElement('div');
+          seat.className = 'avatar-seat' + (occ.id===uid ? ' mine' : '');
+          const showSparkle = occ.status === 'study';
+          seat.innerHTML = `
+            ${occ.target ? `<div class="target-bubble">🎯 ${escapeHtml(occ.target)}</div>` : ''}
+            <div class="nameplate"><span class="status-dot live" style="background:${st.color}"></span><span class="who">${occ.id===uid ? 'You' : escapeHtml(occ.name||'Student')}</span></div>
+            ${seatTileHtml(occ.avatar, occ.id===uid ? me.nickname : occ.name)}
+            ${showSparkle ? `<span class="sparkle">✨</span>` : ''}
+          `;
+          slot.appendChild(seat);
+        } else {
+          slot.innerHTML = seatTileEmptyHtml();
+        }
+        rowEl.appendChild(slot);
       }
-      grid.appendChild(slot);
-    }
+      grid.appendChild(rowEl);
+    });
   }
 
   // ── Room background — swaps Day.png / Night.png to match the viewer's system clock ──
@@ -1135,6 +1171,11 @@
     }, () => { /* offline/permission — chat is non-critical, fail silently */ });
   }
 
+  function fmtChatTime(ts) {
+    const d = ts?.toDate ? ts.toDate() : new Date(); // serverTimestamp() is briefly null until the server confirms it
+    return d.toLocaleTimeString([], { hour:'numeric', minute:'2-digit' });
+  }
+
   function appendChatMessage(msg) {
     const list = document.getElementById('chat-messages');
     if (list.querySelector('.chat-empty')) list.innerHTML = '';
@@ -1145,6 +1186,7 @@
       <div>
         ${msg.uid===uid ? '' : `<div class="chat-name">${escapeHtml(msg.name||'Student')}</div>`}
         <div class="chat-bubble">${escapeHtml(msg.text||'')}</div>
+        <div class="chat-time">${fmtChatTime(msg.sentAt)}</div>
       </div>`;
     list.appendChild(row);
     list.scrollTop = list.scrollHeight;

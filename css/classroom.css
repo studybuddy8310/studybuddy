@@ -92,14 +92,20 @@
   background-size:cover; background-position:center top;
   aspect-ratio: 1536 / 1024;
   transition: background-image .6s ease;
-  padding: 56% 5% 4%; /* pushes the desks-grid down onto the wood floor area of the photo */
+  /* Anchored to the bottom instead of pushed down with top padding — this way
+     the front row (the most important one, closest to camera) always stays
+     fully visible against the floor. If the stacked rows are ever taller than
+     the floor area, it's the BACK row that clips into the wall slightly,
+     never the front row getting cut off at the bottom. */
+  display:flex; flex-direction:column; justify-content:flex-end;
+  padding: 3% 5% 3%;
 }
 
 /* Neither photo has a clock baked in on purpose — this is the real, ticking
    clock, positioned on the blank wall between the board and the bookshelf.
    Nudge top/right a few % if it doesn't line up exactly against your photos. */
 .wall-clock-wrap {
-  position:absolute; top:11%; right:19%; width:7%; aspect-ratio:1;
+  position:absolute; top:16%; right:19%; width:7%; aspect-ratio:1;
   filter:drop-shadow(0 4px 8px rgba(0,0,0,0.35)); z-index:2;
 }
 .wall-clock-wrap svg { width:100%; height:100%; display:block; }
@@ -124,8 +130,8 @@
 /* Each seat is one image (../assets/avatars/avatarNN.png or bench.png for an
    empty seat) — the desk is baked into the artwork itself, so there is no
    separate CSS-drawn desk underneath it. */
-.desk-slot { display:flex; flex-direction:column; align-items:center; justify-content:flex-end; position:relative; flex:1; max-width:170px; min-width:70px; }
-.seat-tile-img { width:100%; max-width:190px; height:170px; object-fit:contain; object-position:bottom center; display:block; }
+.desk-slot { display:flex; flex-direction:column; align-items:center; justify-content:flex-end; position:relative; flex:1; max-width:120px; min-width:56px; }
+.seat-tile-img { width:100%; max-width:130px; height:112px; object-fit:contain; object-position:bottom center; display:block; }
 
 .avatar-seat { position:relative; display:flex; flex-direction:column; align-items:center; }
 /* Note: seats no longer bob up/down (removed per feedback — the desk looked like

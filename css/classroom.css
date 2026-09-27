@@ -41,7 +41,11 @@
 #tw-overlay-body .timer-digits { font-size:3rem; }
 
 /* ── Classroom card ── */
-.classroom-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-xl); overflow:hidden; margin-bottom:20px; }
+/* Capped so the room stays a sensible size on wide screens instead of
+   growing as tall as its width — the desks-grid positioning inside .scene
+   uses width-relative % padding, so scaling the whole card down (rather than
+   just clipping its height) keeps everything lined up correctly. */
+.classroom-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-xl); overflow:hidden; margin:0 auto 20px; max-width:1000px; }
 .scene-topbar { display:flex; align-items:center; justify-content:space-between; padding:12px 16px; border-bottom:1px solid var(--border); }
 .scene-topbar .room-name { font-size:13px; font-weight:700; display:flex; align-items:center; gap:8px; color:var(--text-primary); }
 .scene-topbar .count { font-size:12px; color:var(--text-secondary); font-weight:600; margin-left:6px; }
@@ -105,15 +109,22 @@
 .clock-mh { stroke:#444; stroke-width:2.6; stroke-linecap:round; }
 .clock-sh { stroke:var(--danger); stroke-width:1.4; stroke-linecap:round; }
 
-.desks-grid { position:relative; z-index:1; display:grid; grid-template-columns:repeat(6,1fr); gap:14px 8px; align-items:end; }
-@media (max-width:960px) { .desks-grid { grid-template-columns:repeat(4,1fr); } }
-@media (max-width:640px) { .desks-grid { grid-template-columns:repeat(3,1fr); } }
-@media (max-width:420px) { .desks-grid { grid-template-columns:repeat(2,1fr); } }
+/* Perspective seating: 3 rows, scaled by "distance" so front (closest to you)
+   reads bigger and back (nearest the board) reads smaller — mimics how a
+   real classroom actually looks from this angle. Uses `zoom` (not
+   `transform`) specifically because it shrinks the row's actual layout
+   footprint too, so rows don't need manual negative-margin overlap hacks. */
+.desks-grid { position:relative; z-index:1; display:flex; flex-direction:column; align-items:center; gap:2px; }
+.desk-row { display:flex; justify-content:center; gap:10px; width:100%; }
+.desk-row.row-back   { zoom:0.55; }
+.desk-row.row-middle { zoom:0.78; }
+.desk-row.row-front  { zoom:1; }
+@media (max-width:960px) { .desk-row { flex-wrap:wrap; } }
 
 /* Each seat is one image (../assets/avatars/avatarNN.png or bench.png for an
    empty seat) — the desk is baked into the artwork itself, so there is no
    separate CSS-drawn desk underneath it. */
-.desk-slot { display:flex; flex-direction:column; align-items:center; justify-content:flex-end; position:relative; }
+.desk-slot { display:flex; flex-direction:column; align-items:center; justify-content:flex-end; position:relative; flex:1; max-width:170px; min-width:70px; }
 .seat-tile-img { width:100%; max-width:190px; height:170px; object-fit:contain; object-position:bottom center; display:block; }
 
 .avatar-seat { position:relative; display:flex; flex-direction:column; align-items:center; }

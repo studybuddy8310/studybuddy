@@ -862,6 +862,9 @@
   let classroomHeartbeat   = null;
   let classroomUnsub       = null;
   let selectedAvatar       = null;
+  let mySeatIndex          = null;
+  const BASE_SEAT_COUNT = 8; // default room size; more seats are added automatically only once needed
+  const SEATS_PER_ROW   = 4;
   let chatUnsub    = null;
   let myChatJoinTime = null;
   let chatUnread   = 0;
@@ -977,15 +980,35 @@
     doJoin();
   }
 
+  async function findFreeSeatIndex() {
+    try {
+      const snap = await getDocs(collection(db,'classroomPresence'));
+      const now = Date.now();
+      const used = new Set();
+      snap.forEach(d => {
+        if (d.id === uid) return;
+        const data = d.data();
+        const lastActiveMs = data.lastActive?.toMillis ? data.lastActive.toMillis() : now;
+        if (now - lastActiveMs > CLASSROOM_STALE_MS) return; // ignore ghosts
+        if (typeof data.seatIndex === 'number') used.add(data.seatIndex);
+      });
+      let i = 0;
+      while (used.has(i)) i++;
+      return i;
+    } catch(e) { return 0; }
+  }
+
   // Pass a joinedAtMs to RESUME an existing presence doc (crash recovery) instead
   // of starting a brand-new session — elapsed is derived from the original joinedAt,
-  // so nothing studied before the crash is lost.
-  async function doJoin(resumeFromJoinedAtMs) {
+  // so nothing studied before the crash is lost. resumeSeatIndex keeps you in the
+  // same seat you were in rather than assigning a new one.
+  async function doJoin(resumeFromJoinedAtMs, resumeSeatIndex) {
     classroomJoined    = true;
     classroomStatus    = resumeFromJoinedAtMs ? classroomStatus : 'study';
     classroomTarget    = resumeFromJoinedAtMs ? classroomTarget : '';
     classroomStartTime = resumeFromJoinedAtMs ? new Date(resumeFromJoinedAtMs) : new Date();
     classroomElapsed   = resumeFromJoinedAtMs ? Math.max(0, Math.floor((Date.now()-resumeFromJoinedAtMs)/1000)) : 0;
+    mySeatIndex        = (typeof resumeSeatIndex === 'number') ? resumeSeatIndex : await findFreeSeatIndex();
 
     document.getElementById('btn-leave-top').style.display = 'inline-flex';
     document.getElementById('room-timer-mini').style.display = 'flex';
@@ -995,7 +1018,7 @@
     try {
       await setDoc(doc(db,'classroomPresence',uid), {
         name: me.nickname, avatar: me.avatar, initials: initialsFor(me.nickname),
-        status: classroomStatus, target: classroomTarget,
+        status: classroomStatus, target: classroomTarget, seatIndex: mySeatIndex,
         joinedAt: resumeFromJoinedAtMs ? new Date(resumeFromJoinedAtMs) : serverTimestamp(),
         lastActive: serverTimestamp()
       });
@@ -1031,6 +1054,7 @@
   document.getElementById('btn-leave-top').addEventListener('click', async () => {
     const elapsed = classroomElapsed;
     classroomJoined = false;
+    mySeatIndex = null;
     if (classroomTickInt)   { clearInterval(classroomTickInt);   classroomTickInt=null; }
     if (classroomHeartbeat) { clearInterval(classroomHeartbeat); classroomHeartbeat=null; }
     if (classroomUnsub)     { classroomUnsub(); classroomUnsub=null; }
@@ -1096,29 +1120,54 @@
       const lastActiveMs = m.lastActive?.toMillis ? m.lastActive.toMillis() : now;
       return (now - lastActiveMs) <= CLASSROOM_STALE_MS;
     });
-    if (classroomJoined) members.unshift({ id:uid, name:me.nickname, avatar:me.avatar, status:classroomStatus, target:classroomTarget });
+    if (classroomJoined) members.unshift({ id:uid, name:me.nickname, avatar:me.avatar, status:classroomStatus, target:classroomTarget, seatIndex:mySeatIndex });
     document.getElementById('classroom-count-text').textContent = `${members.length} online`;
     renderDesks(members);
   }
   setInterval(() => { if (lastPresenceDocs.length) renderFilteredPresence(); }, 30000);
 
+  async function switchSeat(newIndex) {
+    if (!classroomJoined || newIndex === mySeatIndex) return;
+    mySeatIndex = newIndex;
+    renderFilteredPresence(); // move instantly for you; syncs to everyone else once the write lands
+    try { await updateDoc(doc(db,'classroomPresence',uid), { seatIndex: newIndex, lastActive: serverTimestamp() }); }
+    catch(e) { console.error('seat switch failed:', e); }
+  }
+
   function renderDesks(members) {
-    // 3 rows, front-to-back — occupied seats fill the front row first (biggest,
-    // closest to you), matching how the reference room actually reads.
-    const ROWS = [
-      { cls: 'row-front',  count: 6 },
-      { cls: 'row-middle', count: 6 },
-      { cls: 'row-back',   count: 6 }
-    ];
+    // Room starts at BASE_SEAT_COUNT (8) seats and only grows once every seat
+    // is actually needed — no point pre-drawing a big empty room for 1-2 people.
+    const highestSeatUsed = members.reduce((max,m) => typeof m.seatIndex==='number' ? Math.max(max,m.seatIndex) : max, -1);
+    const totalSeats = Math.max(BASE_SEAT_COUNT, (Math.floor(highestSeatUsed/SEATS_PER_ROW)+1)*SEATS_PER_ROW, Math.ceil(members.length/SEATS_PER_ROW)*SEATS_PER_ROW);
+    const totalRows = totalSeats / SEATS_PER_ROW;
+
+    // Place everyone by their own seatIndex; if two people ever collide on the
+    // same index (a rare race), whoever renders second just slides into the
+    // next open slot for this render pass only.
+    const bySeat = new Array(totalSeats).fill(null);
+    const overflow = [];
+    members.forEach(m => {
+      const i = m.seatIndex;
+      if (typeof i === 'number' && i >= 0 && i < totalSeats && !bySeat[i]) bySeat[i] = m;
+      else overflow.push(m);
+    });
+    overflow.forEach(m => { const i = bySeat.findIndex(s => !s); if (i !== -1) bySeat[i] = m; });
+
+    // Rows are built back-to-front in DOM order (so, visually, back sits at the
+    // top near the board and front sits at the bottom near you) — only the very
+    // last row gets full size; the row just before it is "middle", everything
+    // further back is "back", however many rows that ends up being.
     const grid = document.getElementById('desks-grid');
     grid.innerHTML = '';
-    let idx = 0;
-    ROWS.forEach(rowDef => {
+    for (let r=0; r<totalRows; r++) {
+      const distanceFromFront = totalRows-1-r;
+      const rowCls = distanceFromFront===0 ? 'row-front' : distanceFromFront===1 ? 'row-middle' : 'row-back';
       const rowEl = document.createElement('div');
-      rowEl.className = 'desk-row ' + rowDef.cls;
-      for (let c=0; c<rowDef.count; c++) {
+      rowEl.className = 'desk-row ' + rowCls;
+      for (let c=0; c<SEATS_PER_ROW; c++) {
+        const seatIndex = r*SEATS_PER_ROW + c;
+        const occ = bySeat[seatIndex];
         const slot = document.createElement('div'); slot.className = 'desk-slot';
-        const occ = members[idx]; idx++;
         if (occ) {
           const st = CLASSROOM_STATUSES[occ.status] || CLASSROOM_STATUSES.study;
           const seat = document.createElement('div');
@@ -1133,11 +1182,16 @@
           slot.appendChild(seat);
         } else {
           slot.innerHTML = seatTileEmptyHtml();
+          if (classroomJoined) {
+            slot.classList.add('desk-slot-clickable');
+            slot.title = 'Switch to this seat';
+            slot.addEventListener('click', () => switchSeat(seatIndex));
+          }
         }
         rowEl.appendChild(slot);
       }
       grid.appendChild(rowEl);
-    });
+    }
   }
 
   // ── Room background — swaps Day.png / Night.png to match the viewer's system clock ──
@@ -1285,7 +1339,7 @@
         document.getElementById('btn-open-targets').style.display = 'inline-flex';
         document.getElementById('btn-open-chat').style.display = 'inline-flex';
         buildClockSVG();
-        doJoin(joinedMs);
+        doJoin(joinedMs, d.seatIndex);
       } else {
         await deleteDoc(doc(db,'classroomPresence',uid));
         openEntryScreen();

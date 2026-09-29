@@ -1134,7 +1134,7 @@
       const lastActiveMs = m.lastActive?.toMillis ? m.lastActive.toMillis() : now;
       return (now - lastActiveMs) <= CLASSROOM_STALE_MS;
     });
-    if (classroomJoined) members.unshift({ id:uid, name:me.nickname, avatar:me.avatar, status:classroomStatus, target:classroomTarget, seatIndex:mySeatIndex });
+    if (classroomJoined) members.unshift({ id:uid, name:me.nickname, avatar:me.avatar, status:classroomStatus, target:classroomTarget, seatIndex:mySeatIndex, joinedAt:classroomStartTime });
     document.getElementById('classroom-count-text').textContent = `${members.length} online`;
     renderDesks(members);
   }
@@ -1281,16 +1281,19 @@
   document.getElementById('chat-input').addEventListener('keydown', e => { if (e.key==='Enter') sendChatMessage(); });
 
   document.getElementById('btn-expand-chat').addEventListener('click', () => {
+    document.getElementById('chat-wrap').classList.remove('minimized');
     document.getElementById('chat-overlay-body').appendChild(document.getElementById('chat-wrap'));
     document.getElementById('chat-overlay').classList.add('show');
     chatUnread = 0; updateChatBadge();
     document.getElementById('chat-input').focus();
   });
+  function collapseChat() {
+    document.getElementById('chat-slot').appendChild(document.getElementById('chat-wrap'));
+    document.getElementById('chat-overlay').classList.remove('show');
+  }
+  document.getElementById('btn-collapse-chat').addEventListener('click', collapseChat);
   document.getElementById('chat-overlay').addEventListener('click', e => {
-    if (e.target.id==='chat-overlay') {
-      document.getElementById('chat-slot').appendChild(document.getElementById('chat-wrap'));
-      document.getElementById('chat-overlay').classList.remove('show');
-    }
+    if (e.target.id==='chat-overlay') collapseChat();
   });
   document.getElementById('btn-minimize-chat').addEventListener('click', () => {
     document.getElementById('chat-wrap').classList.toggle('minimized');
@@ -1399,20 +1402,13 @@
   // ─────────────────────────────────────────
   document.getElementById('tab-timer-btn').addEventListener('click', ()=>switchMode('timer'));
   document.getElementById('tab-sw-btn').addEventListener('click',    ()=>switchMode('stopwatch'));
-  document.getElementById('btn-open-timer').addEventListener('click', () => {
+  document.getElementById('btn-expand-timer').addEventListener('click', () => {
+    document.getElementById('tw-overlay-body').appendChild(document.getElementById('normal-timer-wrap'));
     document.getElementById('tw-overlay').classList.add('show');
   });
-  document.getElementById('btn-close-timer').addEventListener('click', () => {
+  document.getElementById('btn-collapse-timer').addEventListener('click', () => {
+    document.getElementById('normal-timer-slot').appendChild(document.getElementById('normal-timer-wrap'));
     document.getElementById('tw-overlay').classList.remove('show');
-  });
-  document.getElementById('btn-open-targets').addEventListener('click', () => {
-    document.getElementById('targets-overlay').classList.add('show');
-  });
-  document.getElementById('btn-close-targets').addEventListener('click', () => {
-    document.getElementById('targets-overlay').classList.remove('show');
-  });
-  document.getElementById('targets-overlay').addEventListener('click', e => {
-    if (e.target.id==='targets-overlay') document.getElementById('targets-overlay').classList.remove('show');
   });
   document.getElementById('btn-hamburger').addEventListener('click', toggleSidebar);
   document.getElementById('sidebar-overlay').addEventListener('click', closeSidebar);

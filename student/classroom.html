@@ -1066,6 +1066,16 @@
     document.getElementById('room-timer-mini-val').textContent = `${m}:${s}`;
   }
 
+  // Ticks every seat's on-avatar time display without a full re-render —
+  // cheap DOM text updates only, once a second, for whoever is currently shown.
+  setInterval(() => {
+    document.querySelectorAll('.seat-time[data-joined]').forEach(el => {
+      const secs = Math.max(0, Math.floor((Date.now()-Number(el.dataset.joined))/1000));
+      const h = Math.floor(secs/3600), m = Math.floor((secs%3600)/60), s = secs%60;
+      el.textContent = h>0 ? `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}` : `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    });
+  }, 1000);
+
   document.getElementById('btn-leave-top').addEventListener('click', async () => {
     const elapsed = classroomElapsed;
     classroomJoined = false;
@@ -1187,9 +1197,14 @@
           const seat = document.createElement('div');
           seat.className = 'avatar-seat' + (occ.id===uid ? ' mine' : '');
           const showSparkle = occ.status === 'study';
+          const joinedMs = occ.joinedAt?.toMillis ? occ.joinedAt.toMillis() : (occ.joinedAt instanceof Date ? occ.joinedAt.getTime() : null);
           seat.innerHTML = `
             ${occ.target ? `<div class="target-bubble">🎯 ${escapeHtml(occ.target)}</div>` : ''}
-            <div class="nameplate"><span class="status-dot live" style="background:${st.color}"></span><span class="who">${occ.id===uid ? 'You' : escapeHtml(occ.name||'Student')}</span></div>
+            <div class="nameplate">
+              <span class="status-dot live" style="background:${st.color}"></span>
+              <span class="who">${occ.id===uid ? 'You' : escapeHtml(occ.name||'Student')}</span>
+              ${joinedMs ? `<span class="seat-time" data-joined="${joinedMs}">00:00</span>` : ''}
+            </div>
             ${seatTileHtml(occ.avatar, occ.id===uid ? me.nickname : occ.name)}
             ${showSparkle ? `<span class="sparkle">✨</span>` : ''}
           `;

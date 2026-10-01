@@ -130,10 +130,10 @@
 /* Each seat is one image (../assets/avatars/avatarNN.png or bench.png for an
    empty seat) — the desk is baked into the artwork itself, so there is no
    separate CSS-drawn desk underneath it. */
-.desk-slot { display:flex; flex-direction:column; align-items:center; justify-content:flex-end; position:relative; flex:1; max-width:150px; min-width:56px; }
+.desk-slot { display:flex; flex-direction:column; align-items:center; justify-content:flex-end; position:relative; flex:1; max-width:180px; min-width:56px; }
 .desk-slot-clickable { cursor:pointer; transition:transform .15s ease, filter .15s ease; }
 .desk-slot-clickable:hover { transform:translateY(-3px); filter:drop-shadow(0 4px 6px rgba(0,0,0,0.25)); }
-.seat-tile-img { width:100%; max-width:160px; height:140px; object-fit:contain; object-position:bottom center; display:block; }
+.seat-tile-img { width:100%; max-width:240px; height:210px; object-fit:contain; object-position:bottom center; display:block; }
 
 .avatar-seat { position:relative; display:flex; flex-direction:column; align-items:center; }
 /* Note: seats no longer bob up/down (removed per feedback — the desk looked like

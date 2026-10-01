@@ -38,7 +38,7 @@
 .tw-overlay .tw-collapse { position:fixed; top:22px; right:26px; font-size:20px; }
 #tw-overlay-body { width:100%; max-width:440px; }
 #tw-overlay-body .normal-timer-card { margin-bottom:0; }
-#tw-overlay-body .timer-digits { font-size:3rem; }
+#tw-overlay-body .timer-digits { font-size:4rem; letter-spacing:4px; }
 
 /* ── Classroom card ── */
 /* Capped so the room stays a sensible size on wide screens instead of

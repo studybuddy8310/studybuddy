@@ -284,6 +284,7 @@
                 <option value="CA">Chartered Accountant (CA)</option>
                 <option value="FRM">FRM</option>
                 <option value="CFA">CFA</option>
+                <option value="CWM">CWM</option>                
               </select>
             </div>
 
@@ -316,6 +317,16 @@
                 <option value="CFA-I">Level I</option>
                 <option value="CFA-II">Level II</option>
                 <option value="CFA-III">Level III</option>
+              </select>
+            </div>
+
+            <!-- CWM Level (shown only when CWM selected) -->
+            <div class="form-group level-group" id="cwm-level-group">
+              <label class="form-label">CWM Level</label>
+              <select id="sig-cwm-level" class="form-select">
+                <option value="">-- Select Level --</option>
+                <option value="CWM-I">Level I</option>
+                <option value="CWM-II">Level II</option>
               </select>
             </div>
 
@@ -509,12 +520,13 @@
       document.getElementById('ca-level-group').classList.toggle('visible', course === 'CA');
       document.getElementById('cfa-level-group').classList.toggle('visible', course === 'CFA');
       document.getElementById('frm-level-group').classList.toggle('visible', course === 'FRM');
+      document.getElementById('cwm-level-group').classList.toggle('visible', course === 'CWM');
       // Reset level selections
       document.getElementById('sig-ca-level').value  = '';
       document.getElementById('sig-frm-level').value = '';
-      document.getElementById('sig-cfa-level').value  = '';
+      document.getElementById('sig-cfa-level').value = '';
+      document.getElementById('sig-cwm-level').value = '';
     };
-
     // ── Role Change → Show Admin Key field ──────────────────
     window.onRoleChange = function() {
       const role = document.getElementById('sig-role').value;
@@ -928,6 +940,8 @@
         level = document.getElementById('sig-frm-level').value;
       } else if (course === 'CFA') {
         level = document.getElementById('sig-frm-level').value;
+      } else if (course === 'CWM') {
+        level = document.getElementById('sig-cwm-level').value;
       }
       if (!level) {
         errorEl.textContent   = '❌ Please select your level.';

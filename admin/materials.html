@@ -109,6 +109,8 @@
         <div class="level-chip" onclick="selectLevel('CFA-I')">CFA Level I</div>
         <div class="level-chip" onclick="selectLevel('CFA-II')">CFA Level II</div>
         <div class="level-chip" onclick="selectLevel('CFA-III')">CFA Level III</div>
+        <div class="level-chip" onclick="selectLevel('CWM-I')">CWM Level I</div>
+        <div class="level-chip" onclick="selectLevel('CWM-II')">CWM Level II</div>
       </div>
       <div class="paper-select-row">
         <label class="form-label" style="margin:0;white-space:nowrap;">Select Paper:</label>
@@ -170,7 +172,7 @@
   });
   document.getElementById('btn-logout').addEventListener('click',async()=>{await signOut(auth);window.location.href='../index.html';});
 
-  const LEVEL_LABELS={'CA-Foundation':'CA Foundation','CA-Intermediate':'CA Intermediate','CA-Final':'CA Final','FRM-I':'FRM Part I','FRM-II':'FRM Part II','CFA-I':'CFA Level I','CFA-II':'CFA Level II','CFA-III':'CFA Level III'};
+  const LEVEL_LABELS={'CA-Foundation':'CA Foundation','CA-Intermediate':'CA Intermediate','CA-Final':'CA Final','FRM-I':'FRM Part I','FRM-II':'FRM Part II','CFA-I':'CFA Level I','CFA-II':'CFA Level II','CFA-III':'CFA Level III','CWM-I':'CWM Level I','CWM-II':'CWM Level II'};
 
   window.selectLevel=function(level){
     currentLevel=level;

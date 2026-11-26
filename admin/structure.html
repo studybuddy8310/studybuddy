@@ -232,6 +232,8 @@
         <div class="course-chip active" onclick="selectLevel('CA-Foundation')">CA Foundation</div>
         <div class="course-chip" onclick="selectLevel('CA-Intermediate')">CA Intermediate</div>
         <div class="course-chip" onclick="selectLevel('CA-Final')">CA Final</div>
+        <div class="course-chip" onclick="selectLevel('CWM-I')">CWM Level I</div>
+        <div class="course-chip" onclick="selectLevel('CWM-II')">CWM Level II</div>
         <div class="course-chip" onclick="selectLevel('FRM-I')">FRM Part I</div>
         <div class="course-chip" onclick="selectLevel('FRM-II')">FRM Part II</div>
         <div class="course-chip" onclick="selectLevel('CFA-I')">CFA Level I</div>
@@ -314,19 +316,23 @@
   // ── Select Level ───────────────────────────────────────────
   window.selectLevel = function(level) {
     currentLevel = level;
+    const labels = {
+      'CA-Foundation': 'CA Foundation',
+      'CA-Intermediate': 'CA Intermediate',
+      'CA-Final': 'CA Final',
+      'FRM-I': 'FRM Part I',
+      'FRM-II': 'FRM Part II',
+      'CFA-I': 'CFA Level I',
+      'CFA-II': 'CFA Level II',
+      'CFA-III': 'CFA Level III',
+      'CWM-I': 'CWM Level I',
+      'CWM-II': 'CWM Level II'
+    };
     document.querySelectorAll('.course-chip').forEach(c => {
-      c.classList.toggle('active', c.textContent.trim() ===
-        ({
-          'CA-Foundation':'CA Foundation',
-          'CA-Intermediate':'CA Intermediate',
-          'CA-Final':'CA Final',
-          'FRM-I':'FRM Part I',
-          'FRM-II':'FRM Part II'
-        }[level]));
+      c.classList.toggle('active', c.textContent.trim() === labels[level]);
     });
     loadLevel(level);
   };
-
   // ── Load Level Structure from Firestore ────────────────────
   async function loadLevel(level) {
     const container = document.getElementById('papers-container');
